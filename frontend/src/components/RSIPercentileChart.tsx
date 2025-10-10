@@ -38,6 +38,7 @@ const getBackgroundColor = (percentile: number): string => {
 };
 
 // Helper function to create colored line segments for RSI-MA
+// ⭐ This is the STAR of the chart - thick, vibrant, color-coded
 const createColoredLineSegments = (
   dates: string[],
   values: number[],
@@ -51,13 +52,13 @@ const createColoredLineSegments = (
       x: [dates[i], dates[i + 1]],
       y: [values[i], values[i + 1]],
       mode: 'lines',
-      name: i === 0 ? 'RSI-MA (Percentile Colored)' : '',
+      name: i === 0 ? '⭐ RSI-MA (Percentile-Colored) - PRIMARY SIGNAL' : '',
       showlegend: i === 0,
       line: {
         color: color,
-        width: 3,  // Thicker for better visibility
+        width: 4,  // THICKER - This is the main signal line
       },
-      hovertemplate: `<b>Date:</b> %{x}<br><b>RSI-MA:</b> %{y:.2f}<br><b>Percentile:</b> ${percentiles[i].toFixed(1)}%<extra></extra>`,
+      hovertemplate: `<b>Date:</b> %{x}<br><b>⭐ RSI-MA:</b> %{y:.2f}<br><b>Percentile Rank:</b> ${percentiles[i].toFixed(1)}%<extra></extra>`,
       type: 'scatter',
     });
   }
@@ -112,21 +113,22 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
         hoverinfo: 'skip',
         type: 'scatter',
       },
-      // RSI line (semi-transparent purple)
+      // RSI line (very subtle background reference)
       {
         x: dates,
         y: rsi,
         mode: 'lines',
-        name: 'RSI (14)',
+        name: 'RSI (14) - Reference',
         line: {
-          color: 'rgba(156, 39, 176, 0.5)',  // Purple with transparency
-          width: 1.5,
+          color: 'rgba(156, 39, 176, 0.2)',  // Very faint purple
+          width: 1,
           dash: 'dot',
         },
         hovertemplate: '<b>Date:</b> %{x}<br><b>RSI:</b> %{y:.2f}<extra></extra>',
         type: 'scatter',
+        visible: 'legendonly',  // Hidden by default, can be toggled
       },
-      // RSI-MA line (color-coded by percentile) - Main focus
+      // RSI-MA line (color-coded by percentile) - ⭐ MAIN FOCUS ⭐
       ...createColoredLineSegments(dates, rsi_ma, percentile_rank),
       // Percentile threshold lines - More subtle
       {
@@ -292,7 +294,7 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
     <Paper sx={{ p: 3, backgroundColor: 'rgba(18, 18, 18, 0.95)' }}>
       <Box sx={{ mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={5}>
             <Typography variant="h5" gutterBottom sx={{ color: '#fff', fontWeight: 600 }}>
               📊 RSI-MA Percentile Indicator
             </Typography>
@@ -300,26 +302,20 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
               {ticker} • 252-Day Historical Analysis
             </Typography>
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={7}>
             <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+              {/* ⭐ RSI-MA is the PRIMARY metric - make it stand out */}
               <Chip
-                label={`RSI: ${data.current_rsi.toFixed(1)}`}
-                sx={{ 
-                  backgroundColor: 'rgba(156, 39, 176, 0.9)',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  height: 36,
-                }}
-              />
-              <Chip
-                label={`RSI-MA: ${data.current_rsi_ma.toFixed(1)}`}
+                label={`⭐ RSI-MA: ${data.current_rsi_ma.toFixed(1)}`}
                 sx={{ 
                   backgroundColor: getColorForPercentile(data.current_percentile),
                   color: '#fff',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
-                  height: 36,
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  height: 44,
+                  px: 2,
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
                 }}
               />
               <Chip
@@ -328,9 +324,22 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
                   backgroundColor: percentileInfo.bgColor,
                   color: percentileInfo.color,
                   fontWeight: 700,
-                  fontSize: '0.9rem',
-                  height: 36,
-                  px: 1,
+                  fontSize: '1rem',
+                  height: 44,
+                  px: 2,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                }}
+              />
+              <Chip
+                label={`RSI: ${data.current_rsi.toFixed(1)}`}
+                size="small"
+                sx={{ 
+                  backgroundColor: 'rgba(156, 39, 176, 0.6)',
+                  color: '#fff',
+                  fontWeight: 500,
+                  fontSize: '0.8rem',
+                  height: 32,
+                  opacity: 0.7,
                 }}
               />
             </Box>
@@ -394,27 +403,30 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
       />
       
       <Box sx={{ mt: 3, p: 2.5, bgcolor: 'rgba(0, 0, 0, 0.4)', borderRadius: 2, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', display: 'block', mb: 2 }}>
+          ⭐ The thick color-coded line is RSI-MA - your primary signal. Color shows percentile rank (green = buy, red = sell).
+        </Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle2" sx={{ color: '#10b981', fontWeight: 700, mb: 1 }}>
-              🟢 ENTRY SIGNALS (Oversold)
+              🟢 ENTRY SIGNALS (RSI-MA Percentile Oversold)
             </Typography>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 0.5 }}>
-              • <strong>Extreme Low (&lt;5%):</strong> Strong buy signal - RSI-MA at historical lows
+              • <strong>Extreme Low (&lt;5%):</strong> Strong buy - RSI-MA at historical lows
             </Typography>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-              • <strong>Very Low (5-15%):</strong> Good entry opportunity - High probability of reversal
+              • <strong>Very Low (5-15%):</strong> Good entry - High probability of mean reversion
             </Typography>
           </Grid>
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle2" sx={{ color: '#dc3545', fontWeight: 700, mb: 1 }}>
-              🔴 EXIT SIGNALS (Overbought)
+              🔴 EXIT SIGNALS (RSI-MA Percentile Overbought)
             </Typography>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 0.5 }}>
-              • <strong>Extreme High (&gt;95%):</strong> Take profits - RSI-MA at historical highs
+              • <strong>Extreme High (&gt;95%):</strong> Take profits - RSI-MA at historical peaks
             </Typography>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-              • <strong>Very High (85-95%):</strong> Consider reducing position - Overbought territory
+              • <strong>Very High (85-95%):</strong> Consider exit - Overbought territory
             </Typography>
           </Grid>
         </Grid>
