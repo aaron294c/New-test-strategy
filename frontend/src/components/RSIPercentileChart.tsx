@@ -56,7 +56,7 @@ const createColoredLineSegments = (
       showlegend: i === 0,
       line: {
         color: color,
-        width: 4,  // THICKER - This is the main signal line
+        width: 8,  // SUPER THICK - Impossible to miss!
       },
       hovertemplate: `<b>Date:</b> %{x}<br><b>⭐ RSI-MA:</b> %{y:.2f}<br><b>Percentile Rank:</b> ${percentiles[i].toFixed(1)}%<extra></extra>`,
       type: 'scatter',
@@ -67,10 +67,10 @@ const createColoredLineSegments = (
 };
 
 const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, isLoading }) => {
-  // Calculate default date range - show last 30 days for daily analysis
+  // Calculate default date range - show last 14 days for CLOSE-UP daily analysis
   const defaultDateRange = useMemo(() => {
     if (!data || !data.dates || data.dates.length === 0) return null;
-    const defaultStartIndex = Math.max(0, data.dates.length - 30);
+    const defaultStartIndex = Math.max(0, data.dates.length - 14);  // Just 14 days for super close view
     return {
       start: data.dates[defaultStartIndex],
       end: data.dates[data.dates.length - 1]
@@ -320,12 +320,13 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
                 sx={{ 
                   backgroundColor: getColorForPercentile(data.current_percentile),
                   color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '1.1rem',
-                  height: 44,
-                  px: 2,
-                  border: '2px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+                  fontWeight: 900,
+                  fontSize: '1.5rem',
+                  height: 60,
+                  px: 3,
+                  border: '3px solid rgba(255, 255, 255, 0.5)',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+                  animation: 'pulse 2s infinite',
                 }}
               />
               <Chip
@@ -333,11 +334,11 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
                 sx={{ 
                   backgroundColor: percentileInfo.bgColor,
                   color: percentileInfo.color,
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  height: 44,
-                  px: 2,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  fontWeight: 900,
+                  fontSize: '1.2rem',
+                  height: 60,
+                  px: 3,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
                 }}
               />
               <Chip
@@ -361,12 +362,12 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
         data={plotData}
         layout={{
           autosize: true,
-          height: 700,  // Taller for better visibility
-          margin: { l: 70, r: 50, t: 20, b: 120 },  // More bottom margin for range slider
+          height: 900,  // SUPER TALL for maximum visibility
+          margin: { l: 80, r: 60, t: 40, b: 140 },  // More space all around
           xaxis: {
             title: { 
-              text: 'Date (Showing Last 30 Days by Default)',
-              font: { size: 14, color: 'rgba(255, 255, 255, 0.9)' }
+              text: '📅 Date (ZOOMED TO LAST 14 DAYS - Daily View)',
+              font: { size: 16, color: '#6366f1', weight: 'bold' }
             },
             gridcolor: 'rgba(255, 255, 255, 0.1)',
             showgrid: true,
@@ -397,16 +398,17 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
           },
           yaxis: {
             title: { 
-              text: 'RSI Value (0-100)',
-              font: { size: 16, color: 'rgba(255, 255, 255, 0.9)', weight: 'bold' }
+              text: '⭐ RSI Value (0-100) - Watch the THICK Colored Line',
+              font: { size: 18, color: '#10b981', weight: 'bold' }
             },
-            gridcolor: 'rgba(255, 255, 255, 0.15)',
+            gridcolor: 'rgba(255, 255, 255, 0.2)',
             showgrid: true,
             range: [0, 100],
-            color: 'rgba(255, 255, 255, 0.8)',
+            color: 'rgba(255, 255, 255, 0.9)',
             tickformat: '.0f',
-            fixedrange: false,  // Allow zoom on Y-axis too
-            dtick: 10,  // Show tick every 10 points
+            fixedrange: false,
+            dtick: 5,  // Show tick every 5 points for more granularity
+            tickfont: { size: 14, weight: 'bold' },
           },
           hovermode: 'x unified',
           showlegend: true,
@@ -446,12 +448,25 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
         style={{ width: '100%' }}
       />
       
-      <Box sx={{ mt: 3, p: 2.5, bgcolor: 'rgba(0, 0, 0, 0.4)', borderRadius: 2, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        <Typography variant="caption" sx={{ color: '#6366f1', fontWeight: 700, display: 'block', mb: 2 }}>
-          💡 CHART CONTROLS: Scroll to zoom in/out • Click & drag to pan • Quick view: 1W, 2W, 1M, 2M, 3M, ALL • Drag the slider at bottom for custom range
+      <Box sx={{ 
+        mt: 3, 
+        p: 3, 
+        bgcolor: 'rgba(99, 102, 241, 0.2)', 
+        borderRadius: 2, 
+        border: '3px solid #6366f1',
+        boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)',
+      }}>
+        <Typography variant="h6" sx={{ color: '#6366f1', fontWeight: 900, display: 'block', mb: 2 }}>
+          💡 HOW TO USE THIS CHART:
         </Typography>
-        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', display: 'block', mb: 2 }}>
-          ⭐ The thick color-coded line is RSI-MA - your primary signal. Color shows percentile rank (green = buy, red = sell).
+        <Typography variant="body1" sx={{ color: '#fff', fontWeight: 700, display: 'block', mb: 1 }}>
+          1. Watch the SUPER THICK colored line = RSI-MA (your primary signal)
+        </Typography>
+        <Typography variant="body1" sx={{ color: '#fff', fontWeight: 700, display: 'block', mb: 1 }}>
+          2. Green color = OVERSOLD (buy signal) • Red color = OVERBOUGHT (sell signal)
+        </Typography>
+        <Typography variant="body1" sx={{ color: '#fff', fontWeight: 700, display: 'block', mb: 2 }}>
+          3. Scroll to zoom • Drag to pan • Use 1W/2W/1M buttons for quick views
         </Typography>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
