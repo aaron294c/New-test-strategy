@@ -58,10 +58,9 @@ class BacktestRequest(BaseModel):
     max_horizon: int = Field(default=21, ge=7, le=30)
 
 class MonteCarloRequest(BaseModel):
-    ticker: str
     num_simulations: int = Field(default=1000, ge=100, le=5000)
     max_periods: int = Field(default=21, ge=10, le=50)
-    target_percentiles: List[float] = Field(default=[25, 50, 75, 90])
+    target_percentiles: List[float] = Field(default=[5, 15, 25, 50, 75, 85, 95])
 
 class PerformanceMatrixRequest(BaseModel):
     ticker: str
@@ -300,8 +299,9 @@ async def run_monte_carlo_simulation(ticker: str, request: MonteCarloRequest):
         percentile_ranks = backtester.calculate_percentile_ranks(indicator)
         
         # Get current values
-        current_percentile = percentile_ranks.iloc[-1]
-        current_price = data['Close'].iloc[-1]
+        current_percentile = float(percentile_ranks.iloc[-1]) if not pd.isna(percentile_ranks.iloc[-1]) else 50.0
+        current_price = float(data['Close'].iloc[-1])
+        current_rsi_ma = float(indicator.iloc[-1]) if not pd.isna(indicator.iloc[-1]) else 50.0
         
         # Prepare historical data
         historical_df = pd.DataFrame({
@@ -309,25 +309,43 @@ async def run_monte_carlo_simulation(ticker: str, request: MonteCarloRequest):
             'rsi_ma_percentile': percentile_ranks
         }).dropna()
         
-        # Run Monte Carlo simulation
+        # Run Monte Carlo simulation with custom target percentiles
+        target_percentiles = request.target_percentiles if hasattr(request, 'target_percentiles') and request.target_percentiles else [5, 15, 25, 50, 75, 85, 95]
+        
         mc_results = run_monte_carlo_for_ticker(
             ticker=ticker,
             current_percentile=current_percentile,
             current_price=current_price,
             historical_data=historical_df,
-            num_simulations=request.num_simulations
+            num_simulations=request.num_simulations,
+            target_percentiles=target_percentiles
         )
         
+        # Flatten the structure to match frontend expectations
         return {
             "ticker": ticker,
-            "current_percentile": float(current_percentile),
-            "current_price": float(current_price),
-            "simulation_results": mc_results,
+            "current_percentile": current_percentile,
+            "current_price": current_price,
+            "simulation_results": mc_results.get('simulation_results', {}),
+            "first_passage_times": mc_results.get('first_passage_times', {}),
+            "exit_timing": mc_results.get('exit_timing', {}),
+            "fan_chart": mc_results.get('fan_chart', {}),
+            "parameters": {
+                "drift": mc_results.get('parameters', {}).get('drift', 0),
+                "volatility": mc_results.get('parameters', {}).get('volatility', 0),
+                "current_percentile": current_percentile,
+                "current_price": current_rsi_ma,
+                "num_simulations": request.num_simulations,
+                "max_periods": request.max_periods if hasattr(request, 'max_periods') else 21
+            },
             "timestamp": datetime.now().isoformat()
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_detail = f"Monte Carlo Error: {str(e)}\n{traceback.format_exc()}"
+        print(error_detail)
+        raise HTTPException(status_code=500, detail=error_detail)
 
 @app.get("/api/rsi-chart/{ticker}")
 async def get_rsi_percentile_chart(ticker: str, days: int = 252):

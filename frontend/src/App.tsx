@@ -29,12 +29,14 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import BubbleChartIcon from '@mui/icons-material/BubbleChart';
 
-import { backtestApi } from './api/client';
+import { backtestApi, monteCarloApi } from './api/client';
 import PerformanceMatrixHeatmap from './components/PerformanceMatrixHeatmap';
 import ReturnDistributionChart from './components/ReturnDistributionChart';
 import OptimalExitPanel from './components/OptimalExitPanel';
 import RSIPercentileChart from './components/RSIPercentileChart';
+import MonteCarloPanel from './components/MonteCarloPanel';
 
 // Create theme
 const theme = createTheme({
@@ -98,6 +100,16 @@ function Dashboard() {
   const { data: rsiChartData, isLoading: isLoadingRSIChart } = useQuery({
     queryKey: ['rsiChart', selectedTicker],
     queryFn: () => backtestApi.getRSIChartData(selectedTicker, 252),
+  });
+
+  // Fetch Monte Carlo data
+  const { data: monteCarloData, isLoading: isLoadingMonteCarlo } = useQuery({
+    queryKey: ['monteCarlo', selectedTicker],
+    queryFn: () => monteCarloApi.runSimulation(selectedTicker, { 
+      num_simulations: 1000,
+      max_periods: 21,
+      target_percentiles: [5, 15, 25, 50, 75, 85, 95]
+    }),
   });
 
   const thresholdData = backtestData?.thresholds?.[selectedThreshold.toFixed(1)];
@@ -213,11 +225,12 @@ function Dashboard() {
         {!isLoading && !error && thresholdData && (
           <>
             <Paper elevation={3} sx={{ mb: 3 }}>
-              <Tabs value={activeTab} onChange={handleTabChange}>
+              <Tabs value={activeTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
                 <Tab icon={<TimelineIcon />} label="RSI Indicator" />
                 <Tab icon={<AssessmentIcon />} label="Performance Matrix" />
                 <Tab icon={<ShowChartIcon />} label="Return Analysis" />
                 <Tab icon={<TrendingUpIcon />} label="Optimal Exit" />
+                <Tab icon={<BubbleChartIcon />} label="Monte Carlo" />
               </Tabs>
             </Paper>
 
@@ -267,6 +280,18 @@ function Dashboard() {
                     trendAnalysis={thresholdData.trend_analysis}
                     ticker={selectedTicker}
                     threshold={selectedThreshold}
+                  />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={4}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <MonteCarloPanel
+                    data={monteCarloData || null}
+                    ticker={selectedTicker}
+                    isLoading={isLoadingMonteCarlo}
                   />
                 </Grid>
               </Grid>
