@@ -329,6 +329,54 @@ async def run_monte_carlo_simulation(ticker: str, request: MonteCarloRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/rsi-chart/{ticker}")
+async def get_rsi_percentile_chart(ticker: str, days: int = 252):
+    """
+    Get RSI and RSI-MA time series data with percentile levels for chart visualization.
+    Returns historical RSI, RSI-MA, percentile rank, and percentile thresholds.
+    """
+    ticker = ticker.upper()
+    
+    try:
+        # Get backtest results (this ensures we have the data analyzed)
+        backtest_data = load_cached_results(ticker)
+        
+        if not backtest_data:
+            backtest_response = await get_backtest_results(ticker)
+            backtest_data = backtest_response["data"]
+        
+        # Create backtester instance to access the new method
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=[ticker],
+            lookback_period=500,
+            rsi_length=14,
+            ma_length=14,
+            max_horizon=21
+        )
+        
+        # Fetch and analyze data (store in backtester.results)
+        data = backtester.fetch_data(ticker)
+        if data.empty:
+            raise HTTPException(status_code=404, detail=f"Could not fetch data for {ticker}")
+        
+        # Store data in results (needed by get_rsi_percentile_timeseries)
+        backtester.results[ticker] = {'data': data}
+        
+        # Get time series data
+        chart_data = backtester.get_rsi_percentile_timeseries(ticker, days)
+        
+        if not chart_data:
+            raise HTTPException(status_code=404, detail=f"Could not generate chart data for {ticker}")
+        
+        return {
+            "ticker": ticker,
+            "chart_data": chart_data,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/compare")
 async def compare_tickers(request: TickerComparisonRequest):
     """

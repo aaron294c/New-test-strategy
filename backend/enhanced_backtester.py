@@ -670,6 +670,64 @@ class EnhancedPerformanceMatrixBacktester:
         
         return ticker_results
     
+    def get_rsi_percentile_timeseries(self, ticker: str, days: int = 252) -> Dict:
+        """
+        Get RSI, RSI-MA, and percentile data for chart visualization.
+        Returns last N days of data for plotting.
+        """
+        if ticker not in self.results:
+            return {}
+        
+        data = self.results[ticker]['data']
+        prices = data['Close']
+        
+        # Calculate RSI
+        daily_returns = prices.pct_change().fillna(0)
+        delta = daily_returns.diff()
+        gains = delta.where(delta > 0, 0)
+        losses = -delta.where(delta < 0, 0)
+        
+        avg_gains = gains.ewm(alpha=1/self.rsi_length, adjust=False).mean()
+        avg_losses = losses.ewm(alpha=1/self.rsi_length, adjust=False).mean()
+        
+        rs = avg_gains / avg_losses
+        rsi = 100 - (100 / (1 + rs))
+        rsi = rsi.fillna(50)
+        
+        # Calculate RSI-MA
+        rsi_ma = rsi.ewm(span=self.ma_length, adjust=False).mean()
+        
+        # Calculate percentile ranks
+        percentile_ranks = self.calculate_percentile_ranks(rsi_ma)
+        
+        # Get last N days
+        last_days = min(days, len(data))
+        dates = data.index[-last_days:].strftime('%Y-%m-%d').tolist()
+        
+        # Calculate percentile thresholds from full historical data
+        valid_rsi_ma = rsi_ma.dropna()
+        percentiles = {
+            'p5': float(np.percentile(valid_rsi_ma, 5)),
+            'p15': float(np.percentile(valid_rsi_ma, 15)),
+            'p25': float(np.percentile(valid_rsi_ma, 25)),
+            'p50': float(np.percentile(valid_rsi_ma, 50)),
+            'p75': float(np.percentile(valid_rsi_ma, 75)),
+            'p85': float(np.percentile(valid_rsi_ma, 85)),
+            'p95': float(np.percentile(valid_rsi_ma, 95))
+        }
+        
+        # Build time series data
+        return {
+            'dates': dates,
+            'rsi': rsi.iloc[-last_days:].fillna(50).tolist(),
+            'rsi_ma': rsi_ma.iloc[-last_days:].fillna(50).tolist(),
+            'percentile_rank': percentile_ranks.iloc[-last_days:].fillna(50).tolist(),
+            'percentile_thresholds': percentiles,
+            'current_rsi': float(rsi.iloc[-1]),
+            'current_rsi_ma': float(rsi_ma.iloc[-1]),
+            'current_percentile': float(percentile_ranks.iloc[-1]) if not pd.isna(percentile_ranks.iloc[-1]) else 50.0
+        }
+    
     def run_analysis(self) -> Dict:
         """Run full analysis across all tickers."""
         print(f"\n{'='*80}")

@@ -9,6 +9,7 @@ import type {
   ComparisonData,
   PerformanceMatrix,
   OptimalExitStrategy,
+  RSIChartData,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -85,6 +86,16 @@ export const backtestApi = {
   }> => {
     const response = await apiClient.get(`/api/optimal-exit/${ticker}/${threshold}`);
     return response.data;
+  },
+
+  /**
+   * Get RSI percentile chart data
+   */
+  getRSIChartData: async (ticker: string, days: number = 252): Promise<RSIChartData> => {
+    const response = await apiClient.get(`/api/rsi-chart/${ticker}`, {
+      params: { days },
+    });
+    return response.data.chart_data;
   },
 };
 

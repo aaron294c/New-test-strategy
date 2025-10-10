@@ -28,11 +28,13 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
+import TimelineIcon from '@mui/icons-material/Timeline';
 
 import { backtestApi } from './api/client';
 import PerformanceMatrixHeatmap from './components/PerformanceMatrixHeatmap';
 import ReturnDistributionChart from './components/ReturnDistributionChart';
 import OptimalExitPanel from './components/OptimalExitPanel';
+import RSIPercentileChart from './components/RSIPercentileChart';
 
 // Create theme
 const theme = createTheme({
@@ -90,6 +92,12 @@ function Dashboard() {
   const { data: backtestData, isLoading, error, refetch } = useQuery({
     queryKey: ['backtest', selectedTicker],
     queryFn: () => backtestApi.getBacktestResults(selectedTicker),
+  });
+
+  // Fetch RSI chart data
+  const { data: rsiChartData, isLoading: isLoadingRSIChart } = useQuery({
+    queryKey: ['rsiChart', selectedTicker],
+    queryFn: () => backtestApi.getRSIChartData(selectedTicker, 252),
   });
 
   const thresholdData = backtestData?.thresholds?.[selectedThreshold.toFixed(1)];
@@ -206,6 +214,7 @@ function Dashboard() {
           <>
             <Paper elevation={3} sx={{ mb: 3 }}>
               <Tabs value={activeTab} onChange={handleTabChange}>
+                <Tab icon={<TimelineIcon />} label="RSI Indicator" />
                 <Tab icon={<AssessmentIcon />} label="Performance Matrix" />
                 <Tab icon={<ShowChartIcon />} label="Return Analysis" />
                 <Tab icon={<TrendingUpIcon />} label="Optimal Exit" />
@@ -213,6 +222,18 @@ function Dashboard() {
             </Paper>
 
             <TabPanel value={activeTab} index={0}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <RSIPercentileChart
+                    data={rsiChartData || null}
+                    ticker={selectedTicker}
+                    isLoading={isLoadingRSIChart}
+                  />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={1}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <PerformanceMatrixHeatmap
@@ -224,7 +245,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={1}>
+            <TabPanel value={activeTab} index={2}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <ReturnDistributionChart
@@ -237,7 +258,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={2}>
+            <TabPanel value={activeTab} index={3}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <OptimalExitPanel

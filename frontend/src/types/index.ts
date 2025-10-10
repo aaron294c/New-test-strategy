@@ -184,6 +184,26 @@ export interface ComparisonData {
   };
 }
 
+// RSI Percentile Chart Data
+export interface RSIChartData {
+  dates: string[];
+  rsi: number[];
+  rsi_ma: number[];
+  percentile_rank: number[];
+  percentile_thresholds: {
+    p5: number;
+    p15: number;
+    p25: number;
+    p50: number;
+    p75: number;
+    p85: number;
+    p95: number;
+  };
+  current_rsi: number;
+  current_rsi_ma: number;
+  current_percentile: number;
+}
+
 // Dashboard state types
 export type ThresholdFilter = 5 | 10 | 15;
 export type TimeHorizonRange = 'D1-D7' | 'D8-D14' | 'D15-D21' | 'All';
