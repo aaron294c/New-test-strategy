@@ -1,0 +1,145 @@
+/**
+ * API Client for RSI-MA Performance Analytics Backend
+ */
+
+import axios from 'axios';
+import type {
+  BacktestData,
+  MonteCarloResults,
+  ComparisonData,
+  PerformanceMatrix,
+  OptimalExitStrategy,
+} from '@/types';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 120000, // 2 minutes for long-running backtests
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+export interface BacktestRequest {
+  tickers: string[];
+  lookback_period?: number;
+  rsi_length?: number;
+  ma_length?: number;
+  max_horizon?: number;
+}
+
+export interface MonteCarloRequest {
+  num_simulations?: number;
+  max_periods?: number;
+  target_percentiles?: number[];
+}
+
+export interface ComparisonRequest {
+  tickers: string[];
+  threshold: number;
+}
+
+/**
+ * Backtest API calls
+ */
+export const backtestApi = {
+  /**
+   * Get backtest results for a single ticker
+   */
+  getBacktestResults: async (ticker: string, forceRefresh = false): Promise<BacktestData> => {
+    const response = await apiClient.get(`/api/backtest/${ticker}`, {
+      params: { force_refresh: forceRefresh },
+    });
+    return response.data.data;
+  },
+
+  /**
+   * Run batch backtest for multiple tickers
+   */
+  runBatchBacktest: async (request: BacktestRequest): Promise<Record<string, BacktestData>> => {
+    const response = await apiClient.post('/api/backtest/batch', request);
+    return response.data.results;
+  },
+
+  /**
+   * Get performance matrix for specific ticker and threshold
+   */
+  getPerformanceMatrix: async (ticker: string, threshold: number): Promise<{
+    matrix: PerformanceMatrix;
+    events: number;
+    win_rates: { [day: number]: number };
+    return_distributions: any;
+  }> => {
+    const response = await apiClient.get(`/api/performance-matrix/${ticker}/${threshold}`);
+    return response.data;
+  },
+
+  /**
+   * Get optimal exit strategy
+   */
+  getOptimalExitStrategy: async (ticker: string, threshold: number): Promise<{
+    optimal_exit_strategy: OptimalExitStrategy;
+    risk_metrics: any;
+    trend_analysis: any;
+  }> => {
+    const response = await apiClient.get(`/api/optimal-exit/${ticker}/${threshold}`);
+    return response.data;
+  },
+};
+
+/**
+ * Monte Carlo simulation API calls
+ */
+export const monteCarloApi = {
+  /**
+   * Run Monte Carlo simulation
+   */
+  runSimulation: async (ticker: string, request: MonteCarloRequest = {}): Promise<MonteCarloResults> => {
+    const response = await apiClient.post(`/api/monte-carlo/${ticker}`, request);
+    return response.data;
+  },
+};
+
+/**
+ * Comparison API calls
+ */
+export const comparisonApi = {
+  /**
+   * Compare multiple tickers
+   */
+  compareTickers: async (request: ComparisonRequest): Promise<ComparisonData> => {
+    const response = await apiClient.post('/api/compare', request);
+    return response.data.comparison;
+  },
+};
+
+/**
+ * Utility API calls
+ */
+export const utilityApi = {
+  /**
+   * Get available tickers
+   */
+  getAvailableTickers: async (): Promise<{
+    default_tickers: string[];
+    cached_tickers: string[];
+  }> => {
+    const response = await apiClient.get('/api/tickers');
+    return response.data;
+  },
+
+  /**
+   * Health check
+   */
+  healthCheck: async (): Promise<boolean> => {
+    try {
+      const response = await apiClient.get('/api/health');
+      return response.data.status === 'healthy';
+    } catch {
+      return false;
+    }
+  },
+};
+
+export default apiClient;
