@@ -70,6 +70,33 @@ const MonteCarloPanel: React.FC<MonteCarloPanelProps> = ({ data, ticker, isLoadi
     const bias = normalizedUpside > 55 ? 'bullish' : normalizedDownside > 55 ? 'bearish' : 'neutral';
     const biasStrength = Math.abs(normalizedUpside - normalizedDownside);
 
+    // Calculate trade recommendation
+    const is50thTarget = fpt['50'];
+    const is75thTarget = fpt['75'];
+    const is85thTarget = fpt['85'];
+    
+    let tradeAction = 'WAIT';
+    let tradeStrength = 'Weak';
+    let tradeReason = 'No clear setup';
+    
+    if (currentPercentile <= 15 && normalizedUpside > 70) {
+      tradeAction = 'STRONG BUY';
+      tradeStrength = 'Very Strong';
+      tradeReason = `Oversold (${currentPercentile.toFixed(1)}%) + ${normalizedUpside.toFixed(0)}% upside bias`;
+    } else if (currentPercentile <= 25 && normalizedUpside > 60) {
+      tradeAction = 'BUY';
+      tradeStrength = 'Moderate';
+      tradeReason = `Below 25th %ile + ${normalizedUpside.toFixed(0)}% upside probability`;
+    } else if (currentPercentile >= 85 && normalizedDownside > 70) {
+      tradeAction = 'STRONG SELL';
+      tradeStrength = 'Very Strong';
+      tradeReason = `Overbought (${currentPercentile.toFixed(1)}%) + ${normalizedDownside.toFixed(0)}% downside bias`;
+    } else if (currentPercentile >= 75 && normalizedDownside > 60) {
+      tradeAction = 'SELL';
+      tradeStrength = 'Moderate';
+      tradeReason = `Above 75th %ile + ${normalizedDownside.toFixed(0)}% downside probability`;
+    }
+
     return {
       upsideProbability: normalizedUpside,
       downsideProbability: normalizedDownside,
@@ -77,6 +104,9 @@ const MonteCarloPanel: React.FC<MonteCarloPanelProps> = ({ data, ticker, isLoadi
       biasStrength,
       upsideTargets,
       downsideTargets,
+      tradeAction,
+      tradeStrength,
+      tradeReason,
     };
   }, [data]);
 
@@ -222,11 +252,22 @@ const MonteCarloPanel: React.FC<MonteCarloPanelProps> = ({ data, ticker, isLoadi
     );
   }
 
-  const { bias, biasStrength, upsideProbability, downsideProbability } = firstHitAnalysis || {
+  const { 
+    bias, 
+    biasStrength, 
+    upsideProbability, 
+    downsideProbability,
+    tradeAction,
+    tradeStrength,
+    tradeReason,
+  } = firstHitAnalysis || {
     bias: 'neutral',
     biasStrength: 0,
     upsideProbability: 50,
     downsideProbability: 50,
+    tradeAction: 'WAIT',
+    tradeStrength: 'Weak',
+    tradeReason: 'Insufficient data',
   };
 
   const BiasIcon = bias === 'bullish' ? TrendingUpIcon : bias === 'bearish' ? TrendingDownIcon : TrendingFlatIcon;
@@ -417,13 +458,74 @@ const MonteCarloPanel: React.FC<MonteCarloPanelProps> = ({ data, ticker, isLoadi
         />
       </Paper>
 
+      {/* Probability Table */}
+      <Paper sx={{ p: 3, mb: 3, background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)' }}>
+        <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
+          📊 Probability Analysis - Next 21 Days
+        </Typography>
+        <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ bgcolor: 'rgba(16, 185, 129, 0.2)', border: '1px solid #10b981' }}>
+              <CardContent>
+                <Typography variant="caption" color="text.secondary">Reach 25th Percentile</Typography>
+                <Typography variant="h4" sx={{ color: '#10b981', fontWeight: 700 }}>
+                  {data.first_passage_times['25']?.probability.toFixed(0) || 'N/A'}%
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  in {data.first_passage_times['25']?.median_days.toFixed(1) || 'N/A'} days
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ bgcolor: 'rgba(108, 117, 125, 0.2)', border: '1px solid #6c757d' }}>
+              <CardContent>
+                <Typography variant="caption" color="text.secondary">Reach 50th Percentile</Typography>
+                <Typography variant="h4" sx={{ color: '#fff', fontWeight: 700 }}>
+                  {data.first_passage_times['50']?.probability.toFixed(0) || 'N/A'}%
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  in {data.first_passage_times['50']?.median_days.toFixed(1) || 'N/A'} days
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ bgcolor: 'rgba(255, 193, 7, 0.2)', border: '1px solid #ffc107' }}>
+              <CardContent>
+                <Typography variant="caption" color="text.secondary">Reach 75th Percentile</Typography>
+                <Typography variant="h4" sx={{ color: '#ffc107', fontWeight: 700 }}>
+                  {data.first_passage_times['75']?.probability.toFixed(0) || 'N/A'}%
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  in {data.first_passage_times['75']?.median_days.toFixed(1) || 'N/A'} days
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <Card sx={{ bgcolor: 'rgba(220, 53, 69, 0.2)', border: '1px solid #dc3545' }}>
+              <CardContent>
+                <Typography variant="caption" color="text.secondary">Reach 85th Percentile</Typography>
+                <Typography variant="h4" sx={{ color: '#dc3545', fontWeight: 700 }}>
+                  {data.first_passage_times['85']?.probability.toFixed(0) || 'N/A'}%
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  in {data.first_passage_times['85']?.median_days.toFixed(1) || 'N/A'} days
+                </Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      </Paper>
+
       {/* First Passage Time Analysis */}
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" gutterBottom sx={{ fontWeight: 700 }}>
-          ⏱️ First Passage Time Analysis
+          ⏱️ Detailed First Passage Time Analysis
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Expected time (in days) to reach each percentile threshold for the first time
+          Expected time (in days) to reach each percentile threshold for the first time, with probability ranges
         </Typography>
 
         <Grid container spacing={2}>

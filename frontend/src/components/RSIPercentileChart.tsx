@@ -67,6 +67,16 @@ const createColoredLineSegments = (
 };
 
 const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, isLoading }) => {
+  // Calculate default date range - show last 30 days for daily analysis
+  const defaultDateRange = useMemo(() => {
+    if (!data || !data.dates || data.dates.length === 0) return null;
+    const defaultStartIndex = Math.max(0, data.dates.length - 30);
+    return {
+      start: data.dates[defaultStartIndex],
+      end: data.dates[data.dates.length - 1]
+    };
+  }, [data]);
+
   const plotData = useMemo(() => {
     if (!data) return [];
 
@@ -355,12 +365,13 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
           margin: { l: 70, r: 50, t: 20, b: 120 },  // More bottom margin for range slider
           xaxis: {
             title: { 
-              text: 'Date',
+              text: 'Date (Showing Last 30 Days by Default)',
               font: { size: 14, color: 'rgba(255, 255, 255, 0.9)' }
             },
             gridcolor: 'rgba(255, 255, 255, 0.1)',
             showgrid: true,
             color: 'rgba(255, 255, 255, 0.8)',
+            range: defaultDateRange ? [defaultDateRange.start, defaultDateRange.end] : undefined,  // Default to last 30 days
             rangeslider: { 
               visible: true,
               bgcolor: 'rgba(30, 30, 30, 0.8)',
@@ -370,14 +381,16 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
             },
             rangeselector: {
               buttons: [
-                { count: 1, label: '1M', step: 'month', stepmode: 'backward' },
-                { count: 3, label: '3M', step: 'month', stepmode: 'backward' },
-                { count: 6, label: '6M', step: 'month', stepmode: 'backward' },
+                { count: 7, label: '1W', step: 'day', stepmode: 'backward' },
+                { count: 14, label: '2W', step: 'day', stepmode: 'backward' },
+                { count: 30, label: '1M', step: 'day', stepmode: 'backward' },
+                { count: 60, label: '2M', step: 'day', stepmode: 'backward' },
+                { count: 90, label: '3M', step: 'day', stepmode: 'backward' },
                 { step: 'all', label: 'ALL' }
               ],
               bgcolor: 'rgba(50, 50, 50, 0.8)',
               activecolor: 'rgba(99, 102, 241, 0.8)',
-              font: { color: 'rgba(255, 255, 255, 0.9)' },
+              font: { color: 'rgba(255, 255, 255, 0.9)', size: 11 },
               x: 0.01,
               y: 1.15,
             },
@@ -435,7 +448,7 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
       
       <Box sx={{ mt: 3, p: 2.5, bgcolor: 'rgba(0, 0, 0, 0.4)', borderRadius: 2, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
         <Typography variant="caption" sx={{ color: '#6366f1', fontWeight: 700, display: 'block', mb: 2 }}>
-          💡 CHART CONTROLS: Scroll to zoom • Click & drag to pan • Use time buttons (1M, 3M, 6M) • Drag the slider at bottom to select date range
+          💡 CHART CONTROLS: Scroll to zoom in/out • Click & drag to pan • Quick view: 1W, 2W, 1M, 2M, 3M, ALL • Drag the slider at bottom for custom range
         </Typography>
         <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', display: 'block', mb: 2 }}>
           ⭐ The thick color-coded line is RSI-MA - your primary signal. Color shows percentile rank (green = buy, red = sell).
