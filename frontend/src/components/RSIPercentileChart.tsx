@@ -15,22 +15,50 @@ interface RSIPercentileChartProps {
   isLoading?: boolean;
 }
 
+// Helper function to get color based on percentile rank
+const getColorForPercentile = (percentile: number): string => {
+  if (percentile >= 95) return 'rgb(255, 0, 0)';       // Red
+  if (percentile >= 85) return 'rgb(255, 165, 0)';     // Orange
+  if (percentile >= 75) return 'rgb(255, 255, 0)';     // Yellow
+  if (percentile >= 25) return 'rgb(255, 255, 255)';   // White
+  if (percentile >= 15) return 'rgb(0, 0, 255)';       // Blue
+  if (percentile >= 5) return 'rgb(0, 255, 0)';        // Lime
+  return 'rgb(0, 200, 0)';                             // Green
+};
+
+// Helper function to create colored line segments for RSI-MA
+const createColoredLineSegments = (
+  dates: string[],
+  values: number[],
+  percentiles: number[]
+) => {
+  const segments: any[] = [];
+  
+  for (let i = 0; i < dates.length - 1; i++) {
+    const color = getColorForPercentile(percentiles[i]);
+    segments.push({
+      x: [dates[i], dates[i + 1]],
+      y: [values[i], values[i + 1]],
+      mode: 'lines',
+      name: i === 0 ? 'RSI-MA' : '',
+      showlegend: i === 0,
+      line: {
+        color: color,
+        width: 2,
+      },
+      hovertemplate: `<b>Date:</b> %{x}<br><b>RSI-MA:</b> %{y:.2f}<br><b>Percentile:</b> ${percentiles[i].toFixed(1)}%<extra></extra>`,
+      type: 'scatter',
+    });
+  }
+  
+  return segments;
+};
+
 const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, isLoading }) => {
   const plotData = useMemo(() => {
     if (!data) return [];
 
     const { dates, rsi, rsi_ma, percentile_rank, percentile_thresholds } = data;
-
-    // Function to get color based on percentile rank
-    const getColorForPercentile = (percentile: number): string => {
-      if (percentile >= 95) return 'rgb(255, 0, 0)';       // Red
-      if (percentile >= 85) return 'rgb(255, 165, 0)';     // Orange
-      if (percentile >= 75) return 'rgb(255, 255, 0)';     // Yellow
-      if (percentile >= 25) return 'rgb(255, 255, 255)';   // White
-      if (percentile >= 15) return 'rgb(0, 0, 255)';       // Blue
-      if (percentile >= 5) return 'rgb(0, 255, 0)';        // Lime
-      return 'rgb(0, 200, 0)';                             // Green
-    };
 
     const traces: any[] = [
       // RSI Background Fill (30-70 bands)
@@ -191,44 +219,6 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
 
     return traces;
   }, [data]);
-
-  // Helper function to create colored line segments for RSI-MA
-  const createColoredLineSegments = (
-    dates: string[],
-    values: number[],
-    percentiles: number[]
-  ) => {
-    const segments: any[] = [];
-    
-    for (let i = 0; i < dates.length - 1; i++) {
-      const color = getColorForPercentile(percentiles[i]);
-      segments.push({
-        x: [dates[i], dates[i + 1]],
-        y: [values[i], values[i + 1]],
-        mode: 'lines',
-        name: i === 0 ? 'RSI-MA' : '',
-        showlegend: i === 0,
-        line: {
-          color: color,
-          width: 2,
-        },
-        hovertemplate: `<b>Date:</b> %{x}<br><b>RSI-MA:</b> %{y:.2f}<br><b>Percentile:</b> ${percentiles[i].toFixed(1)}%<extra></extra>`,
-        type: 'scatter',
-      });
-    }
-    
-    return segments;
-  };
-
-  const getColorForPercentile = (percentile: number): string => {
-    if (percentile >= 95) return 'rgb(255, 0, 0)';
-    if (percentile >= 85) return 'rgb(255, 165, 0)';
-    if (percentile >= 75) return 'rgb(255, 255, 0)';
-    if (percentile >= 25) return 'rgb(255, 255, 255)';
-    if (percentile >= 15) return 'rgb(0, 0, 255)';
-    if (percentile >= 5) return 'rgb(0, 255, 0)';
-    return 'rgb(0, 200, 0)';
-  };
 
   const getPercentileLabel = (percentile: number): { text: string; color: string } => {
     if (percentile >= 95) return { text: 'Extreme High (>95%)', color: '#f44336' };
