@@ -351,8 +351,8 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
         data={plotData}
         layout={{
           autosize: true,
-          height: 550,
-          margin: { l: 70, r: 50, t: 20, b: 70 },
+          height: 700,  // Taller for better visibility
+          margin: { l: 70, r: 50, t: 20, b: 120 },  // More bottom margin for range slider
           xaxis: {
             title: { 
               text: 'Date',
@@ -361,29 +361,51 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
             gridcolor: 'rgba(255, 255, 255, 0.1)',
             showgrid: true,
             color: 'rgba(255, 255, 255, 0.8)',
+            rangeslider: { 
+              visible: true,
+              bgcolor: 'rgba(30, 30, 30, 0.8)',
+              bordercolor: 'rgba(255, 255, 255, 0.2)',
+              borderwidth: 1,
+              thickness: 0.08,
+            },
+            rangeselector: {
+              buttons: [
+                { count: 1, label: '1M', step: 'month', stepmode: 'backward' },
+                { count: 3, label: '3M', step: 'month', stepmode: 'backward' },
+                { count: 6, label: '6M', step: 'month', stepmode: 'backward' },
+                { step: 'all', label: 'ALL' }
+              ],
+              bgcolor: 'rgba(50, 50, 50, 0.8)',
+              activecolor: 'rgba(99, 102, 241, 0.8)',
+              font: { color: 'rgba(255, 255, 255, 0.9)' },
+              x: 0.01,
+              y: 1.15,
+            },
           },
           yaxis: {
             title: { 
               text: 'RSI Value (0-100)',
-              font: { size: 14, color: 'rgba(255, 255, 255, 0.9)' }
+              font: { size: 16, color: 'rgba(255, 255, 255, 0.9)', weight: 'bold' }
             },
-            gridcolor: 'rgba(255, 255, 255, 0.1)',
+            gridcolor: 'rgba(255, 255, 255, 0.15)',
             showgrid: true,
             range: [0, 100],
             color: 'rgba(255, 255, 255, 0.8)',
             tickformat: '.0f',
+            fixedrange: false,  // Allow zoom on Y-axis too
+            dtick: 10,  // Show tick every 10 points
           },
           hovermode: 'x unified',
           showlegend: true,
           legend: {
             x: 0.01,
             y: 0.99,
-            bgcolor: 'rgba(0, 0, 0, 0.8)',
-            bordercolor: 'rgba(255, 255, 255, 0.3)',
-            borderwidth: 1,
+            bgcolor: 'rgba(0, 0, 0, 0.85)',
+            bordercolor: 'rgba(255, 255, 255, 0.4)',
+            borderwidth: 2,
             font: { 
-              size: 11,
-              color: 'rgba(255, 255, 255, 0.9)' 
+              size: 12,
+              color: 'rgba(255, 255, 255, 0.95)' 
             },
           },
           plot_bgcolor: 'rgba(10, 10, 10, 0.95)',
@@ -392,17 +414,29 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
             color: 'rgba(255, 255, 255, 0.9)',
             size: 12,
           },
+          dragmode: 'zoom',  // Enable zoom by default
         }}
         config={{
           responsive: true,
           displayModeBar: true,
           displaylogo: false,
-          modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+          scrollZoom: true,  // Enable scroll to zoom
+          modeBarButtonsToAdd: ['drawline', 'drawopenpath', 'eraseshape'],
+          toImageButtonOptions: {
+            format: 'png',
+            filename: `${ticker}_rsi_ma_chart`,
+            height: 1080,
+            width: 1920,
+            scale: 2
+          },
         }}
         style={{ width: '100%' }}
       />
       
       <Box sx={{ mt: 3, p: 2.5, bgcolor: 'rgba(0, 0, 0, 0.4)', borderRadius: 2, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <Typography variant="caption" sx={{ color: '#6366f1', fontWeight: 700, display: 'block', mb: 2 }}>
+          💡 CHART CONTROLS: Scroll to zoom • Click & drag to pan • Use time buttons (1M, 3M, 6M) • Drag the slider at bottom to select date range
+        </Typography>
         <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', display: 'block', mb: 2 }}>
           ⭐ The thick color-coded line is RSI-MA - your primary signal. Color shows percentile rank (green = buy, red = sell).
         </Typography>
