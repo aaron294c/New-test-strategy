@@ -338,14 +338,7 @@ async def get_rsi_percentile_chart(ticker: str, days: int = 252):
     ticker = ticker.upper()
     
     try:
-        # Get backtest results (this ensures we have the data analyzed)
-        backtest_data = load_cached_results(ticker)
-        
-        if not backtest_data:
-            backtest_response = await get_backtest_results(ticker)
-            backtest_data = backtest_response["data"]
-        
-        # Create backtester instance to access the new method
+        # Create backtester instance
         backtester = EnhancedPerformanceMatrixBacktester(
             tickers=[ticker],
             lookback_period=500,
@@ -354,19 +347,55 @@ async def get_rsi_percentile_chart(ticker: str, days: int = 252):
             max_horizon=21
         )
         
-        # Fetch and analyze data (store in backtester.results)
+        # Fetch data
         data = backtester.fetch_data(ticker)
         if data.empty:
             raise HTTPException(status_code=404, detail=f"Could not fetch data for {ticker}")
         
-        # Store data in results (needed by get_rsi_percentile_timeseries)
-        backtester.results[ticker] = {'data': data}
+        # Calculate RSI and percentiles
+        indicator = backtester.calculate_rsi_ma_indicator(data['Close'])
+        percentile_ranks = backtester.calculate_percentile_ranks(indicator)
         
-        # Get time series data
-        chart_data = backtester.get_rsi_percentile_timeseries(ticker, days)
+        # Get last N days
+        last_days = min(days, len(data))
+        dates = data.index[-last_days:].strftime('%Y-%m-%d').tolist()
         
-        if not chart_data:
-            raise HTTPException(status_code=404, detail=f"Could not generate chart data for {ticker}")
+        # Calculate RSI directly (for plotting)
+        prices = data['Close']
+        delta = prices.diff()
+        gains = delta.where(delta > 0, 0)
+        losses = -delta.where(delta < 0, 0)
+        
+        avg_gains = gains.ewm(span=backtester.rsi_length, adjust=False).mean()
+        avg_losses = losses.ewm(span=backtester.rsi_length, adjust=False).mean()
+        
+        rs = avg_gains / avg_losses
+        rsi = 100 - (100 / (1 + rs))
+        rsi = rsi.fillna(50)
+        
+        # Calculate percentile thresholds from full historical data
+        valid_rsi_ma = indicator.dropna()
+        percentiles = {
+            'p5': float(np.percentile(valid_rsi_ma, 5)),
+            'p15': float(np.percentile(valid_rsi_ma, 15)),
+            'p25': float(np.percentile(valid_rsi_ma, 25)),
+            'p50': float(np.percentile(valid_rsi_ma, 50)),
+            'p75': float(np.percentile(valid_rsi_ma, 75)),
+            'p85': float(np.percentile(valid_rsi_ma, 85)),
+            'p95': float(np.percentile(valid_rsi_ma, 95))
+        }
+        
+        # Build chart data
+        chart_data = {
+            'dates': dates,
+            'rsi': rsi.iloc[-last_days:].fillna(50).tolist(),
+            'rsi_ma': indicator.iloc[-last_days:].fillna(50).tolist(),
+            'percentile_rank': percentile_ranks.iloc[-last_days:].fillna(50).tolist(),
+            'percentile_thresholds': percentiles,
+            'current_rsi': float(rsi.iloc[-1]) if not pd.isna(rsi.iloc[-1]) else 50.0,
+            'current_rsi_ma': float(indicator.iloc[-1]) if not pd.isna(indicator.iloc[-1]) else 50.0,
+            'current_percentile': float(percentile_ranks.iloc[-1]) if not pd.isna(percentile_ranks.iloc[-1]) else 50.0
+        }
         
         return {
             "ticker": ticker,
@@ -375,7 +404,7 @@ async def get_rsi_percentile_chart(ticker: str, days: int = 252):
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"RSI Chart Error: {str(e)}")
 
 @app.post("/api/compare")
 async def compare_tickers(request: TickerComparisonRequest):
