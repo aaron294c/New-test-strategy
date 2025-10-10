@@ -92,7 +92,7 @@ function Dashboard() {
     queryFn: () => backtestApi.getBacktestResults(selectedTicker),
   });
 
-  const thresholdData = backtestData?.thresholds?.[selectedThreshold.toString()];
+  const thresholdData = backtestData?.thresholds?.[selectedThreshold.toFixed(1)];
 
   const handleTickerChange = (event: any) => {
     setSelectedTicker(event.target.value);
