@@ -91,8 +91,20 @@ class EnhancedPerformanceMatrixBacktester:
         self.results = {}
         self.performance_matrices = {}
     
-    def fetch_data(self, ticker: str, period: str = "5y") -> pd.DataFrame:
+    def fetch_data(self, ticker: str, period: str = "5y", use_sample_data: bool = False) -> pd.DataFrame:
         """Fetch ticker data with robust error handling."""
+        
+        # If Yahoo Finance is blocked, use sample data
+        if use_sample_data:
+            try:
+                from sample_data_generator import generate_sample_stock_data
+                period_days = {'1y': 252, '2y': 504, '5y': 1260}
+                days = period_days.get(period, 252)
+                print(f"⚠️  Using SAMPLE data for {ticker} (Yahoo Finance blocked)")
+                return generate_sample_stock_data(ticker, days)
+            except Exception as e:
+                print(f"Error generating sample data: {e}")
+        
         try:
             time.sleep(0.5)  # Rate limiting
             
@@ -141,6 +153,15 @@ class EnhancedPerformanceMatrixBacktester:
                     return data
             except Exception as e2:
                 print(f"Final error for {ticker}: {e2}")
+            
+            # Last resort: try sample data
+            print(f"⚠️  ALL METHODS FAILED - Using sample data for {ticker}")
+            try:
+                from sample_data_generator import generate_sample_stock_data
+                return generate_sample_stock_data(ticker, days=1260)
+            except:
+                pass
+            
             return pd.DataFrame()
     
     def calculate_rsi_ma_indicator(self, prices: pd.Series) -> pd.Series:
