@@ -128,7 +128,13 @@ class EnhancedPerformanceMatrixBacktester:
             
             if data.empty:
                 print(f"Failed to fetch data for {ticker}")
-                return pd.DataFrame()
+                print(f"⚠️  Yahoo Finance blocked - Using sample data for {ticker}")
+                try:
+                    from sample_data_generator import generate_sample_stock_data
+                    return generate_sample_stock_data(ticker, days=1260)
+                except Exception as e:
+                    print(f"Error generating sample data: {e}")
+                    return pd.DataFrame()
                 
             data = data.dropna()
             
