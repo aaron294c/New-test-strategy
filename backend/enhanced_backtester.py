@@ -129,12 +129,18 @@ class EnhancedPerformanceMatrixBacktester:
         except Exception as e:
             print(f"Error fetching data for {ticker}: {e}")
             try:
-                data = yf.download(ticker, period="2y", progress=False)
+                # Add user agent for download method too
+                import requests
+                session = requests.Session()
+                session.headers.update({
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                })
+                data = yf.download(ticker, period="2y", progress=False, session=session)
                 if not data.empty:
                     print(f"Success with yf.download for {ticker}: {len(data)} points")
                     return data
-            except:
-                pass
+            except Exception as e2:
+                print(f"Final error for {ticker}: {e2}")
             return pd.DataFrame()
     
     def calculate_rsi_ma_indicator(self, prices: pd.Series) -> pd.Series:
