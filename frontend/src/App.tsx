@@ -36,15 +36,32 @@ import ReturnDistributionChart from './components/ReturnDistributionChart';
 import OptimalExitPanel from './components/OptimalExitPanel';
 import RSIPercentileChart from './components/RSIPercentileChart';
 
-// Create theme
+// Create theme with dark mode support
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
     primary: {
-      main: '#1976d2',
+      main: '#2962FF',
     },
     secondary: {
       main: '#4caf50',
+    },
+    background: {
+      default: '#131722',
+      paper: '#1E222D',
+    },
+    text: {
+      primary: '#D1D4DC',
+      secondary: '#787B86',
+    },
+  },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
     },
   },
 });
@@ -110,7 +127,7 @@ function Dashboard() {
     setSelectedThreshold(event.target.value);
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
