@@ -382,7 +382,8 @@ def run_monte_carlo_for_ticker(ticker: str,
                                current_percentile: float,
                                current_price: float,
                                historical_data: pd.DataFrame,
-                               num_simulations: int = 1000) -> Dict:
+                               num_simulations: int = 1000,
+                               target_percentiles: List[float] = None) -> Dict:
     """
     Convenience function to run Monte Carlo simulation for a ticker.
     
@@ -392,10 +393,14 @@ def run_monte_carlo_for_ticker(ticker: str,
         current_price: Current stock price
         historical_data: DataFrame with historical price and percentile data
         num_simulations: Number of simulations to run
+        target_percentiles: List of target percentiles to analyze
         
     Returns:
         Dictionary of simulation results
     """
+    if target_percentiles is None:
+        target_percentiles = [5, 15, 25, 50, 75, 85, 95]
+    
     # Assume historical_data has 'rsi_ma_percentile' and 'Close' columns
     simulator = MonteCarloSimulator(
         ticker=ticker,
@@ -409,7 +414,7 @@ def run_monte_carlo_for_ticker(ticker: str,
     
     # Run full simulation suite
     sim_results = simulator.run_simulations()
-    fpt_results = simulator.calculate_first_passage_times()
+    fpt_results = simulator.calculate_first_passage_times(target_percentiles=target_percentiles)
     exit_timing = simulator.calculate_exit_timing_distribution()
     fan_chart = simulator.generate_fan_chart_data()
     

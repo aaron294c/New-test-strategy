@@ -162,6 +162,15 @@ export interface MonteCarloResults {
       probability: number;
     };
   };
+  exit_timing: {
+    percentile_exit: {
+      median_days: number | null;
+      p25_days: number | null;
+      p75_days: number | null;
+      probability: number;
+      sample_size: number;
+    };
+  };
   fan_chart: {
     days: number[];
     median: number[];
@@ -171,6 +180,14 @@ export interface MonteCarloResults {
         upper: number[];
       };
     };
+  };
+  parameters: {
+    drift: number;
+    volatility: number;
+    current_percentile: number;
+    current_price: number;
+    num_simulations: number;
+    max_periods: number;
   };
 }
 
