@@ -11,7 +11,7 @@ numpy==1.26.2
 scipy==1.11.4
 
 # Market Data
-yfinance==0.2.32
+yfinance>=0.2.40  # Latest version with better Yahoo Finance API handling
 
 # Utilities
 python-multipart==0.0.6
