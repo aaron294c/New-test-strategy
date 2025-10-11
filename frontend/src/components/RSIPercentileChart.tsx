@@ -18,7 +18,7 @@ interface RSIPercentileChartProps {
 const COLORS = {
   background: '#1E222D',
   gridLines: 'rgba(42, 46, 57, 0.3)',
-  rsiLine: '#2962FF', // TradingView blue
+  rsiLine: 'rgba(41, 98, 255, 0.3)', // TradingView blue - more transparent
   rsiMA: '#FFC107', // Gold/yellow for MA
   overbought: '#FF5252', // Red
   neutral: '#787B86', // Gray
@@ -29,6 +29,14 @@ const COLORS = {
   bearishDiv: '#FF6B9D', // Pink
   text: '#D1D4DC',
   textSecondary: '#787B86',
+  // Percentile colors for RSI-MA
+  percentileVeryLow: '#FF3B30',    // Bright red - below 5th percentile
+  percentileLow: '#FF9500',        // Orange - 5-15th percentile  
+  percentileBelow: '#FFCC00',      // Yellow - 15-35th percentile
+  percentileNeutral: '#787B86',    // Gray - 35-65th percentile
+  percentileAbove: '#5AC8FA',      // Light blue - 65-85th percentile
+  percentileHigh: '#34C759',       // Green - 85-95th percentile
+  percentileVeryHigh: '#00C853',   // Bright green - above 95th percentile
 };
 
 // Signal detection helper
