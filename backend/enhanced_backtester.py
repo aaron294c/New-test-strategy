@@ -96,7 +96,14 @@ class EnhancedPerformanceMatrixBacktester:
         try:
             time.sleep(0.5)  # Rate limiting
             
-            stock = yf.Ticker(ticker)
+            # Add user agent to bypass Yahoo Finance blocking
+            import requests
+            session = requests.Session()
+            session.headers.update({
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            })
+            
+            stock = yf.Ticker(ticker, session=session)
             data = stock.history(period=period, auto_adjust=True, prepost=True)
             
             if data.empty:
