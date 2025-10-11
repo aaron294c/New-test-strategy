@@ -17,9 +17,9 @@ fi
 
 echo ""
 echo "✓ Frontend environment ready"
-echo "✓ Starting development server..."
-echo "✓ Dashboard will be available at: http://localhost:5173"
+echo "✓ Starting development server on 0.0.0.0:3000..."
+echo "✓ Dashboard will be available at: http://localhost:3000"
 echo ""
 
-# Start the frontend
+# Start the frontend (vite.config.ts already has host: 0.0.0.0)
 npm run dev

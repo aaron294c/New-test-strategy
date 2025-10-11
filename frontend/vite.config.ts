@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0', // Required for Codespaces/Docker port forwarding
     port: 3000,
     proxy: {
       '/api': {
