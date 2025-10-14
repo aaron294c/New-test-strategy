@@ -38,6 +38,8 @@ import ReturnDistributionChart from './components/ReturnDistributionChart';
 import OptimalExitPanel from './components/OptimalExitPanel';
 import RSIPercentileChart from './components/RSIPercentileChart';
 import StrategyRulesPanel from './components/StrategyRulesPanel';
+import ExitStrategyComparison from './components/ExitStrategyComparison';
+import TradeSimulationViewer from './components/TradeSimulationViewer';
 
 // Create theme with dark mode support
 const theme = createTheme({
@@ -233,12 +235,14 @@ function Dashboard() {
         {!isLoading && !error && thresholdData && (
           <>
             <Paper elevation={3} sx={{ mb: 3 }}>
-              <Tabs value={activeTab} onChange={handleTabChange}>
+              <Tabs value={activeTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
                 <Tab icon={<TimelineIcon />} label="RSI Indicator" />
                 <Tab icon={<AssessmentIcon />} label="Performance Matrix" />
                 <Tab icon={<ShowChartIcon />} label="Return Analysis" />
                 <Tab icon={<RuleIcon />} label="Strategy & Rules" />
                 <Tab icon={<TrendingUpIcon />} label="Optimal Exit" />
+                <Tab icon={<TrendingUpIcon />} label="Exit Strategies" />
+                <Tab icon={<ShowChartIcon />} label="Trade Simulation" />
               </Tabs>
             </Paper>
 
@@ -311,6 +315,27 @@ function Dashboard() {
                     trendAnalysis={thresholdData.trend_analysis}
                     ticker={selectedTicker}
                     threshold={selectedThreshold}
+                  />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={5}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <ExitStrategyComparison
+                    ticker={selectedTicker}
+                    threshold={selectedThreshold}
+                  />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={6}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TradeSimulationViewer
+                    ticker={selectedTicker}
                   />
                 </Grid>
               </Grid>

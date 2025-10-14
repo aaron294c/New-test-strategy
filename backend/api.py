@@ -22,6 +22,7 @@ import numpy as np
 
 from enhanced_backtester import EnhancedPerformanceMatrixBacktester
 from monte_carlo_simulator import MonteCarloSimulator, run_monte_carlo_for_ticker
+from advanced_backtest_runner import AdvancedBacktestRunner, run_advanced_backtest
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -70,6 +71,11 @@ class PerformanceMatrixRequest(BaseModel):
 class TickerComparisonRequest(BaseModel):
     tickers: List[str] = Field(min_items=1, max_items=5)
     threshold: float = Field(default=5.0)
+
+class AdvancedBacktestRequest(BaseModel):
+    ticker: str
+    threshold: float = Field(default=5.0)
+    max_hold_days: int = Field(default=21, ge=7, le=30)
 
 # ============================================================================
 # Helper Functions
@@ -121,7 +127,9 @@ async def root():
             "monte_carlo": "/api/monte-carlo/{ticker}",
             "performance_matrix": "/api/performance-matrix/{ticker}/{threshold}",
             "optimal_exit": "/api/optimal-exit/{ticker}/{threshold}",
-            "ticker_comparison": "/api/compare"
+            "ticker_comparison": "/api/compare",
+            "advanced_backtest": "/api/advanced-backtest",
+            "trade_simulation": "/api/trade-simulation/{ticker}"
         }
     }
 
@@ -420,17 +428,160 @@ async def compare_tickers(request: TickerComparisonRequest):
 async def get_available_tickers():
     """Get list of available tickers with cached results."""
     cached_tickers = []
-    
+
     for filename in os.listdir(CACHE_DIR):
         if filename.endswith("_backtest.json"):
             ticker = filename.replace("_backtest.json", "")
             cached_tickers.append(ticker)
-    
+
     return {
         "default_tickers": DEFAULT_TICKERS,
         "cached_tickers": sorted(cached_tickers),
         "timestamp": datetime.now().isoformat()
     }
+
+@app.post("/api/advanced-backtest")
+async def run_advanced_backtest_endpoint(request: AdvancedBacktestRequest):
+    """
+    Run advanced backtest comparing multiple exit strategies.
+
+    Returns comprehensive comparison of:
+    - Buy and hold
+    - Fixed day exits (D3, D5, D7, etc.)
+    - ATR trailing stop
+    - Exit pressure based
+    - Conditional expectancy based
+    """
+    ticker = request.ticker.upper()
+
+    try:
+        # Get historical data and entry events
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=[ticker],
+            lookback_period=500,
+            rsi_length=14,
+            ma_length=14,
+            max_horizon=request.max_hold_days
+        )
+
+        data = backtester.fetch_data(ticker)
+        if data.empty:
+            raise HTTPException(status_code=404, detail=f"Could not fetch data for {ticker}")
+
+        indicator = backtester.calculate_rsi_ma_indicator(data)
+        percentile_ranks = backtester.calculate_percentile_ranks(indicator)
+
+        # Find entry events for the threshold
+        entry_events = backtester.find_entry_events_enhanced(
+            percentile_ranks, data['Close'], request.threshold
+        )
+
+        if len(entry_events) < 10:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient entry events ({len(entry_events)}) for threshold {request.threshold}%"
+            )
+
+        # Run advanced backtest
+        runner = AdvancedBacktestRunner(
+            historical_data=data,
+            rsi_ma_percentiles=percentile_ranks,
+            entry_events=entry_events,
+            max_hold_days=request.max_hold_days
+        )
+
+        comparison = runner.run_comprehensive_comparison()
+        optimal_curve = runner.generate_optimal_exit_curve()
+
+        return {
+            "ticker": ticker,
+            "threshold": request.threshold,
+            "max_hold_days": request.max_hold_days,
+            "entry_events_count": len(entry_events),
+            "strategy_comparison": comparison.to_dict(),
+            "optimal_exit_curve": optimal_curve,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/trade-simulation/{ticker}")
+async def simulate_trade_with_management(
+    ticker: str,
+    entry_percentile: float = 5.0,
+    days_to_simulate: int = 21
+):
+    """
+    Simulate a single trade with advanced trade management.
+
+    Shows day-by-day:
+    - Exit pressure
+    - Trade state
+    - Exposure recommendations
+    - Trailing stop levels
+    - Volatility metrics
+    """
+    ticker = ticker.upper()
+
+    try:
+        # Get historical data
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=[ticker],
+            lookback_period=500,
+            rsi_length=14,
+            ma_length=14,
+            max_horizon=days_to_simulate
+        )
+
+        data = backtester.fetch_data(ticker)
+        if data.empty:
+            raise HTTPException(status_code=404, detail=f"Could not fetch data for {ticker}")
+
+        indicator = backtester.calculate_rsi_ma_indicator(data)
+        percentile_ranks = backtester.calculate_percentile_ranks(indicator)
+
+        # Find a recent entry event at the target percentile
+        entry_events = backtester.find_entry_events_enhanced(
+            percentile_ranks, data['Close'], entry_percentile
+        )
+
+        if not entry_events:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No entry events found at {entry_percentile}% threshold"
+            )
+
+        # Use the most recent entry event
+        recent_event = entry_events[-1]
+        entry_date = recent_event['entry_date']
+        entry_idx = data.index.get_loc(entry_date)
+
+        # Import simulation function
+        from advanced_trade_manager import simulate_trade_with_advanced_management
+
+        simulation = simulate_trade_with_advanced_management(
+            historical_data=data,
+            rsi_ma_percentiles=percentile_ranks,
+            entry_idx=entry_idx,
+            entry_percentile=recent_event['entry_percentile'],
+            entry_price=recent_event['entry_price'],
+            historical_events=entry_events,
+            max_hold_days=days_to_simulate
+        )
+
+        return {
+            "ticker": ticker,
+            "simulation": simulation,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
 # Startup Event
