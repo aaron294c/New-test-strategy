@@ -24,6 +24,8 @@ from enhanced_backtester import EnhancedPerformanceMatrixBacktester
 from monte_carlo_simulator import MonteCarloSimulator, run_monte_carlo_for_ticker
 from advanced_backtest_runner import AdvancedBacktestRunner, run_advanced_backtest
 from live_signal_generator import generate_live_signals, generate_exit_signal_for_position
+from multi_timeframe_analyzer import run_multi_timeframe_analysis
+from percentile_threshold_analyzer import PercentileThresholdAnalyzer
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -589,6 +591,38 @@ async def simulate_trade_with_management(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/available-dates/{ticker}")
+async def get_available_dates(ticker: str):
+    """
+    Get the date range of available data for a ticker.
+
+    Returns start and end dates in ISO format.
+    """
+    ticker = ticker.upper()
+
+    try:
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=[ticker],
+            lookback_period=500,
+            rsi_length=14,
+            ma_length=14,
+            max_horizon=21
+        )
+
+        data = backtester.fetch_data(ticker)
+        if data.empty:
+            raise HTTPException(status_code=404, detail=f"No data available for {ticker}")
+
+        return {
+            "ticker": ticker,
+            "start_date": data.index[0].strftime('%Y-%m-%d'),
+            "end_date": data.index[-1].strftime('%Y-%m-%d'),
+            "total_days": len(data)
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/api/live-signal/{ticker}")
 async def get_live_entry_signal(ticker: str):
     """
@@ -641,11 +675,94 @@ async def get_live_exit_signal(request: ExitSignalRequest):
         return signals
 
     except Exception as e:
+        import traceback
+        print(f"Error in /api/exit-signal for {ticker}:")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/multi-timeframe/{ticker}")
+async def get_multi_timeframe_analysis(ticker: str):
+    """
+    Get multi-timeframe divergence analysis between daily and 4-hourly RSI-MA.
+
+    Analyzes:
+    - Divergence/convergence patterns between daily and 4H timeframes
+    - Mean reversion opportunities (bearish/bullish divergence)
+    - Optimal divergence thresholds for reversals
+    - Forward-tested returns for each divergence type
+    - Current actionable signals (profit-taking, re-entry, hold)
+
+    Returns:
+        - Current divergence state and recommendation
+        - Historical divergence events with forward returns
+        - Statistics by divergence type and strength
+        - Optimal thresholds for trading
+        - Visual data for charting
+    """
+    ticker = ticker.upper()
+
+    try:
+        analysis = run_multi_timeframe_analysis(ticker)
+
+        return {
+            "ticker": ticker,
+            "analysis": analysis,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Error in /api/multi-timeframe for {ticker}:")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
 # Startup Event
 # ============================================================================
+
+@app.get("/api/percentile-thresholds/{ticker}")
+async def get_percentile_threshold_analysis(ticker: str):
+    """
+    Get percentile threshold analysis for a ticker.
+
+    Returns specific percentile thresholds for each of the 4 divergence categories:
+    1. 4H Overextended (Daily low, 4H high) - Take profits
+    2. Bullish Convergence (Both low) - Buy/add position
+    3. Daily Overextended (Daily high, 4H low) - Reduce/exit
+    4. Bearish Convergence (Both high) - Exit/short
+
+    Includes:
+    - Percentile distributions by category
+    - Optimal thresholds for each category
+    - Decision matrix: IF Daily=X% AND 4H=Y% THEN Action
+    - Performance statistics for each percentile range combination
+    - Grid analysis of all combinations
+    """
+    ticker = ticker.upper()
+
+    try:
+        analyzer = PercentileThresholdAnalyzer(ticker)
+
+        # Get all analyses
+        distributions = analyzer.analyze_percentile_distributions()
+        optimal_thresholds = analyzer.find_optimal_thresholds_by_category()
+        decision_matrix = analyzer.generate_decision_matrix()
+        grid = analyzer.create_percentile_grid_analysis()
+
+        return {
+            "ticker": ticker,
+            "distributions": distributions,
+            "optimal_thresholds": optimal_thresholds,
+            "decision_matrix": decision_matrix.to_dict(orient='records'),
+            "grid_analysis": grid.to_dict(orient='records'),
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Error in /api/percentile-thresholds for {ticker}:")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.on_event("startup")
 async def startup_event():

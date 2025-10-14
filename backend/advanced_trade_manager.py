@@ -184,6 +184,15 @@ class AdvancedTradeManager:
         current_atr = self.atr_series.iloc[current_idx]
         current_price = self.data['Close'].iloc[current_idx]
 
+        # Handle NaN values in ATR
+        if pd.isna(current_atr) or current_atr == 0:
+            # Use a default ATR based on recent price range if ATR is not available
+            recent_data = self.data.iloc[max(0, current_idx-20):current_idx+1]
+            if len(recent_data) > 0:
+                current_atr = (recent_data['High'] - recent_data['Low']).mean()
+            else:
+                current_atr = current_price * 0.02  # 2% of price as fallback
+
         # Calculate normalized displacement from entry
         price_move = current_price - self.entry_price
         atr_displacement = price_move / current_atr if current_atr > 0 else 0
@@ -196,10 +205,10 @@ class AdvancedTradeManager:
         atr_mult = multipliers.get(regime, 2.0)
 
         return VolatilityMetrics(
-            atr=current_atr,
+            atr=float(current_atr),
             atr_multiplier=atr_mult,
-            normalized_displacement=atr_displacement,
-            volatility_regime=regime
+            normalized_displacement=float(atr_displacement),
+            volatility_regime=str(regime)
         )
 
     def calculate_percentile_velocity(self, current_idx: int, window: int = 3) -> float:

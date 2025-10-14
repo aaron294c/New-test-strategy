@@ -41,6 +41,7 @@ import StrategyRulesPanel from './components/StrategyRulesPanel';
 import ExitStrategyComparison from './components/ExitStrategyComparison';
 import TradeSimulationViewer from './components/TradeSimulationViewer';
 import LiveTradingSignals from './components/LiveTradingSignals';
+import MultiTimeframeDivergence from './components/MultiTimeframeDivergence';
 
 // Create theme with dark mode support
 const theme = createTheme({
@@ -238,6 +239,7 @@ function Dashboard() {
             <Paper elevation={3} sx={{ mb: 3 }}>
               <Tabs value={activeTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
                 <Tab icon={<TrendingUpIcon />} label="🔴 LIVE SIGNALS" />
+                <Tab icon={<TimelineIcon />} label="🎯 Multi-Timeframe Divergence" />
                 <Tab icon={<TimelineIcon />} label="RSI Indicator" />
                 <Tab icon={<AssessmentIcon />} label="Performance Matrix" />
                 <Tab icon={<ShowChartIcon />} label="Return Analysis" />
@@ -259,6 +261,14 @@ function Dashboard() {
             <TabPanel value={activeTab} index={1}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
+                  <MultiTimeframeDivergence ticker={selectedTicker} />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={2}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
                   <RSIPercentileChart
                     data={rsiChartData || null}
                     ticker={selectedTicker}
@@ -268,7 +278,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={2}>
+            <TabPanel value={activeTab} index={3}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <PerformanceMatrixHeatmap

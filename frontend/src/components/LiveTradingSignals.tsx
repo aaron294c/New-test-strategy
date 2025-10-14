@@ -43,6 +43,32 @@ const LiveTradingSignals: React.FC<LiveTradingSignalsProps> = ({ ticker }) => {
   const [hasPosition, setHasPosition] = useState(false);
   const [entryPrice, setEntryPrice] = useState('');
   const [entryDate, setEntryDate] = useState('');
+  const [availableDates, setAvailableDates] = useState<{start_date: string, end_date: string} | null>(null);
+
+  // Fetch available dates when component mounts or ticker changes
+  React.useEffect(() => {
+    const fetchAvailableDates = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/api/available-dates/${ticker}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const dates = await response.json();
+        setAvailableDates(dates);
+        
+        // Set default entry date to latest available date
+        setEntryDate(dates.end_date);
+        
+      } catch (err) {
+        console.error('Failed to fetch available dates:', err);
+      }
+    };
+    
+    fetchAvailableDates();
+  }, [ticker]);
 
   const fetchEntrySignal = async () => {
     setLoading(true);
@@ -66,9 +92,25 @@ const LiveTradingSignals: React.FC<LiveTradingSignalsProps> = ({ ticker }) => {
   };
 
   const fetchExitSignal = async () => {
-    if (!entryPrice || !entryDate) {
-      setError('Please enter entry price and date');
+    if (!entryPrice || parseFloat(entryPrice) <= 0) {
+      setError('Please enter a valid entry price');
       return;
+    }
+    
+    if (!entryDate || !entryDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      setError('Please enter a valid entry date (YYYY-MM-DD)');
+      return;
+    }
+
+    if (availableDates) {
+      const entryTimestamp = new Date(entryDate).getTime();
+      const startTimestamp = new Date(availableDates.start_date).getTime();
+      const endTimestamp = new Date(availableDates.end_date).getTime();
+      
+      if (entryTimestamp < startTimestamp || entryTimestamp > endTimestamp) {
+        setError(`Entry date must be between ${availableDates.start_date} and ${availableDates.end_date}`);
+        return;
+      }
     }
 
     setLoading(true);
@@ -87,7 +129,8 @@ const LiveTradingSignals: React.FC<LiveTradingSignalsProps> = ({ ticker }) => {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`API Error: ${response.status}\n${errorText}`);
       }
 
       const result = await response.json();

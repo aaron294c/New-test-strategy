@@ -204,6 +204,9 @@ class LiveSignalGenerator:
         """
         Generate exit signal for existing position.
 
+        This is FORWARD LOOKING - you input when you entered, and we tell you
+        what to do NOW based on current market conditions.
+
         Args:
             entry_price: Price at which position was entered
             entry_date_str: Entry date (ISO format string)
@@ -212,19 +215,51 @@ class LiveSignalGenerator:
             ExitSignal with actionable recommendation
         """
         # Parse entry date
-        entry_date = pd.Timestamp(entry_date_str)
+        try:
+            entry_date = pd.Timestamp(entry_date_str)
+        except Exception as e:
+            raise ValueError(f"Invalid entry date format: {entry_date_str}. Expected ISO format (YYYY-MM-DD)")
 
-        # Find entry index in data
+        # Current state (TODAY - most recent data we have)
+        current_idx = len(self.data) - 1
+        current_date = self.data.index[current_idx]
+        current_price = float(self.data['Close'].iloc[current_idx])
+
+        # Ensure timezone compatibility for date comparison
+        # If data index is timezone-aware, make entry_date timezone-aware too
+        if hasattr(current_date, 'tz') and current_date.tz is not None:
+            # Data has timezone, localize entry_date to match
+            if entry_date.tz is None:
+                entry_date = entry_date.tz_localize(current_date.tz)
+        else:
+            # Data is timezone-naive, ensure entry_date is too
+            if entry_date.tz is not None:
+                entry_date = entry_date.tz_localize(None)
+
+        # Calculate days held (from entry to now)
+        days_held = (current_date - entry_date).days
+
+        # Validate that entry was in the past
+        if days_held < 0:
+            raise ValueError(f"Entry date {entry_date_str} is in the future. Please provide a past entry date.")
+
+        if days_held == 0:
+            raise ValueError(f"Entry date {entry_date_str} is today. Need at least 1 day to analyze position.")
+
+        # Calculate current return based on entry price
+        current_return = (current_price / entry_price - 1) * 100
+
+        # Find the entry index in historical data (or closest date)
+        # This is used for percentile lookback, not for future projection
         try:
             entry_idx = self.data.index.get_indexer([entry_date], method='nearest')[0]
-        except:
-            raise ValueError(f"Could not find entry date {entry_date_str} in historical data")
+        except Exception as e:
+            # If we can't find the exact date, estimate based on current position
+            # This handles weekend/holiday entries
+            entry_idx = max(0, current_idx - days_held)
 
-        # Current state
-        current_idx = len(self.data) - 1
-        current_price = float(self.data['Close'].iloc[current_idx])
-        current_return = (current_price / entry_price - 1) * 100
-        days_held = (self.data.index[current_idx] - self.data.index[entry_idx]).days
+        # Ensure entry_idx is valid and before current
+        entry_idx = max(0, min(entry_idx, current_idx - 1))
 
         # Use advanced trade manager to calculate exit pressure
         manager = AdvancedTradeManager(
