@@ -23,6 +23,7 @@ import numpy as np
 from enhanced_backtester import EnhancedPerformanceMatrixBacktester
 from monte_carlo_simulator import MonteCarloSimulator, run_monte_carlo_for_ticker
 from advanced_backtest_runner import AdvancedBacktestRunner, run_advanced_backtest
+from live_signal_generator import generate_live_signals, generate_exit_signal_for_position
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -76,6 +77,11 @@ class AdvancedBacktestRequest(BaseModel):
     ticker: str
     threshold: float = Field(default=5.0)
     max_hold_days: int = Field(default=21, ge=7, le=30)
+
+class ExitSignalRequest(BaseModel):
+    ticker: str
+    entry_price: float
+    entry_date: str  # ISO format
 
 # ============================================================================
 # Helper Functions
@@ -580,6 +586,60 @@ async def simulate_trade_with_management(
 
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/live-signal/{ticker}")
+async def get_live_entry_signal(ticker: str):
+    """
+    Get real-time entry signal for a ticker based on current market conditions.
+
+    Applies historical analysis to present moment:
+    - Current percentile position
+    - Signal strength (strong_buy, buy, neutral, avoid)
+    - Expected returns (7d, 14d, 21d)
+    - Recommended position size
+    - Detailed reasoning and risk factors
+
+    Returns actionable "what to do NOW" recommendation.
+    """
+    ticker = ticker.upper()
+
+    try:
+        signals = generate_live_signals(ticker)
+        return signals
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/exit-signal")
+async def get_live_exit_signal(request: ExitSignalRequest):
+    """
+    Get real-time exit signal for an existing position.
+
+    Args:
+        ticker: Stock ticker
+        entry_price: Price at which position was entered
+        entry_date: Entry date (ISO format)
+
+    Returns:
+        - Current exit pressure (0-100)
+        - Recommended action (hold, reduce_25, reduce_50, reduce_75, exit_all)
+        - Urgency level (low, medium, high, critical)
+        - Expected returns if hold vs exit
+        - Trailing stop level
+        - Detailed reasoning
+    """
+    ticker = request.ticker.upper()
+
+    try:
+        signals = generate_exit_signal_for_position(
+            ticker=ticker,
+            entry_price=request.entry_price,
+            entry_date=request.entry_date
+        )
+        return signals
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
