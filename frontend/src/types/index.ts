@@ -93,6 +93,12 @@ export interface OptimalExitStrategy {
   }>;
 }
 
+export interface TradeManagementRule {
+  type: 'Exit Timing' | 'Trend Following' | 'Early Exit Signal' | 'Reversion Protection';
+  rule: string;
+  confidence: 'High' | 'Medium' | 'Low';
+}
+
 export interface ThresholdData {
   events: number;
   performance_matrix: PerformanceMatrix;
@@ -101,6 +107,7 @@ export interface ThresholdData {
   return_distributions: { [day: number]: ReturnDistribution };
   percentile_movements: PercentileMovements;
   trend_analysis: TrendAnalysis;
+  trade_management_rules: TradeManagementRule[];
   optimal_exit_strategy: OptimalExitStrategy;
 }
 

@@ -730,20 +730,46 @@ const RSIPercentileChart: React.FC<RSIPercentileChartProps> = ({ data, ticker, i
           )}
         </Box>
 
+        {/* Calculation Method */}
+        <Box
+          sx={{
+            mt: 2,
+            p: 1.5,
+            bgcolor: 'rgba(42, 46, 57, 0.4)',
+            borderRadius: 1,
+            borderLeft: `3px solid ${COLORS.rsiMA}`,
+          }}
+        >
+          <Typography
+            variant="caption"
+            sx={{
+              color: COLORS.text,
+              display: 'block',
+              fontSize: '0.75rem',
+              lineHeight: 1.6,
+              mb: 1,
+            }}
+          >
+            <strong style={{ color: COLORS.rsiMA }}>Calculation Method:</strong>{' '}
+            RSI is calculated on the <strong>change of log returns</strong> (second derivative of price),
+            then smoothed with a 14-period EMA to produce RSI-MA. This measures momentum acceleration.
+          </Typography>
+        </Box>
+
         {/* Interpretation Guide */}
-        <Box 
-          sx={{ 
-            mt: 2, 
-            p: 1.5, 
-            bgcolor: 'rgba(42, 46, 57, 0.4)', 
+        <Box
+          sx={{
+            mt: 1.5,
+            p: 1.5,
+            bgcolor: 'rgba(42, 46, 57, 0.4)',
             borderRadius: 1,
             borderLeft: `3px solid ${COLORS.rsiLine}`,
           }}
         >
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              color: COLORS.text, 
+          <Typography
+            variant="caption"
+            sx={{
+              color: COLORS.text,
               display: 'block',
               fontSize: '0.75rem',
               lineHeight: 1.6,

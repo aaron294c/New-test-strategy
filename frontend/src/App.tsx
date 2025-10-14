@@ -29,12 +29,15 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import RuleIcon from '@mui/icons-material/Rule';
 
 import { backtestApi } from './api/client';
 import PerformanceMatrixHeatmap from './components/PerformanceMatrixHeatmap';
+import EnhancedPerformanceMatrix from './components/EnhancedPerformanceMatrix';
 import ReturnDistributionChart from './components/ReturnDistributionChart';
 import OptimalExitPanel from './components/OptimalExitPanel';
 import RSIPercentileChart from './components/RSIPercentileChart';
+import StrategyRulesPanel from './components/StrategyRulesPanel';
 
 // Create theme with dark mode support
 const theme = createTheme({
@@ -234,6 +237,7 @@ function Dashboard() {
                 <Tab icon={<TimelineIcon />} label="RSI Indicator" />
                 <Tab icon={<AssessmentIcon />} label="Performance Matrix" />
                 <Tab icon={<ShowChartIcon />} label="Return Analysis" />
+                <Tab icon={<RuleIcon />} label="Strategy & Rules" />
                 <Tab icon={<TrendingUpIcon />} label="Optimal Exit" />
               </Tabs>
             </Paper>
@@ -255,7 +259,16 @@ function Dashboard() {
                 <Grid item xs={12}>
                   <PerformanceMatrixHeatmap
                     matrix={thresholdData.performance_matrix}
-                    title={`${selectedTicker} Performance Matrix (Entry ≤${selectedThreshold}%)`}
+                    title={`${selectedTicker} Performance Heatmap (Entry ≤${selectedThreshold}%)`}
+                    maxDay={21}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <EnhancedPerformanceMatrix
+                    matrix={thresholdData.performance_matrix}
+                    winRates={thresholdData.win_rates}
+                    returnDistributions={thresholdData.return_distributions}
+                    title={`${selectedTicker} Complete Performance Matrix (Entry ≤${selectedThreshold}%)`}
                     maxDay={21}
                   />
                 </Grid>
@@ -276,6 +289,20 @@ function Dashboard() {
             </TabPanel>
 
             <TabPanel value={activeTab} index={3}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <StrategyRulesPanel
+                    percentileMovements={thresholdData.percentile_movements}
+                    trendAnalysis={thresholdData.trend_analysis}
+                    tradeRules={thresholdData.trade_management_rules || []}
+                    ticker={selectedTicker}
+                    threshold={selectedThreshold}
+                  />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={4}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <OptimalExitPanel

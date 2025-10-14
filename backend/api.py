@@ -54,7 +54,7 @@ class BacktestRequest(BaseModel):
     tickers: List[str] = Field(default=DEFAULT_TICKERS, description="List of ticker symbols")
     lookback_period: int = Field(default=500, ge=100, le=1000)
     rsi_length: int = Field(default=14, ge=5, le=50)
-    ma_length: int = Field(default=14, ge=5, le=50)
+    ma_length: int = Field(default=14, ge=5, le=50)  # TradingView setting
     max_horizon: int = Field(default=21, ge=7, le=30)
 
 class MonteCarloRequest(BaseModel):
@@ -192,7 +192,7 @@ async def get_backtest_results(ticker: str, force_refresh: bool = False):
             ma_length=14,
             max_horizon=21
         )
-        
+
         results = backtester.run_analysis()
         
         if ticker not in results:
@@ -289,7 +289,7 @@ async def run_monte_carlo_simulation(ticker: str, request: MonteCarloRequest):
             ma_length=14,
             max_horizon=21
         )
-        
+
         # Fetch data
         data = backtester.fetch_data(ticker)
         if data.empty:
@@ -353,7 +353,7 @@ async def get_rsi_percentile_chart(ticker: str, days: int = 252):
             ma_length=14,
             max_horizon=21
         )
-        
+
         # Fetch and analyze data (store in backtester.results)
         data = backtester.fetch_data(ticker)
         if data.empty:
