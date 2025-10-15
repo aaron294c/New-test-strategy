@@ -26,6 +26,8 @@ from advanced_backtest_runner import AdvancedBacktestRunner, run_advanced_backte
 from live_signal_generator import generate_live_signals, generate_exit_signal_for_position
 from multi_timeframe_analyzer import run_multi_timeframe_analysis
 from percentile_threshold_analyzer import PercentileThresholdAnalyzer
+from convergence_analyzer import analyze_convergence_for_ticker
+from position_manager import get_position_management
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -346,21 +348,22 @@ async def run_monte_carlo_simulation(ticker: str, request: MonteCarloRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/rsi-chart/{ticker}")
-async def get_rsi_percentile_chart(ticker: str, days: int = 252):
+async def get_rsi_percentile_chart(ticker: str, days: int = None):
     """
     Get RSI and RSI-MA time series data with percentile levels for chart visualization.
     Returns historical RSI, RSI-MA, percentile rank, and percentile thresholds.
+    By default, returns ALL available data up to current day.
     """
     ticker = ticker.upper()
-    
+
     try:
         # Get backtest results (this ensures we have the data analyzed)
         backtest_data = load_cached_results(ticker)
-        
+
         if not backtest_data:
             backtest_response = await get_backtest_results(ticker)
             backtest_data = backtest_response["data"]
-        
+
         # Create backtester instance to access the new method
         backtester = EnhancedPerformanceMatrixBacktester(
             tickers=[ticker],
@@ -374,22 +377,25 @@ async def get_rsi_percentile_chart(ticker: str, days: int = 252):
         data = backtester.fetch_data(ticker)
         if data.empty:
             raise HTTPException(status_code=404, detail=f"Could not fetch data for {ticker}")
-        
+
         # Store data in results (needed by get_rsi_percentile_timeseries)
         backtester.results[ticker] = {'data': data}
-        
-        # Get time series data
+
+        # Get time series data - if days is None, use all available data
+        if days is None:
+            days = len(data)
+
         chart_data = backtester.get_rsi_percentile_timeseries(ticker, days)
-        
+
         if not chart_data:
             raise HTTPException(status_code=404, detail=f"Could not generate chart data for {ticker}")
-        
+
         return {
             "ticker": ticker,
             "chart_data": chart_data,
             "timestamp": datetime.now().isoformat()
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -761,6 +767,74 @@ async def get_percentile_threshold_analysis(ticker: str):
     except Exception as e:
         import traceback
         print(f"Error in /api/percentile-thresholds for {ticker}:")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/convergence-analysis/{ticker}")
+async def get_convergence_analysis(ticker: str):
+    """
+    Get divergence-convergence framework analysis for a ticker.
+
+    Analyzes time-to-convergence following overextension events between
+    daily and 4-hour RSI-MA percentiles.
+
+    Returns:
+        - Current divergence state and prediction
+        - Historical overextension events
+        - Convergence statistics (time, direction, magnitude)
+        - Predictive model for convergence timing
+        - Actionable insights
+    """
+    ticker = ticker.upper()
+
+    try:
+        analysis = analyze_convergence_for_ticker(ticker)
+
+        return {
+            "ticker": ticker,
+            "convergence_analysis": analysis,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Error in /api/convergence-analysis for {ticker}:")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/position-management/{ticker}")
+async def get_position_management_recommendation(ticker: str):
+    """
+    Get concrete position management recommendations based on divergence analysis.
+
+    This endpoint answers:
+    1. Should I take partial profits? How much (25%, 50%, 75%, 100%)?
+    2. What divergence gap triggers action?
+    3. When should I re-enter after taking profits?
+    4. What convergence threshold signals re-entry?
+
+    Returns ticker-specific, data-driven action points with:
+    - Current position recommendation (TAKE_PROFIT, ADD_POSITION, HOLD, EXIT_ALL)
+    - Exact position change % based on divergence magnitude
+    - Confidence level from historical sample size
+    - Expected returns if action taken vs if held
+    - Profit-taking rules by divergence gap range
+    - Re-entry rules by convergence scenario
+    """
+    ticker = ticker.upper()
+
+    try:
+        recommendation = get_position_management(ticker)
+
+        return {
+            "ticker": ticker,
+            "position_management": recommendation,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Error in /api/position-management for {ticker}:")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 

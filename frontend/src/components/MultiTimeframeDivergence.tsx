@@ -41,10 +41,7 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceLine,
-  Cell,
 } from 'recharts';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import { PercentileThresholdAnalysis } from './PercentileThresholdAnalysis';
@@ -54,7 +51,7 @@ interface MultiTimeframeDivergenceProps {
 }
 
 interface TabPanelProps {
-  children?: React.Node;
+  children?: React.ReactNode;
   index: number;
   value: number;
 }
@@ -107,7 +104,7 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
     fetchAnalysis();
   }, [ticker]);
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 

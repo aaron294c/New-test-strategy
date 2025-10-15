@@ -235,7 +235,7 @@ const LiveTradingSignals: React.FC<LiveTradingSignalsProps> = ({ ticker }) => {
                       <Chip
                         label={entrySignal.entry_signal.signal_strength.replace('_', ' ').toUpperCase()}
                         color={getSignalColor(entrySignal.entry_signal.signal_strength)}
-                        size="large"
+                        size="medium"
                         sx={{ fontSize: '1.1em', py: 3 }}
                       />
                       <Typography variant="h6">
@@ -433,7 +433,7 @@ const LiveTradingSignals: React.FC<LiveTradingSignalsProps> = ({ ticker }) => {
                             ? 'info'
                             : 'error'
                         }
-                        size="large"
+                        size="medium"
                         sx={{ fontSize: '1.1em', py: 3 }}
                       />
                       <Chip
