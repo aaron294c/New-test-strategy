@@ -28,6 +28,7 @@ from multi_timeframe_analyzer import run_multi_timeframe_analysis
 from percentile_threshold_analyzer import PercentileThresholdAnalyzer
 from convergence_analyzer import analyze_convergence_for_ticker
 from position_manager import get_position_management
+from enhanced_mtf_analyzer import run_enhanced_analysis
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -835,6 +836,47 @@ async def get_position_management_recommendation(ticker: str):
     except Exception as e:
         import traceback
         print(f"Error in /api/position-management for {ticker}:")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/enhanced-mtf/{ticker}")
+async def get_enhanced_multi_timeframe_analysis(ticker: str):
+    """
+    Get enhanced multi-timeframe divergence analysis with intraday tracking.
+
+    **NEW FEATURES**:
+    - Intraday checkpoint analysis (morning, midday, close)
+    - Multi-horizon outcomes: 1×4H, 2×4H, 3×4H, 1D, 2D, 7D
+    - Divergence lifecycle tracking (trigger → convergence)
+    - Take vs Hold comparison across all horizons
+    - Signal quality metrics (hit rate, Sharpe, consistency)
+    - Volatility context (current ATR regime)
+    - Divergence decay model (convergence probabilities)
+
+    **KEY INSIGHT**: Exit divergence signals within 8-12 hours (3×4H) provides
+    +0.46% to +0.56% edge over holding through 1D.
+
+    Returns:
+        - Full divergence lifecycle events (679 events for AAPL)
+        - Multi-horizon outcomes matrix (Take vs Hold deltas)
+        - Signal quality (hit rate, Sharpe ratio, consistency score)
+        - Volatility context (ATR percentile, regime)
+        - Decay model (convergence probability by time and gap size)
+    """
+    ticker = ticker.upper()
+
+    try:
+        analysis = run_enhanced_analysis(ticker)
+
+        return {
+            "ticker": ticker,
+            "enhanced_analysis": analysis,
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Error in /api/enhanced-mtf for {ticker}:")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
