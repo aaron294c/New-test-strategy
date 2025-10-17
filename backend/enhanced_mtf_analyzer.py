@@ -129,6 +129,79 @@ class VolatilityAwareMetrics:
     recommended_action: str  # More/less aggressive based on regime
 
 
+@dataclass
+class RegimeFilteredGapAnalysis:
+    """Detailed analysis of specific gap size in specific volatility regime."""
+    gap_range: str  # e.g., '30-35%'
+    regime: str  # 'low', 'normal', 'high', 'extreme'
+    sample_size: int
+
+    # Absolute returns (not deltas)
+    avg_return_1x4h: float
+    avg_return_2x4h: float
+    avg_return_3x4h: float
+    avg_return_1d: float
+    avg_return_2d: float
+
+    # Win rates
+    win_rate_1x4h: float
+    win_rate_2x4h: float
+    win_rate_3x4h: float
+    win_rate_1d: float
+    win_rate_2d: float
+
+    # Best performance
+    best_horizon: str
+    best_avg_return: float
+    best_win_rate: float
+
+    # Expectancy (edge after costs)
+    expectancy_2x4h: float  # Primary focus
+    avg_win_size: float
+    avg_loss_size: float
+    win_loss_ratio: float
+
+
+@dataclass
+class ReentryBreakdown:
+    """Re-entry performance by gap size and regime."""
+    gap_category: str  # 'small', 'medium', 'large'
+    regime: str
+    sample_size: int
+    reentry_rate: float  # % that generate re-entry
+    avg_time_to_reentry: float  # hours
+    avg_reentry_return: float  # return from re-entry point
+    reentry_success_rate: float  # % of re-entries that are profitable
+    reentry_expectancy: float  # (success_rate × avg_win) - (fail_rate × avg_loss)
+
+
+@dataclass
+class TradeRecommendation:
+    """Actionable trade recommendation based on analysis."""
+    setup_name: str  # e.g., "30-35% Gap in Normal Volatility"
+    trade_signal: bool  # True = tradeable, False = skip
+    confidence: str  # 'high', 'medium', 'low'
+
+    # Entry
+    gap_range: str
+    regime_filter: str  # Required volatility regime
+
+    # Exit
+    recommended_exit: str  # e.g., '2×4H'
+    expected_return: float
+    win_rate: float
+    expectancy: float
+
+    # Risk
+    sample_size: int
+    max_consecutive_losses: int
+    recommended_position_size: float  # % of capital
+
+    # Reasoning
+    reason_tradeable: str
+    risks: List[str]
+
+
 class EnhancedMultiTimeframeAnalyzer:
     """
     Enhanced analyzer with intraday tracking and lifecycle modeling.
@@ -136,9 +209,29 @@ class EnhancedMultiTimeframeAnalyzer:
 
     def __init__(self,
                  ticker: str,
-                 lookback_days: int = 500,
+                 lookback_days: int = 1095,  # Increased to 1095 (3 years) for maximum sample size
                  rsi_length: int = 14,
                  ma_length: int = 14):
+        """
+        Initialize Enhanced Multi-Timeframe Analyzer.
+
+        Args:
+            ticker: Stock ticker symbol (e.g., 'AAPL', 'TSLA')
+            lookback_days: Days of historical data to analyze (NOW 3 YEARS for statistical validity)
+            rsi_length: RSI calculation period (14 bars standard)
+            ma_length: Moving average smoothing period (14 bars standard)
+
+        Key Terminology:
+            - 1×4H, 2×4H, 3×4H: Represents 4-hour bar intervals (4h, 8h, 12h)
+            - Gap/Divergence: Absolute difference between Daily and 4H percentiles
+            - Convergence: Gap closing below 15% threshold
+            - R: Risk unit (not used in this implementation - notation is time-based)
+
+        Sample Size Target:
+            - 3 years of data should yield 500-800 divergence events
+            - 30-35% gaps: target 80-120 events (up from 52)
+            - 35%+ gaps: target 50-80 events (up from 38)
+        """
         self.ticker = ticker.upper()
         self.lookback_days = lookback_days
         self.rsi_length = rsi_length
@@ -147,7 +240,9 @@ class EnhancedMultiTimeframeAnalyzer:
         # Fetch data
         print(f"\nFetching data for {self.ticker}...")
         self.daily_data = self._fetch_data(interval='1d', period=f'{lookback_days}d')
-        self.hourly_data = self._fetch_data(interval='1h', period='730d')
+        # Fetch hourly data (Yahoo Finance limits 1h data to 730 days max)
+        hourly_period = min(730, lookback_days)
+        self.hourly_data = self._fetch_data(interval='1h', period=f'{hourly_period}d')
 
         # Calculate indicators
         print("Calculating indicators...")
@@ -350,13 +445,23 @@ class EnhancedMultiTimeframeAnalyzer:
         """
         Find when divergence converges (gap closes to <15%).
 
+        CONVERGENCE DEFINITION:
+        - Initial gap (e.g., 25%) closes to below 15% threshold
+        - Measured as absolute difference between Daily and 4H percentiles
+        - Example: Daily=75%, 4H=50% (25% gap) → Daily=60%, 4H=50% (10% gap) = CONVERGED
+
+        TIME HORIZON:
+        - Looks forward up to 24 × 4H bars (96 hours = 4 days)
+        - Returns bar index and hours elapsed when convergence occurs
+        - Returns (None, None) if convergence doesn't occur within window
+
         Returns:
             (convergence_bar, time_to_convergence_hours)
         """
         # Find entry bar
         entry_4h_idx = self.hourly_4h_df.index.get_indexer([entry_date], method='ffill')[0]
 
-        convergence_threshold = 15.0
+        convergence_threshold = 15.0  # Gap must close below 15% to be considered converged
 
         for i in range(1, max_bars + 1):
             future_idx = entry_4h_idx + i
@@ -450,23 +555,43 @@ class EnhancedMultiTimeframeAnalyzer:
         """
         Find re-entry opportunity after taking profits.
 
-        Re-entry conditions (RELAXED for better signal detection):
-        1. Gap < 15% (was 10% - convergence happening)
-        2. Both daily and 4H percentiles < 35% (was 30% - oversold)
-        3. Optional: 4H percentile turning upward (momentum resume)
+        RE-ENTRY LOGIC (RELAXED THRESHOLDS FOR BETTER SIGNAL DETECTION):
+
+        Conditions (all must be met):
+        1. Wait minimum 12 hours (3 × 4H bars) after initial exit
+        2. Gap converged below 15% (from initial trigger level, e.g., 25% → 12%)
+        3. Both Daily AND 4H percentiles below 35th percentile (oversold condition)
+        4. Measure expected return 1 day forward from re-entry point
+
+        THRESHOLD COMPARISON:
+        Relaxed (default):  Gap < 15%, Percentiles < 35%
+        Strict (optional):  Gap < 10%, Percentiles < 30%
+
+        RATIONALE:
+        - Relaxed thresholds increase signal frequency while maintaining quality
+        - Gap below 15% indicates divergence is resolving (convergence)
+        - Both timeframes oversold (< 35%) suggests renewed upside potential
+
+        EXPECTED RETURN:
+        - Calculated as: (Price_1d_after_reentry - Reentry_price) / Reentry_price * 100
+        - Measures whether re-entering after convergence provides edge
 
         Args:
+            entry_date: Original signal entry date
+            initial_gap: Original divergence gap size at trigger
+            entry_price: Price at original entry
+            max_bars: Maximum bars forward to search for re-entry (default 12 = 48 hours)
             relaxed: If True, use relaxed thresholds (15%, 35%)
                     If False, use strict thresholds (10%, 30%)
 
         Returns:
-            (reentry_bar, reentry_expected_return)
+            (reentry_bar, reentry_expected_return) or (None, None) if no re-entry found
         """
         entry_4h_idx = self.hourly_4h_df.index.get_indexer([entry_date], method='ffill')[0]
 
         # Set thresholds based on mode
-        gap_threshold = 15.0 if relaxed else 10.0
-        percentile_threshold = 35.0 if relaxed else 30.0
+        gap_threshold = 15.0 if relaxed else 10.0          # Convergence threshold
+        percentile_threshold = 35.0 if relaxed else 30.0   # Oversold threshold
 
         for i in range(3, max_bars + 1):  # Start from 3rd bar (12 hours after exit)
             future_idx = entry_4h_idx + i
@@ -635,14 +760,39 @@ class EnhancedMultiTimeframeAnalyzer:
         """
         Analyze "Take vs Hold" across multiple time horizons.
 
-        This answers: Should I exit at 1×4H or hold through 1D?
+        OBJECTIVE:
+        Determine whether taking profits early (intraday) provides better returns
+        than holding through longer periods.
+
+        KEY QUESTION:
+        Should I exit at 1×4H (4 hours) or hold through 1D (24 hours)?
+
+        HORIZON DEFINITIONS:
+        - 1×4H: Exit after 4 hours vs. hold to 1 day
+        - 2×4H: Exit after 8 hours vs. hold to 1 day
+        - 3×4H: Exit after 12 hours vs. hold to 1 day (PRIMARY METRIC)
+        - 1D:   Hold 1 day vs. hold to 2 days
+        - 2D:   Hold 2 days vs. hold to 7 days
+
+        DELTA (EDGE) CALCULATION:
+        Delta = Avg(Take Profit Return) - Avg(Hold Return)
+        - Positive delta: Taking profits early is better
+        - Negative delta: Holding longer is better
+
+        EXAMPLE:
+        If 3×4H shows delta of +0.56%:
+        - Average return at 12 hours: +0.78%
+        - Average return at 24 hours: +0.22%
+        - Edge of taking profits at 12h: +0.56% better
+
+        This validates intraday profit-taking strategy!
         """
         print("\n📊 Analyzing multi-horizon outcomes (Take vs Hold)...")
 
         horizons = [
             ('1×4H', 'take_profit_outcome', '1x4h', 'hold_outcome', '1d'),
             ('2×4H', 'take_profit_outcome', '2x4h', 'hold_outcome', '1d'),
-            ('3×4H', 'take_profit_outcome', '3x4h', 'hold_outcome', '1d'),
+            ('3×4H', 'take_profit_outcome', '3x4h', 'hold_outcome', '1d'),  # PRIMARY METRIC
             ('1D', 'hold_outcome', '1d', 'hold_outcome', '2d'),
             ('2D', 'hold_outcome', '2d', 'hold_outcome', '7d'),
         ]
@@ -766,11 +916,16 @@ class EnhancedMultiTimeframeAnalyzer:
                 decay_rate = initial_gap / bars_to_converge
                 decay_rates.append(decay_rate)
 
-        avg_decay_rate = np.mean(decay_rates) if decay_rates else 0
+        avg_decay_rate = float(np.mean(decay_rates)) if decay_rates else 0.0
+        # Ensure no NaN values
+        if np.isnan(avg_decay_rate):
+            avg_decay_rate = 0.0
 
         # Median time to convergence
         convergence_times = [lc.time_to_convergence_hours for lc in converged]
-        median_time = np.median(convergence_times)
+        median_time = float(np.median(convergence_times)) if convergence_times else 0.0
+        if np.isnan(median_time):
+            median_time = 0.0
 
         # Convergence probabilities
         total_lifecycles = len(lifecycles)
@@ -907,20 +1062,45 @@ class EnhancedMultiTimeframeAnalyzer:
         """
         Generate Take vs Hold benefit heatmap data.
 
-        Dimensions:
-        - X-axis: Gap size (15-20%, 20-25%, 25-30%, 30-35%, 35%+)
-        - Y-axis: Time horizon (1×4H, 2×4H, 3×4H, 1D, 2D)
-        - Color: Delta (benefit of taking profit vs holding)
+        PURPOSE:
+        Shows how intraday edge varies by divergence gap size and time horizon.
+        Particularly useful for understanding large gap (35%+) behavior.
+
+        DIMENSIONS:
+        - Y-axis (Rows): Gap size buckets (15-20%, 20-25%, 25-30%, 30-35%, 35%+)
+        - X-axis (Columns): Time horizons (1×4H, 2×4H, 3×4H, 1D, 2D)
+        - Cell Value: Delta (Take Profit return - Hold return)
+        - Cell Color: Green (positive edge), Red (negative edge)
+
+        GAP SIZE DEFINITION:
+        Gap = |Daily Percentile - 4H Percentile|
+        Example: Daily=75%, 4H=40% → Gap=35% (LARGE)
+
+        LARGE GAP BEHAVIOR (35%+):
+        - User specifically interested in large gaps
+        - Hypothesis: Larger gaps may show different convergence patterns
+        - May take longer to converge (see convergence_by_volatility metrics)
+        - Heatmap shows if large gaps benefit more from early exits or holding
+
+        CELL INTERPRETATION:
+        - Positive delta (green): Taking profits at this horizon is better
+        - Negative delta (red): Holding longer is better
+        - Sample size (n=X): Number of historical events in this cell
+
+        Example Reading:
+        Gap 35%+, Horizon 3×4H, Delta +0.8%, n=45
+        → For gaps >35%, exiting at 12 hours provides +0.8% better return
+           than holding to 24 hours, based on 45 historical events
         """
         print("\n🎨 Generating Take vs Hold heatmap data...")
 
         # Define gap size buckets
         gap_buckets = [
-            ('15-20%', 15, 20),
-            ('20-25%', 20, 25),
-            ('25-30%', 25, 30),
-            ('30-35%', 30, 35),
-            ('35%+', 35, 999)
+            ('15-20%', 15, 20),   # Small gaps
+            ('20-25%', 20, 25),   # Small-medium gaps
+            ('25-30%', 25, 30),   # Medium gaps
+            ('30-35%', 30, 35),   # Medium-large gaps
+            ('35%+', 35, 999)     # LARGE gaps (user interest focus)
         ]
 
         # Define time horizons
@@ -1157,6 +1337,356 @@ class EnhancedMultiTimeframeAnalyzer:
 
         return results
 
+    def analyze_regime_filtered_gaps(self, lifecycles: List[DivergenceLifecycle]) -> List[RegimeFilteredGapAnalysis]:
+        """
+        Analyze specific gap sizes in specific volatility regimes.
+
+        This is the KEY analysis for finding tradeable setups.
+        Shows ABSOLUTE returns (not just deltas) by gap size and regime.
+        """
+        print("\n🎯 Analyzing regime-filtered gap performance...")
+
+        gap_buckets = [
+            ('15-20%', 15, 20),
+            ('20-25%', 20, 25),
+            ('25-30%', 25, 30),
+            ('30-35%', 30, 35),
+            ('35%+', 35, 999)
+        ]
+
+        regimes = ['low', 'normal', 'high', 'extreme']
+
+        results = []
+
+        for gap_label, gap_min, gap_max in gap_buckets:
+            for regime in regimes:
+                # Filter lifecycles by gap size and regime
+                filtered_lcs = []
+                for lc in lifecycles:
+                    if not (gap_min <= lc.initial_gap < gap_max):
+                        continue
+
+                    # Get regime for this event
+                    event_date_str = lc.trigger_date
+                    matching_dates = [d for d in self.daily_data.index if d.strftime('%Y-%m-%d') == event_date_str]
+                    if not matching_dates:
+                        continue
+
+                    event_date = matching_dates[0]
+                    event_idx = self.daily_data.index.get_loc(event_date)
+                    if event_idx >= len(self.daily_atr):
+                        continue
+
+                    atr_percentile = self.daily_atr.iloc[:event_idx+1].rank(pct=True).iloc[-1] * 100
+
+                    if atr_percentile > 90:
+                        lc_regime = 'extreme'
+                    elif atr_percentile > 70:
+                        lc_regime = 'high'
+                    elif atr_percentile < 30:
+                        lc_regime = 'low'
+                    else:
+                        lc_regime = 'normal'
+
+                    if lc_regime == regime:
+                        filtered_lcs.append(lc)
+
+                if len(filtered_lcs) < 5:  # Skip if too few samples
+                    continue
+
+                # Calculate absolute returns for each horizon
+                horizons = {
+                    '1x4h': 1,
+                    '2x4h': 2,
+                    '3x4h': 3,
+                    '1d': 1,
+                    '2d': 2
+                }
+
+                returns_1x4h = [lc.returns_4h.get(1, 0) for lc in filtered_lcs if 1 in lc.returns_4h]
+                returns_2x4h = [lc.returns_4h.get(2, 0) for lc in filtered_lcs if 2 in lc.returns_4h]
+                returns_3x4h = [lc.returns_4h.get(3, 0) for lc in filtered_lcs if 3 in lc.returns_4h]
+                returns_1d = [lc.returns_daily.get(1, 0) for lc in filtered_lcs if 1 in lc.returns_daily]
+                returns_2d = [lc.returns_daily.get(2, 0) for lc in filtered_lcs if 2 in lc.returns_daily]
+
+                avg_return_1x4h = np.mean(returns_1x4h) if returns_1x4h else 0
+                avg_return_2x4h = np.mean(returns_2x4h) if returns_2x4h else 0
+                avg_return_3x4h = np.mean(returns_3x4h) if returns_3x4h else 0
+                avg_return_1d = np.mean(returns_1d) if returns_1d else 0
+                avg_return_2d = np.mean(returns_2d) if returns_2d else 0
+
+                win_rate_1x4h = (sum(1 for r in returns_1x4h if r > 0) / len(returns_1x4h) * 100) if returns_1x4h else 0
+                win_rate_2x4h = (sum(1 for r in returns_2x4h if r > 0) / len(returns_2x4h) * 100) if returns_2x4h else 0
+                win_rate_3x4h = (sum(1 for r in returns_3x4h if r > 0) / len(returns_3x4h) * 100) if returns_3x4h else 0
+                win_rate_1d = (sum(1 for r in returns_1d if r > 0) / len(returns_1d) * 100) if returns_1d else 0
+                win_rate_2d = (sum(1 for r in returns_2d if r > 0) / len(returns_2d) * 100) if returns_2d else 0
+
+                # Find best horizon
+                horizon_performance = {
+                    '1×4H': avg_return_1x4h,
+                    '2×4H': avg_return_2x4h,
+                    '3×4H': avg_return_3x4h,
+                    '1D': avg_return_1d,
+                    '2D': avg_return_2d
+                }
+                best_horizon = max(horizon_performance, key=horizon_performance.get)
+                best_avg_return = horizon_performance[best_horizon]
+
+                horizon_win_rates = {
+                    '1×4H': win_rate_1x4h,
+                    '2×4H': win_rate_2x4h,
+                    '3×4H': win_rate_3x4h,
+                    '1D': win_rate_1d,
+                    '2D': win_rate_2d
+                }
+                best_win_rate = horizon_win_rates[best_horizon]
+
+                # Calculate expectancy for 2×4H (primary focus)
+                wins_2x4h = [r for r in returns_2x4h if r > 0]
+                losses_2x4h = [r for r in returns_2x4h if r <= 0]
+
+                avg_win_size = np.mean(wins_2x4h) if wins_2x4h else 0
+                avg_loss_size = abs(np.mean(losses_2x4h)) if losses_2x4h else 0
+                win_loss_ratio = avg_win_size / avg_loss_size if avg_loss_size > 0 else 0
+
+                expectancy_2x4h = (win_rate_2x4h / 100 * avg_win_size) - ((100 - win_rate_2x4h) / 100 * avg_loss_size)
+
+                analysis = RegimeFilteredGapAnalysis(
+                    gap_range=gap_label,
+                    regime=regime,
+                    sample_size=len(filtered_lcs),
+                    avg_return_1x4h=float(avg_return_1x4h),
+                    avg_return_2x4h=float(avg_return_2x4h),
+                    avg_return_3x4h=float(avg_return_3x4h),
+                    avg_return_1d=float(avg_return_1d),
+                    avg_return_2d=float(avg_return_2d),
+                    win_rate_1x4h=float(win_rate_1x4h),
+                    win_rate_2x4h=float(win_rate_2x4h),
+                    win_rate_3x4h=float(win_rate_3x4h),
+                    win_rate_1d=float(win_rate_1d),
+                    win_rate_2d=float(win_rate_2d),
+                    best_horizon=best_horizon,
+                    best_avg_return=float(best_avg_return),
+                    best_win_rate=float(best_win_rate),
+                    expectancy_2x4h=float(expectancy_2x4h),
+                    avg_win_size=float(avg_win_size),
+                    avg_loss_size=float(avg_loss_size),
+                    win_loss_ratio=float(win_loss_ratio)
+                )
+
+                results.append(analysis)
+
+                if expectancy_2x4h > 0.2:  # Significant positive expectancy
+                    print(f"  ⭐ {gap_label} in {regime.upper()}: "
+                          f"2×4HReturn={avg_return_2x4h:+.2f}%, "
+                          f"WinRate={win_rate_2x4h:.1f}%, "
+                          f"Expectancy={expectancy_2x4h:+.2f}%, "
+                          f"n={len(filtered_lcs)}")
+
+        return results
+
+    def analyze_reentry_by_gap_and_regime(self, lifecycles: List[DivergenceLifecycle]) -> List[ReentryBreakdown]:
+        """
+        Break down re-entry performance by gap size and volatility regime.
+        """
+        print("\n🔄 Analyzing re-entry performance by gap & regime...")
+
+        gap_categories = ['small', 'medium', 'large']
+        regimes = ['low', 'normal', 'high', 'extreme']
+
+        results = []
+
+        for gap_cat in gap_categories:
+            for regime in regimes:
+                # Filter lifecycles
+                filtered_lcs = []
+                for lc in lifecycles:
+                    if lc.gap_category != gap_cat:
+                        continue
+
+                    # Get regime
+                    event_date_str = lc.trigger_date
+                    matching_dates = [d for d in self.daily_data.index if d.strftime('%Y-%m-%d') == event_date_str]
+                    if not matching_dates:
+                        continue
+
+                    event_date = matching_dates[0]
+                    event_idx = self.daily_data.index.get_loc(event_date)
+                    if event_idx >= len(self.daily_atr):
+                        continue
+
+                    atr_percentile = self.daily_atr.iloc[:event_idx+1].rank(pct=True).iloc[-1] * 100
+
+                    if atr_percentile > 90:
+                        lc_regime = 'extreme'
+                    elif atr_percentile > 70:
+                        lc_regime = 'high'
+                    elif atr_percentile < 30:
+                        lc_regime = 'low'
+                    else:
+                        lc_regime = 'normal'
+
+                    if lc_regime == regime:
+                        filtered_lcs.append(lc)
+
+                if len(filtered_lcs) < 5:
+                    continue
+
+                # Calculate re-entry metrics
+                reentries = [lc for lc in filtered_lcs if lc.reentry_bar is not None]
+
+                if not reentries:
+                    continue
+
+                reentry_rate = len(reentries) / len(filtered_lcs) * 100
+                avg_time_to_reentry = np.mean([lc.reentry_bar * 4 for lc in reentries])  # Convert bars to hours
+
+                reentry_returns = [lc.reentry_return for lc in reentries if lc.reentry_return is not None]
+                avg_reentry_return = np.mean(reentry_returns) if reentry_returns else 0
+                reentry_success_rate = (sum(1 for r in reentry_returns if r > 0) / len(reentry_returns) * 100) if reentry_returns else 0
+
+                # Calculate expectancy
+                wins = [r for r in reentry_returns if r > 0]
+                losses = [r for r in reentry_returns if r <= 0]
+
+                avg_win = np.mean(wins) if wins else 0
+                avg_loss = abs(np.mean(losses)) if losses else 0
+
+                reentry_expectancy = (reentry_success_rate / 100 * avg_win) - ((100 - reentry_success_rate) / 100 * avg_loss)
+
+                breakdown = ReentryBreakdown(
+                    gap_category=gap_cat,
+                    regime=regime,
+                    sample_size=len(filtered_lcs),
+                    reentry_rate=float(reentry_rate),
+                    avg_time_to_reentry=float(avg_time_to_reentry),
+                    avg_reentry_return=float(avg_reentry_return),
+                    reentry_success_rate=float(reentry_success_rate),
+                    reentry_expectancy=float(reentry_expectancy)
+                )
+
+                results.append(breakdown)
+
+                if reentry_expectancy > 0.2:
+                    print(f"  ⭐ {gap_cat.upper()} in {regime.upper()}: "
+                          f"ReentryRate={reentry_rate:.1f}%, "
+                          f"Return={avg_reentry_return:+.2f}%, "
+                          f"Expectancy={reentry_expectancy:+.2f}%, "
+                          f"n={len(filtered_lcs)}")
+
+        return results
+
+    def generate_trade_recommendations(self,
+                                      regime_analyses: List[RegimeFilteredGapAnalysis],
+                                      reentry_analyses: List[ReentryBreakdown],
+                                      current_regime: str) -> List[TradeRecommendation]:
+        """
+        Generate actionable trade recommendations based on comprehensive analysis.
+        """
+        print("\n📋 Generating trade recommendations...")
+
+        recommendations = []
+
+        # Criteria for tradeable setup
+        MIN_EXPECTANCY = 0.15  # 0.15% per trade minimum
+        MIN_WIN_RATE = 52.0  # 52% minimum
+        MIN_SAMPLE_SIZE = 20  # At least 20 historical events
+        HIGH_CONFIDENCE_SAMPLE = 50  # 50+ for high confidence
+
+        for analysis in regime_analyses:
+            # Check if this setup meets criteria
+            is_tradeable = (
+                analysis.expectancy_2x4h >= MIN_EXPECTANCY and
+                analysis.win_rate_2x4h >= MIN_WIN_RATE and
+                analysis.sample_size >= MIN_SAMPLE_SIZE and
+                analysis.avg_return_2x4h > 0  # Must be profitable in absolute terms
+            )
+
+            # Determine confidence
+            if analysis.sample_size >= HIGH_CONFIDENCE_SAMPLE and analysis.expectancy_2x4h >= 0.3:
+                confidence = 'high'
+            elif analysis.sample_size >= MIN_SAMPLE_SIZE and analysis.expectancy_2x4h >= 0.2:
+                confidence = 'medium'
+            else:
+                confidence = 'low'
+
+            # Calculate max consecutive losses (rough estimate)
+            # Clamp win rate to prevent log(0) or log(1) errors
+            clamped_win_rate = max(1.0, min(99.0, analysis.win_rate_2x4h))
+            if clamped_win_rate >= 99.0:
+                max_consec_losses = 1  # Nearly guaranteed wins
+            elif clamped_win_rate <= 1.0:
+                max_consec_losses = 50  # Cap at reasonable maximum for very low win rates
+            else:
+                max_consec_losses = int(np.ceil(-np.log(0.01) / np.log(1 - clamped_win_rate / 100)))
+
+            # Position sizing (Kelly Criterion simplified)
+            edge = analysis.expectancy_2x4h / 100
+            kelly_fraction = edge / (analysis.avg_loss_size / 100) if analysis.avg_loss_size > 0 else 0
+            recommended_position = min(kelly_fraction * 0.5, 0.10) * 100  # Half Kelly, max 10%
+
+            # Build reasoning
+            if is_tradeable:
+                reason = (f"Positive expectancy (+{analysis.expectancy_2x4h:.2f}%), "
+                         f"good win rate ({analysis.win_rate_2x4h:.1f}%), "
+                         f"and profitable absolute return (+{analysis.avg_return_2x4h:.2f}%)")
+            else:
+                reason = "Does not meet minimum criteria for trading"
+
+            # Identify risks
+            risks = []
+            if analysis.sample_size < HIGH_CONFIDENCE_SAMPLE:
+                risks.append(f"Small sample size (n={analysis.sample_size}, prefer 50+)")
+            if analysis.win_rate_2x4h < 55:
+                risks.append(f"Win rate below 55% ({analysis.win_rate_2x4h:.1f}%)")
+            if analysis.avg_return_2x4h < 0.3:
+                risks.append(f"Low absolute return ({analysis.avg_return_2x4h:.2f}%)")
+            if analysis.regime != current_regime:
+                risks.append(f"Setup is for {analysis.regime.upper()} vol, current is {current_regime.upper()}")
+
+            rec = TradeRecommendation(
+                setup_name=f"{analysis.gap_range} Gap in {analysis.regime.upper()} Volatility",
+                trade_signal=is_tradeable,
+                confidence=confidence,
+                gap_range=analysis.gap_range,
+                regime_filter=analysis.regime,
+                recommended_exit='2×4H',
+                expected_return=analysis.avg_return_2x4h,
+                win_rate=analysis.win_rate_2x4h,
+                expectancy=analysis.expectancy_2x4h,
+                sample_size=analysis.sample_size,
+                max_consecutive_losses=max_consec_losses,
+                recommended_position_size=recommended_position,
+                reason_tradeable=reason,
+                risks=risks
+            )
+
+            recommendations.append(rec)
+
+            if is_tradeable and confidence in ['high', 'medium']:
+                print(f"  ✅ TRADEABLE: {rec.setup_name}")
+                print(f"     Exit: {rec.recommended_exit}, Return: {rec.expected_return:+.2f}%, "
+                      f"WinRate: {rec.win_rate:.1f}%, Expectancy: {rec.expectancy:+.2f}%")
+                print(f"     Confidence: {confidence.upper()}, Position Size: {rec.recommended_position_size:.1f}%")
+
+        return recommendations
+
+
+def _scrub_nans(obj):
+    """Recursively replace NaN and Inf values with 0 or None for JSON compliance."""
+    import math
+
+    if isinstance(obj, dict):
+        return {k: _scrub_nans(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_scrub_nans(item) for item in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return 0.0
+        return obj
+    else:
+        return obj
+
 
 def run_enhanced_analysis(ticker: str) -> Dict:
     """Run complete enhanced multi-timeframe analysis."""
@@ -1178,6 +1708,15 @@ def run_enhanced_analysis(ticker: str) -> Dict:
     volatility_metrics = analyzer.analyze_by_volatility_regime(lifecycles)
     convergence_by_volatility = analyzer.calculate_convergence_by_volatility(lifecycles)
 
+    # NEW: Advanced regime-filtered analysis
+    regime_filtered_gaps = analyzer.analyze_regime_filtered_gaps(lifecycles)
+    reentry_breakdown = analyzer.analyze_reentry_by_gap_and_regime(lifecycles)
+    trade_recommendations = analyzer.generate_trade_recommendations(
+        regime_filtered_gaps,
+        reentry_breakdown,
+        volatility_context.volatility_regime
+    )
+
     # Generate visualization data
     timeline_data = analyzer.generate_timeline_chart_data(lifecycles, num_events=50)
     heatmap_data = analyzer.generate_heatmap_data(lifecycles)
@@ -1195,7 +1734,14 @@ def run_enhanced_analysis(ticker: str) -> Dict:
         'convergence_by_volatility': convergence_by_volatility,
         'timeline_chart_data': timeline_data,
         'heatmap_data': heatmap_data,
+        # NEW: Advanced analysis
+        'regime_filtered_gaps': [asdict(r) for r in regime_filtered_gaps],
+        'reentry_breakdown': [asdict(r) for r in reentry_breakdown],
+        'trade_recommendations': [asdict(r) for r in trade_recommendations],
     }
+
+    # Scrub any NaN or Inf values for JSON compliance
+    result = _scrub_nans(result)
 
     return result
 

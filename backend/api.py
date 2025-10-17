@@ -29,6 +29,7 @@ from percentile_threshold_analyzer import PercentileThresholdAnalyzer
 from convergence_analyzer import analyze_convergence_for_ticker
 from position_manager import get_position_management
 from enhanced_mtf_analyzer import run_enhanced_analysis
+from percentile_forward_mapping import run_percentile_forward_analysis
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -877,6 +878,89 @@ async def get_enhanced_multi_timeframe_analysis(ticker: str):
     except Exception as e:
         import traceback
         print(f"Error in /api/enhanced-mtf for {ticker}:")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/percentile-forward/{ticker}")
+async def get_percentile_forward_mapping(ticker: str):
+    """
+    Get percentile-to-forward-return mapping analysis for a ticker.
+
+    **PROSPECTIVE EXTRAPOLATION FRAMEWORK**
+
+    Turns RSI-MA percentile rankings into expected forward % change predictions using:
+
+    **Methods Implemented:**
+    1. **Empirical Conditional Expectation** - Bin-based lookup (E[Return | Percentile Bin])
+    2. **Transition Matrix (Markov Chain)** - Percentile evolution probabilities
+    3. **Regression Models** - Linear, Polynomial, Quantile regression
+    4. **Kernel Smoothing** - Nonparametric Nadaraya-Watson estimator
+    5. **Ensemble Average** - Combines all methods (recommended)
+
+    **Backtesting:**
+    - Rolling window out-of-sample testing (train 252 days, test 21 days)
+    - Evaluation metrics: MAE, RMSE, Hit Rate, Sharpe, Information Ratio
+    - Confidence assessment: Strong model = Hit Rate > 55%, Sharpe > 1.0
+
+    **Returns:**
+    - Current percentile and RSI-MA value
+    - Forward return forecasts (1d, 5d, 10d) from all methods
+    - Empirical bin statistics (mean, median, std, 5th/95th percentiles)
+    - Transition matrices for percentile evolution
+    - Backtest accuracy metrics (out-of-sample performance)
+    - Trading recommendation based on model strength
+
+    **Use Cases:**
+    - "What return can I expect given current 34th percentile?"
+    - "How reliable are these predictions? (Hit rate, Sharpe)"
+    - "What's the downside risk? (5th percentile return)"
+    - "Which forecasting method is most accurate for this ticker?"
+
+    **Example Response:**
+    ```json
+    {
+      "current_percentile": 34.1,
+      "prediction": {
+        "ensemble_forecast_1d": 0.07,
+        "empirical_bin_stats": {
+          "mean_return_1d": 0.00,
+          "pct_5_return_1d": -2.15,
+          "pct_95_return_1d": 2.18
+        }
+      },
+      "accuracy_metrics": {
+        "1d": {
+          "hit_rate": 52.5,
+          "sharpe": 0.07,
+          "mae": 1.15
+        }
+      }
+    }
+    ```
+    """
+    ticker = ticker.upper()
+
+    try:
+        # Run comprehensive percentile forward mapping analysis
+        analysis = run_percentile_forward_analysis(ticker, lookback_days=1095)
+
+        return {
+            "ticker": ticker,
+            "current_state": {
+                "current_percentile": float(analysis['current_percentile']),
+                "current_rsi_ma": float(analysis['current_rsi_ma'])
+            },
+            "prediction": analysis['prediction'],
+            "bin_stats": analysis['bin_stats'],
+            "transition_matrices": analysis['transition_matrices'],
+            "backtest_results": analysis['backtest_results'][:100],  # Return last 100 for performance
+            "accuracy_metrics": analysis['accuracy_metrics'],
+            "timestamp": datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Error in /api/percentile-forward for {ticker}:")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
