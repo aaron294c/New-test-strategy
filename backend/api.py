@@ -882,7 +882,7 @@ async def get_enhanced_multi_timeframe_analysis(ticker: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/percentile-forward/{ticker}")
-async def get_percentile_forward_mapping(ticker: str):
+async def get_percentile_forward_mapping(ticker: str, force_refresh: bool = False):
     """
     Get percentile-to-forward-return mapping analysis for a ticker.
 
@@ -941,10 +941,22 @@ async def get_percentile_forward_mapping(ticker: str):
     ticker = ticker.upper()
 
     try:
+        # Check cache first for performance (24-hour cache)
+        cache_file = os.path.join(CACHE_DIR, f"{ticker}_percentile_forward.json")
+
+        if not force_refresh and os.path.exists(cache_file):
+            file_age = datetime.now().timestamp() - os.path.getmtime(cache_file)
+            if file_age < 24 * 3600:  # 24 hours
+                with open(cache_file, 'r') as f:
+                    cached_result = json.load(f)
+                    cached_result['cached'] = True
+                    cached_result['cache_age_hours'] = file_age / 3600
+                    return cached_result
+
         # Run comprehensive percentile forward mapping analysis
         analysis = run_percentile_forward_analysis(ticker, lookback_days=1095)
 
-        return {
+        result = {
             "ticker": ticker,
             "current_state": {
                 "current_percentile": float(analysis['current_percentile']),
@@ -953,10 +965,17 @@ async def get_percentile_forward_mapping(ticker: str):
             "prediction": analysis['prediction'],
             "bin_stats": analysis['bin_stats'],
             "transition_matrices": analysis['transition_matrices'],
-            "backtest_results": analysis['backtest_results'][:100],  # Return last 100 for performance
+            "backtest_results": analysis['backtest_results'][-50:],  # Only last 50 for performance
             "accuracy_metrics": analysis['accuracy_metrics'],
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
+            "cached": False
         }
+
+        # Save to cache
+        with open(cache_file, 'w') as f:
+            json.dump(result, f, indent=2, default=str)
+
+        return result
 
     except Exception as e:
         import traceback

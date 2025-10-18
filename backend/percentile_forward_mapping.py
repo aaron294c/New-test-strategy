@@ -956,19 +956,33 @@ class PercentileForwardMapper:
     def rolling_window_backtest(self,
                                 df: pd.DataFrame,
                                 train_window: int = 252,
-                                test_window: int = 21) -> pd.DataFrame:
+                                test_window: int = 21,
+                                step_size: int = 21) -> pd.DataFrame:
         """
         Method 5: Rolling window out-of-sample backtest.
 
         Train on past train_window, predict next test_window, then roll forward.
 
+        PERFORMANCE OPTIMIZED:
+        - Reduced step size (skip every N days instead of every day)
+        - Limited to max 500 iterations
+
         Returns DataFrame with actual vs predicted returns.
         """
         results = []
+        max_iterations = 500  # Limit iterations for performance
 
-        for start in range(len(df) - train_window - test_window):
+        # Step through data with step_size to reduce computation
+        total_iterations = (len(df) - train_window - test_window) // step_size
+        iterations_to_run = min(total_iterations, max_iterations)
+
+        for i in range(iterations_to_run):
+            start = i * step_size
             end_train = start + train_window
-            end_test = end_train + test_window
+            end_test = min(end_train + test_window, len(df))
+
+            if end_test >= len(df):
+                break
 
             train_df = df.iloc[start:end_train]
             test_df = df.iloc[end_train:end_test]
@@ -979,8 +993,14 @@ class PercentileForwardMapper:
                 self.build_transition_matrix(train_df, h)
             self.fit_regression_models(train_df)
 
-            # Predict on test data
-            for _, row in test_df.iterrows():
+            # Predict on test data (sample only a few points per window)
+            sample_indices = [0, len(test_df)//2, len(test_df)-1] if len(test_df) > 2 else range(len(test_df))
+
+            for idx in sample_indices:
+                if idx >= len(test_df):
+                    continue
+
+                row = test_df.iloc[idx]
                 pct = row['percentile']
                 rsi = row['rsi_ma']
 
@@ -1146,9 +1166,9 @@ def run_percentile_forward_analysis(ticker: str, lookback_days: int = 1095) -> D
         print(f"    Polynomial: {prediction.polynomial_regression.forecast_3d:+.2f}%")
     print(f"    Kernel:     {prediction.kernel_forecast.forecast_3d:+.2f}%")
 
-    # 5. Rolling window backtest
+    # 5. Rolling window backtest (OPTIMIZED: step_size=21 for faster execution)
     print(f"\n5. Running rolling window backtest...")
-    backtest_df = mapper.rolling_window_backtest(df, train_window=252, test_window=21)
+    backtest_df = mapper.rolling_window_backtest(df, train_window=252, test_window=21, step_size=21)
     print(f"  ✓ Backtest: {len(backtest_df)} predictions")
 
     # 6. Evaluate accuracy

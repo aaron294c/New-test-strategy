@@ -346,6 +346,14 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Prospective extrapolation: Turn current RSI-MA percentile into expected forward % change using empirical mapping,
         Markov transitions, regression, kernel smoothing, and ensemble methods.
+        {analysis.cached && (
+          <Chip
+            label={`Cached (${analysis.cache_age_hours?.toFixed(1)}h old)`}
+            size="small"
+            color="info"
+            sx={{ ml: 2 }}
+          />
+        )}
       </Typography>
 
       {/* Current State & Forecast Summary */}
