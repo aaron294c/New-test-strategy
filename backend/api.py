@@ -967,6 +967,7 @@ async def get_percentile_forward_mapping(ticker: str, force_refresh: bool = Fals
             "transition_matrices": analysis['transition_matrices'],
             "backtest_results": analysis['backtest_results'][-50:],  # Only last 50 for performance
             "accuracy_metrics": analysis['accuracy_metrics'],
+            "model_bin_mappings": analysis.get('model_bin_mappings', {}),  # NEW: Full spectrum mappings
             "timestamp": datetime.now().isoformat(),
             "cached": False
         }

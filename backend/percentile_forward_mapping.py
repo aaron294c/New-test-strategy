@@ -135,6 +135,15 @@ class ConfidenceAssessment:
 
 
 @dataclass
+class ModelBinMapping:
+    """Full percentile-bin mapping for a single forecasting method."""
+    model_name: str  # 'markov', 'linear', 'polynomial', 'kernel', 'quantile_median', etc.
+    bin_forecasts: Dict[str, Dict[str, float]]  # {bin_label: {horizon: forecast}}
+    bin_uncertainties: Dict[str, Dict[str, float]]  # {bin_label: {horizon: std_error}}
+    model_metadata: Dict  # R², MAE, bandwidth, etc.
+
+
+@dataclass
 class ForwardReturnPrediction:
     """Complete forward return prediction for current state."""
     current_percentile: float
@@ -176,6 +185,9 @@ class ForwardReturnPrediction:
     confidence_7d: ConfidenceAssessment
     confidence_14d: ConfidenceAssessment
     confidence_21d: ConfidenceAssessment
+
+    # NEW: Full percentile-bin mappings for all models
+    model_bin_mappings: Dict[str, ModelBinMapping]  # {model_name: mapping}
 
 
 class PercentileForwardMapper:
@@ -754,6 +766,207 @@ class PercentileForwardMapper:
             std_error_3d=std_error
         )
 
+    def generate_model_bin_mappings(self, df: pd.DataFrame) -> Dict[str, ModelBinMapping]:
+        """
+        NEW METHOD: Generate full percentile-bin mappings for ALL forecasting models.
+
+        For each model (Markov, Linear, Polynomial, Kernel, Quantile), predict returns
+        for EVERY percentile bin across all horizons.
+
+        Returns:
+            Dictionary mapping model_name to ModelBinMapping with forecasts for all bins.
+        """
+        mappings = {}
+
+        # Get bin midpoints for predictions
+        bin_info = []
+        for pmin, pmax, label in self.percentile_bins:
+            midpoint = (pmin + pmax) / 2
+            bin_idx = self.assign_bin(midpoint)
+            bin_info.append({
+                'label': label,
+                'midpoint': midpoint,
+                'bin_idx': bin_idx,
+                'min': pmin,
+                'max': pmax
+            })
+
+        # 1. Markov Chain Mapping
+        markov_forecasts = {}
+        markov_uncertainties = {}
+
+        for bin in bin_info:
+            bin_label = bin['label']
+            bin_idx = bin['bin_idx']
+
+            forecasts = {}
+            uncertainties = {}
+
+            for h in self.horizons:
+                forecast = self.markov_forecast(bin_idx, h)
+                forecasts[f'{h}d'] = forecast
+
+                # Calculate uncertainty from transition matrix entropy
+                if h in self.transition_matrices:
+                    tm = self.transition_matrices[h]
+                    probs = tm.matrix[bin_idx]
+                    entropy = -sum(p * np.log(p + 1e-10) for p in probs if p > 0)
+                    max_entropy = np.log(len(self.percentile_bins))
+                    uncertainty = entropy / max_entropy  # 0-1 scale
+                    uncertainties[f'{h}d'] = uncertainty
+                else:
+                    uncertainties[f'{h}d'] = 1.0
+
+            markov_forecasts[bin_label] = forecasts
+            markov_uncertainties[bin_label] = uncertainties
+
+        mappings['markov'] = ModelBinMapping(
+            model_name='Markov Chain',
+            bin_forecasts=markov_forecasts,
+            bin_uncertainties=markov_uncertainties,
+            model_metadata={'type': 'transition_matrix'}
+        )
+
+        # 2. Linear Regression Mapping
+        if 'linear_3d' in self.regression_models:
+            linear_forecasts = {}
+            linear_uncertainties = {}
+
+            for bin in bin_info:
+                bin_label = bin['label']
+                midpoint = bin['midpoint']
+                X_new = np.array([[midpoint]])
+
+                forecasts = {}
+                uncertainties = {}
+
+                for h in self.horizons:
+                    model_key = f'linear_{h}d'
+                    if model_key in self.regression_models:
+                        model_info = self.regression_models[model_key]
+                        forecast = model_info['model'].predict(X_new)[0]
+                        forecasts[f'{h}d'] = forecast
+                        uncertainties[f'{h}d'] = model_info['mae']  # Use MAE as uncertainty
+                    else:
+                        forecasts[f'{h}d'] = 0
+                        uncertainties[f'{h}d'] = 0
+
+                linear_forecasts[bin_label] = forecasts
+                linear_uncertainties[bin_label] = uncertainties
+
+            mappings['linear'] = ModelBinMapping(
+                model_name='Linear Regression',
+                bin_forecasts=linear_forecasts,
+                bin_uncertainties=linear_uncertainties,
+                model_metadata={
+                    'r2_3d': self.regression_models.get('linear_3d', {}).get('r2', 0),
+                    'mae_3d': self.regression_models.get('linear_3d', {}).get('mae', 0)
+                }
+            )
+
+        # 3. Polynomial Regression Mapping
+        if 'polynomial_3d' in self.regression_models:
+            poly_forecasts = {}
+            poly_uncertainties = {}
+
+            for bin in bin_info:
+                bin_label = bin['label']
+                midpoint = bin['midpoint']
+                X_new = np.array([[midpoint]])
+
+                forecasts = {}
+                uncertainties = {}
+
+                for h in self.horizons:
+                    model_key = f'polynomial_{h}d'
+                    if model_key in self.regression_models:
+                        model_info = self.regression_models[model_key]
+                        poly_transformer = model_info['poly_transformer']
+                        X_poly = poly_transformer.transform(X_new)
+                        forecast = model_info['model'].predict(X_poly)[0]
+                        forecasts[f'{h}d'] = forecast
+                        uncertainties[f'{h}d'] = model_info['mae']
+                    else:
+                        forecasts[f'{h}d'] = 0
+                        uncertainties[f'{h}d'] = 0
+
+                poly_forecasts[bin_label] = forecasts
+                poly_uncertainties[bin_label] = uncertainties
+
+            mappings['polynomial'] = ModelBinMapping(
+                model_name='Polynomial Regression',
+                bin_forecasts=poly_forecasts,
+                bin_uncertainties=poly_uncertainties,
+                model_metadata={
+                    'degree': 2,
+                    'r2_3d': self.regression_models.get('polynomial_3d', {}).get('r2', 0),
+                    'mae_3d': self.regression_models.get('polynomial_3d', {}).get('mae', 0)
+                }
+            )
+
+        # 4. Kernel Smoothing Mapping
+        kernel_forecasts = {}
+        kernel_uncertainties = {}
+
+        for bin in bin_info:
+            bin_label = bin['label']
+            midpoint = bin['midpoint']
+
+            forecasts = {}
+            uncertainties = {}
+
+            for h in self.horizons:
+                kernel_pred = self.kernel_forecast(df, midpoint, h, bandwidth=10.0)
+                forecasts[f'{h}d'] = getattr(kernel_pred, f'forecast_{h}d', 0)
+                uncertainties[f'{h}d'] = kernel_pred.std_error_3d if h == 3 else kernel_pred.std_error_3d * np.sqrt(h / 3)
+
+            kernel_forecasts[bin_label] = forecasts
+            kernel_uncertainties[bin_label] = uncertainties
+
+        mappings['kernel'] = ModelBinMapping(
+            model_name='Kernel Smoothing',
+            bin_forecasts=kernel_forecasts,
+            bin_uncertainties=kernel_uncertainties,
+            model_metadata={'bandwidth': 10.0, 'kernel': 'gaussian'}
+        )
+
+        # 5. Quantile Regression Mapping (Median, 5th, 95th)
+        for q, q_name in [(0.5, 'median'), (0.05, 'q05'), (0.95, 'q95')]:
+            if f'quantile_{q}_3d' in self.regression_models:
+                quantile_forecasts = {}
+                quantile_uncertainties = {}
+
+                for bin in bin_info:
+                    bin_label = bin['label']
+                    midpoint = bin['midpoint']
+                    X_new = np.array([[midpoint]])
+
+                    forecasts = {}
+                    uncertainties = {}
+
+                    for h in self.horizons:
+                        model_key = f'quantile_{q}_{h}d'
+                        if model_key in self.regression_models:
+                            model_info = self.regression_models[model_key]
+                            forecast = model_info['model'].predict(X_new)[0]
+                            forecasts[f'{h}d'] = forecast
+                            uncertainties[f'{h}d'] = 0  # Quantile regression doesn't provide std error directly
+                        else:
+                            forecasts[f'{h}d'] = 0
+                            uncertainties[f'{h}d'] = 0
+
+                    quantile_forecasts[bin_label] = forecasts
+                    quantile_uncertainties[bin_label] = uncertainties
+
+                mappings[f'quantile_{q_name}'] = ModelBinMapping(
+                    model_name=f'Quantile Regression ({int(q*100)}th %ile)',
+                    bin_forecasts=quantile_forecasts,
+                    bin_uncertainties=quantile_uncertainties,
+                    model_metadata={'quantile': q}
+                )
+
+        return mappings
+
     def predict_forward_returns(self, df: pd.DataFrame, current_percentile: float, current_rsi_ma: float) -> ForwardReturnPrediction:
         """
         Generate comprehensive forward return prediction using all methods for NEW horizons (3, 7, 14, 21).
@@ -925,6 +1138,9 @@ class PercentileForwardMapper:
         confidence_14d = self.assess_confidence(current_percentile, ensemble_14d, 14, empirical)
         confidence_21d = self.assess_confidence(current_percentile, ensemble_21d, 21, empirical)
 
+        # 8. NEW: Generate full percentile-bin mappings for all models
+        model_bin_mappings = self.generate_model_bin_mappings(df)
+
         return ForwardReturnPrediction(
             current_percentile=current_percentile,
             current_rsi_ma=current_rsi_ma,
@@ -950,7 +1166,8 @@ class PercentileForwardMapper:
             confidence_3d=confidence_3d,
             confidence_7d=confidence_7d,
             confidence_14d=confidence_14d,
-            confidence_21d=confidence_21d
+            confidence_21d=confidence_21d,
+            model_bin_mappings=model_bin_mappings
         )
 
     def rolling_window_backtest(self,
@@ -1197,7 +1414,17 @@ def run_percentile_forward_analysis(ticker: str, lookback_days: int = 1095) -> D
             'sample_sizes': tm.sample_sizes.tolist()
         } for h, tm in mapper.transition_matrices.items()},
         'backtest_results': backtest_df.to_dict('records'),
-        'accuracy_metrics': metrics
+        'accuracy_metrics': metrics,
+        # NEW: Model bin mappings for all percentile bins
+        'model_bin_mappings': {
+            model_name: {
+                'model_name': mapping.model_name,
+                'bin_forecasts': mapping.bin_forecasts,
+                'bin_uncertainties': mapping.bin_uncertainties,
+                'model_metadata': mapping.model_metadata
+            }
+            for model_name, mapping in prediction.model_bin_mappings.items()
+        }
     }
 
 
