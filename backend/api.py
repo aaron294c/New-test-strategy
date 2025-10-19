@@ -984,6 +984,111 @@ async def get_percentile_forward_mapping(ticker: str, force_refresh: bool = Fals
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
+def clean_nan_values(obj):
+    """Recursively replace NaN and inf values with None for JSON serialization."""
+    import math
+    if isinstance(obj, dict):
+        return {k: clean_nan_values(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_nan_values(item) for item in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    return obj
+
+@app.get("/api/percentile-forward-4h/{ticker}")
+async def get_percentile_forward_mapping_4h(ticker: str, force_refresh: bool = False):
+    """
+    Get 4-HOUR percentile-to-forward-return mapping analysis for a ticker.
+
+    **4-HOUR TIMEFRAME VERSION**
+
+    Identical methodology to daily Percentile Forward Mapping, but using:
+    - 4-hour OHLC candles
+    - Horizons: 12h (3 bars), 24h (6 bars), 36h (9 bars), 48h (12 bars)
+    - Same model suite: Empirical, Markov, Linear, Polynomial, Quantile, Kernel
+
+    **Returns:**
+    - Current 4H percentile and RSI-MA value
+    - Forward return forecasts (12h, 24h, 36h, 48h) from all methods
+    - Empirical bin statistics for 4H data
+    - Transition matrices for 4H percentile evolution
+    - Backtest accuracy metrics (out-of-sample performance)
+    - Trading recommendation based on model strength
+
+    **Example Response:**
+    ```json
+    {
+      "ticker": "AAPL",
+      "timeframe": "4H",
+      "horizon_labels": ["12h", "24h", "36h", "48h"],
+      "current_percentile": 45.2,
+      "prediction": {
+        "ensemble_forecast_3d": 0.12,  // 12h forecast
+        "ensemble_forecast_7d": 0.25,  // 24h forecast
+        "ensemble_forecast_14d": 0.38, // 36h forecast
+        "ensemble_forecast_21d": 0.51  // 48h forecast
+      }
+    }
+    ```
+    """
+    ticker = ticker.upper()
+
+    try:
+        # Import the 4H analysis function
+        from percentile_forward_4h import run_percentile_forward_analysis_4h
+
+        # Check cache first for performance (24-hour cache)
+        cache_file = os.path.join(CACHE_DIR, f"{ticker}_percentile_forward_4h.json")
+
+        if not force_refresh and os.path.exists(cache_file):
+            file_age = datetime.now().timestamp() - os.path.getmtime(cache_file)
+            if file_age < 24 * 3600:  # 24 hours
+                with open(cache_file, 'r') as f:
+                    cached_result = json.load(f)
+                    cached_result['cached'] = True
+                    cached_result['cache_age_hours'] = file_age / 3600
+                    return cached_result
+
+        # Run comprehensive 4H percentile forward mapping analysis
+        analysis = run_percentile_forward_analysis_4h(ticker, lookback_days=365)
+
+        result = {
+            "ticker": ticker,
+            "timeframe": "4H",
+            "horizon_labels": analysis['horizon_labels'],
+            "horizon_bars": analysis['horizon_bars'],
+            "current_state": {
+                "current_percentile": float(analysis['current_percentile']),
+                "current_rsi_ma": float(analysis['current_rsi_ma'])
+            },
+            "prediction": analysis['prediction'],
+            "bin_stats": analysis['bin_stats'],
+            "transition_matrices": analysis['transition_matrices'],
+            "backtest_results": analysis['backtest_results'][-50:],  # Only last 50 for performance
+            "accuracy_metrics": analysis['accuracy_metrics'],
+            "model_bin_mappings": analysis.get('model_bin_mappings', {}),
+            "timestamp": datetime.now().isoformat(),
+            "cached": False
+        }
+
+        # Clean NaN values before serialization
+        result = clean_nan_values(result)
+
+        # Save to cache
+        with open(cache_file, 'w') as f:
+            json.dump(result, f, indent=2, default=str)
+
+        return result
+
+    except Exception as e:
+        import traceback
+        print(f"Error in /api/percentile-forward-4h for {ticker}:")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize on startup."""

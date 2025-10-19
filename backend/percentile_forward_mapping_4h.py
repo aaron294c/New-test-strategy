@@ -338,21 +338,17 @@ class PercentileForwardMapper:
             if len(bin_data) < 5:  # Skip bins with too few samples
                 continue
 
-            # Extract returns for each horizon dynamically based on self.horizons
-            # Use actual column names from dataframe (ret_3d, ret_6d, ret_9d, ret_12d for 4H)
-            # Map to field names (mean_return_3d, mean_return_7d, mean_return_14d, mean_return_21d)
-            h1, h2, h3, h4 = self.horizons[0], self.horizons[1], self.horizons[2], self.horizons[3]
+            # Extract returns for each NEW horizon (3, 7, 14, 21 days)
+            ret_3d = bin_data['ret_3d'].dropna() if 'ret_3d' in bin_data.columns else pd.Series([0])
+            ret_7d = bin_data['ret_7d'].dropna() if 'ret_7d' in bin_data.columns else pd.Series([0])
+            ret_14d = bin_data['ret_14d'].dropna() if 'ret_14d' in bin_data.columns else pd.Series([0])
+            ret_21d = bin_data['ret_21d'].dropna() if 'ret_21d' in bin_data.columns else pd.Series([0])
 
-            ret_3d = bin_data[f'ret_{h1}d'].dropna() if f'ret_{h1}d' in bin_data.columns else pd.Series([0])
-            ret_7d = bin_data[f'ret_{h2}d'].dropna() if f'ret_{h2}d' in bin_data.columns else pd.Series([0])
-            ret_14d = bin_data[f'ret_{h3}d'].dropna() if f'ret_{h3}d' in bin_data.columns else pd.Series([0])
-            ret_21d = bin_data[f'ret_{h4}d'].dropna() if f'ret_{h4}d' in bin_data.columns else pd.Series([0])
-
-            # Downside risk (std of negative returns) - using first horizon
+            # Downside risk (std of negative returns) - using 3-day
             downside = ret_3d[ret_3d < 0]
             downside_risk = downside.std() if len(downside) > 0 else 0
 
-            # Upside potential (mean of positive returns) - using first horizon
+            # Upside potential (mean of positive returns) - using 3-day
             upside = ret_3d[ret_3d > 0]
             upside_potential = upside.mean() if len(upside) > 0 else 0
 
@@ -480,25 +476,22 @@ class PercentileForwardMapper:
         # Step 3: Look up expected return for that future percentile bin
         if predicted_bin in self.bin_lookup:
             future_bin_stats = self.bin_lookup[predicted_bin]
-            # Map horizon to the appropriate field (dynamic based on self.horizons)
-            h1, h2, h3, h4 = self.horizons[0], self.horizons[1], self.horizons[2], self.horizons[3]
-
-            if horizon == h1:
+            if horizon == 3:
                 expected_return = future_bin_stats.mean_return_3d
                 downside = future_bin_stats.pct_5_return_3d
                 upside = future_bin_stats.pct_95_return_3d
-            elif horizon == h2:
+            elif horizon == 7:
                 expected_return = future_bin_stats.mean_return_7d
-                downside = future_bin_stats.pct_5_return_3d * (horizon / h1)
-                upside = future_bin_stats.pct_95_return_3d * (horizon / h1)
-            elif horizon == h3:
+                downside = future_bin_stats.pct_5_return_3d * (horizon / 3)
+                upside = future_bin_stats.pct_95_return_3d * (horizon / 3)
+            elif horizon == 14:
                 expected_return = future_bin_stats.mean_return_14d
-                downside = future_bin_stats.pct_5_return_3d * (horizon / h1)
-                upside = future_bin_stats.pct_95_return_3d * (horizon / h1)
-            else:  # horizon == h4
+                downside = future_bin_stats.pct_5_return_3d * (horizon / 3)
+                upside = future_bin_stats.pct_95_return_3d * (horizon / 3)
+            else:  # horizon == 21
                 expected_return = future_bin_stats.mean_return_21d
-                downside = future_bin_stats.pct_5_return_3d * (horizon / h1)
-                upside = future_bin_stats.pct_95_return_3d * (horizon / h1)
+                downside = future_bin_stats.pct_5_return_3d * (horizon / 3)
+                upside = future_bin_stats.pct_95_return_3d * (horizon / 3)
         else:
             expected_return = 0
             downside = 0
@@ -648,20 +641,17 @@ class PercentileForwardMapper:
         transition_probs = tm.matrix[current_bin, :]
 
         # Weight each bin's return by probability of transitioning to it
-        # Use dynamic horizon mapping
-        h1, h2, h3, h4 = self.horizons[0], self.horizons[1], self.horizons[2], self.horizons[3]
-
         expected_return = 0.0
         for j, prob in enumerate(transition_probs):
             if j in self.bin_lookup:
                 bin_stats = self.bin_lookup[j]
-                if horizon == h1:
+                if horizon == 3:
                     expected_return += prob * bin_stats.mean_return_3d
-                elif horizon == h2:
+                elif horizon == 7:
                     expected_return += prob * bin_stats.mean_return_7d
-                elif horizon == h3:
+                elif horizon == 14:
                     expected_return += prob * bin_stats.mean_return_14d
-                elif horizon == h4:
+                elif horizon == 21:
                     expected_return += prob * bin_stats.mean_return_21d
 
         return expected_return
@@ -766,16 +756,13 @@ class PercentileForwardMapper:
                 else:
                     forecasts[h] = 0
 
-        # Map dynamic horizons to fixed field names
-        h1, h2, h3, h4 = self.horizons[0], self.horizons[1], self.horizons[2], self.horizons[3]
-
         return KernelForecast(
             bandwidth=bandwidth,
             effective_sample_size=eff_n,
-            forecast_3d=forecasts.get(h1, 0),
-            forecast_7d=forecasts.get(h2, 0),
-            forecast_14d=forecasts.get(h3, 0),
-            forecast_21d=forecasts.get(h4, 0),
+            forecast_3d=forecasts.get(3, 0),
+            forecast_7d=forecasts.get(7, 0),
+            forecast_14d=forecasts.get(14, 0),
+            forecast_21d=forecasts.get(21, 0),
             std_error_3d=std_error
         )
 
@@ -841,8 +828,7 @@ class PercentileForwardMapper:
         )
 
         # 2. Linear Regression Mapping
-        h1 = self.horizons[0]
-        if f'linear_{h1}d' in self.regression_models:
+        if 'linear_3d' in self.regression_models:
             linear_forecasts = {}
             linear_uncertainties = {}
 
@@ -873,13 +859,13 @@ class PercentileForwardMapper:
                 bin_forecasts=linear_forecasts,
                 bin_uncertainties=linear_uncertainties,
                 model_metadata={
-                    'r2_3d': self.regression_models.get(f'linear_{h1}d', {}).get('r2', 0),
-                    'mae_3d': self.regression_models.get(f'linear_{h1}d', {}).get('mae', 0)
+                    'r2_3d': self.regression_models.get('linear_3d', {}).get('r2', 0),
+                    'mae_3d': self.regression_models.get('linear_3d', {}).get('mae', 0)
                 }
             )
 
         # 3. Polynomial Regression Mapping
-        if f'polynomial_{h1}d' in self.regression_models:
+        if 'polynomial_3d' in self.regression_models:
             poly_forecasts = {}
             poly_uncertainties = {}
 
@@ -913,8 +899,8 @@ class PercentileForwardMapper:
                 bin_uncertainties=poly_uncertainties,
                 model_metadata={
                     'degree': 2,
-                    'r2_3d': self.regression_models.get(f'polynomial_{h1}d', {}).get('r2', 0),
-                    'mae_3d': self.regression_models.get(f'polynomial_{h1}d', {}).get('mae', 0)
+                    'r2_3d': self.regression_models.get('polynomial_3d', {}).get('r2', 0),
+                    'mae_3d': self.regression_models.get('polynomial_3d', {}).get('mae', 0)
                 }
             )
 
@@ -929,15 +915,10 @@ class PercentileForwardMapper:
             forecasts = {}
             uncertainties = {}
 
-            # Map self.horizons to KernelForecast field names
-            h1, h2, h3, h4 = self.horizons[0], self.horizons[1], self.horizons[2], self.horizons[3]
-            horizon_map = {h1: 'forecast_3d', h2: 'forecast_7d', h3: 'forecast_14d', h4: 'forecast_21d'}
-
             for h in self.horizons:
                 kernel_pred = self.kernel_forecast(df, midpoint, h, bandwidth=10.0)
-                field_name = horizon_map.get(h, 'forecast_3d')
-                forecasts[f'{h}d'] = getattr(kernel_pred, field_name, 0)
-                uncertainties[f'{h}d'] = kernel_pred.std_error_3d if h == h1 else kernel_pred.std_error_3d * np.sqrt(h / h1)
+                forecasts[f'{h}d'] = getattr(kernel_pred, f'forecast_{h}d', 0)
+                uncertainties[f'{h}d'] = kernel_pred.std_error_3d if h == 3 else kernel_pred.std_error_3d * np.sqrt(h / 3)
 
             kernel_forecasts[bin_label] = forecasts
             kernel_uncertainties[bin_label] = uncertainties
@@ -951,8 +932,7 @@ class PercentileForwardMapper:
 
         # 5. Quantile Regression Mapping (Median, 5th, 95th)
         for q, q_name in [(0.5, 'median'), (0.05, 'q05'), (0.95, 'q95')]:
-            h1 = self.horizons[0]
-            if f'quantile_{q}_{h1}d' in self.regression_models:
+            if f'quantile_{q}_3d' in self.regression_models:
                 quantile_forecasts = {}
                 quantile_uncertainties = {}
 
@@ -1000,30 +980,28 @@ class PercentileForwardMapper:
             # Fallback to nearest bin
             empirical = list(self.bin_lookup.values())[0] if self.bin_lookup else None
 
-        # 2. Markov forecasts for all horizons (dynamic)
-        h1, h2, h3, h4 = self.horizons[0], self.horizons[1], self.horizons[2], self.horizons[3]
+        # 2. Markov forecasts for all NEW horizons
+        markov_3d = self.markov_forecast(current_bin, 3)
+        markov_7d = self.markov_forecast(current_bin, 7)
+        markov_14d = self.markov_forecast(current_bin, 14)
+        markov_21d = self.markov_forecast(current_bin, 21)
 
-        markov_3d = self.markov_forecast(current_bin, h1)
-        markov_7d = self.markov_forecast(current_bin, h2)
-        markov_14d = self.markov_forecast(current_bin, h3)
-        markov_21d = self.markov_forecast(current_bin, h4)
-
-        # 3. Percentile-first forecasts for all horizons (dynamic)
-        pf_3d = self.percentile_first_forecast(current_bin, current_percentile, h1)
-        pf_7d = self.percentile_first_forecast(current_bin, current_percentile, h2)
-        pf_14d = self.percentile_first_forecast(current_bin, current_percentile, h3)
-        pf_21d = self.percentile_first_forecast(current_bin, current_percentile, h4)
+        # 3. Percentile-first forecasts for all NEW horizons
+        pf_3d = self.percentile_first_forecast(current_bin, current_percentile, 3)
+        pf_7d = self.percentile_first_forecast(current_bin, current_percentile, 7)
+        pf_14d = self.percentile_first_forecast(current_bin, current_percentile, 14)
+        pf_21d = self.percentile_first_forecast(current_bin, current_percentile, 21)
 
         # 4. Regression forecasts
         X_new = np.array([[current_percentile]])
 
-        # Linear regression (dynamic horizons)
-        lr_3d = self.regression_models.get(f'linear_{h1}d')
+        # Linear regression
+        lr_3d = self.regression_models.get('linear_3d')
         if lr_3d:
             lr_forecast_3d = lr_3d['model'].predict(X_new)[0]
-            lr_forecast_7d = self.regression_models.get(f'linear_{h2}d', {}).get('model', lr_3d['model']).predict(X_new)[0]
-            lr_forecast_14d = self.regression_models.get(f'linear_{h3}d', {}).get('model', lr_3d['model']).predict(X_new)[0]
-            lr_forecast_21d = self.regression_models.get(f'linear_{h4}d', {}).get('model', lr_3d['model']).predict(X_new)[0]
+            lr_forecast_7d = self.regression_models.get('linear_7d', {}).get('model', lr_3d['model']).predict(X_new)[0]
+            lr_forecast_14d = self.regression_models.get('linear_14d', {}).get('model', lr_3d['model']).predict(X_new)[0]
+            lr_forecast_21d = self.regression_models.get('linear_21d', {}).get('model', lr_3d['model']).predict(X_new)[0]
 
             linear_reg = RegressionForecast(
                 model_type='linear',
@@ -1039,19 +1017,19 @@ class PercentileForwardMapper:
         else:
             linear_reg = None
 
-        # Polynomial regression (dynamic horizons)
-        poly_3d = self.regression_models.get(f'polynomial_{h1}d')
+        # Polynomial regression
+        poly_3d = self.regression_models.get('polynomial_3d')
         if poly_3d:
             X_poly = poly_3d['poly_transformer'].transform(X_new)
             poly_forecast_3d = poly_3d['model'].predict(X_poly)[0]
 
-            poly_7d_model = self.regression_models.get(f'polynomial_{h2}d')
+            poly_7d_model = self.regression_models.get('polynomial_7d')
             poly_forecast_7d = poly_7d_model['model'].predict(poly_7d_model['poly_transformer'].transform(X_new))[0] if poly_7d_model else poly_forecast_3d
 
-            poly_14d_model = self.regression_models.get(f'polynomial_{h3}d')
+            poly_14d_model = self.regression_models.get('polynomial_14d')
             poly_forecast_14d = poly_14d_model['model'].predict(poly_14d_model['poly_transformer'].transform(X_new))[0] if poly_14d_model else poly_forecast_3d
 
-            poly_21d_model = self.regression_models.get(f'polynomial_{h4}d')
+            poly_21d_model = self.regression_models.get('polynomial_21d')
             poly_forecast_21d = poly_21d_model['model'].predict(poly_21d_model['poly_transformer'].transform(X_new))[0] if poly_21d_model else poly_forecast_3d
 
             polynomial_reg = RegressionForecast(
@@ -1068,10 +1046,10 @@ class PercentileForwardMapper:
         else:
             polynomial_reg = None
 
-        # Quantile regressions (dynamic horizons)
-        qr_median_3d = self.regression_models.get(f'quantile_0.5_{h1}d')
-        qr_05_3d = self.regression_models.get(f'quantile_0.05_{h1}d')
-        qr_95_3d = self.regression_models.get(f'quantile_0.95_{h1}d')
+        # Quantile regressions
+        qr_median_3d = self.regression_models.get('quantile_0.5_3d')
+        qr_05_3d = self.regression_models.get('quantile_0.05_3d')
+        qr_95_3d = self.regression_models.get('quantile_0.95_3d')
 
         quantile_median = RegressionForecast(
             model_type='quantile_median',
@@ -1079,9 +1057,9 @@ class PercentileForwardMapper:
             r_squared=0,
             mae=0,
             forecast_3d=qr_median_3d['model'].predict(X_new)[0] if qr_median_3d else 0,
-            forecast_7d=self.regression_models.get(f'quantile_0.5_{h2}d', {}).get('model', qr_median_3d['model'] if qr_median_3d else None).predict(X_new)[0] if qr_median_3d else 0,
-            forecast_14d=self.regression_models.get(f'quantile_0.5_{h3}d', {}).get('model', qr_median_3d['model'] if qr_median_3d else None).predict(X_new)[0] if qr_median_3d else 0,
-            forecast_21d=self.regression_models.get(f'quantile_0.5_{h4}d', {}).get('model', qr_median_3d['model'] if qr_median_3d else None).predict(X_new)[0] if qr_median_3d else 0,
+            forecast_7d=self.regression_models.get('quantile_0.5_7d', {}).get('model', qr_median_3d['model'] if qr_median_3d else None).predict(X_new)[0] if qr_median_3d else 0,
+            forecast_14d=self.regression_models.get('quantile_0.5_14d', {}).get('model', qr_median_3d['model'] if qr_median_3d else None).predict(X_new)[0] if qr_median_3d else 0,
+            forecast_21d=self.regression_models.get('quantile_0.5_21d', {}).get('model', qr_median_3d['model'] if qr_median_3d else None).predict(X_new)[0] if qr_median_3d else 0,
             confidence_interval_95=(0, 0)
         )
 
@@ -1109,8 +1087,8 @@ class PercentileForwardMapper:
             confidence_interval_95=(0, 0)
         )
 
-        # 5. Kernel forecast (use first horizon)
-        kernel_pred = self.kernel_forecast(df, current_percentile, h1, bandwidth=10.0)
+        # 5. Kernel forecast
+        kernel_pred = self.kernel_forecast(df, current_percentile, 3, bandwidth=10.0)
 
         # 6. Ensemble (average of all methods) for each horizon
         forecasts_3d = [
@@ -1248,16 +1226,13 @@ class PercentileForwardMapper:
 
                 pred = self.predict_forward_returns(train_df, pct, rsi)
 
-                # Use dynamic horizon column names
-                h1, h2, h3, h4 = self.horizons[0], self.horizons[1], self.horizons[2], self.horizons[3]
-
                 result = {
                     'date': row['date'],
                     'percentile': pct,
-                    'actual_3d': row.get(f'ret_{h1}d', np.nan),
-                    'actual_7d': row.get(f'ret_{h2}d', np.nan),
-                    'actual_14d': row.get(f'ret_{h3}d', np.nan),
-                    'actual_21d': row.get(f'ret_{h4}d', np.nan),
+                    'actual_3d': row.get('ret_3d', np.nan),
+                    'actual_7d': row.get('ret_7d', np.nan),
+                    'actual_14d': row.get('ret_14d', np.nan),
+                    'actual_21d': row.get('ret_21d', np.nan),
                     'predicted_3d': pred.ensemble_forecast_3d,
                     'predicted_7d': pred.ensemble_forecast_7d,
                     'predicted_14d': pred.ensemble_forecast_14d,

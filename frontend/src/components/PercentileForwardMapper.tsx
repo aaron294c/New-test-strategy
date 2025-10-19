@@ -30,6 +30,8 @@ import {
   Tabs,
   Tab,
   Chip,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   LineChart,
@@ -82,6 +84,20 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<any>(null);
   const [tabValue, setTabValue] = useState(0);
+  const [timeframe, setTimeframe] = useState<'1D' | '4H'>('1D');
+
+  // Helper to safely format numbers (handles null from NaN cleaning)
+  const safeFormat = (val: number | null | undefined, decimals: number = 2): string => {
+    if (val === null || val === undefined || isNaN(val)) return '0.00';
+    return val.toFixed(decimals);
+  };
+
+  // Get horizon labels from API response or use defaults
+  const horizonLabels = analysis?.horizon_labels || ['3d', '7d', '14d', '21d'];
+  const h1 = horizonLabels[0] || '3d';
+  const h2 = horizonLabels[1] || '7d';
+  const h3 = horizonLabels[2] || '14d';
+  const h4 = horizonLabels[3] || '21d';
 
   const fetchAnalysis = async (forceRefresh: boolean = false) => {
     setLoading(true);
@@ -90,7 +106,10 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const refreshParam = forceRefresh ? '?force_refresh=true' : '';
-      const response = await fetch(`${apiUrl}/api/percentile-forward/${ticker}${refreshParam}`);
+      const endpoint = timeframe === '4H'
+        ? `/api/percentile-forward-4h/${ticker}`
+        : `/api/percentile-forward/${ticker}`;
+      const response = await fetch(`${apiUrl}${endpoint}${refreshParam}`);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -113,7 +132,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
 
   useEffect(() => {
     fetchAnalysis();
-  }, [ticker]);
+  }, [ticker, timeframe]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -174,19 +193,63 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
     const markov = analysis.model_bin_mappings['markov'];
     if (!markov) return null;
 
-    // Find bins with highest 3-day forecasts
+    // Find bins with highest forecasts (use dynamic horizon keys)
+    const horizonBars = analysis?.horizon_bars || [3, 7, 14, 21];
+    const h1Key = `${horizonBars[0]}d`;
+    const h2Key = `${horizonBars[1]}d`;
+
     const binForecasts = Object.entries(markov.bin_forecasts).map(([bin, forecasts]: [string, any]) => ({
       bin,
-      forecast3d: forecasts['3d'],
-      forecast7d: forecasts['7d']
+      forecast3d: forecasts[h1Key],
+      forecast7d: forecasts[h2Key]
     }));
 
-    binForecasts.sort((a, b) => b.forecast3d - a.forecast3d);
+    // Check if stock is mean-reverting or momentum
+    const mrAnalysis = analyzeMeanReversion();
+    const isMeanReverting = mrAnalysis?.isMeanReverting || false;
+    const meanReversionStrength = mrAnalysis?.meanReversionStrength3d || 0;
 
+    // For mean-reversion: look for positive returns in LOW percentile bins
+    // For momentum: look for positive returns in HIGH percentile bins OR highest forecast bins
+    if (isMeanReverting || meanReversionStrength > 0.1) {
+      // Mean-Reversion Strategy: Filter for low percentile bins (0-25%) with positive returns
+      const lowBinForecasts = binForecasts.filter(b => {
+        const binRange = b.bin.split('-');
+        const binStart = parseInt(binRange[0]);
+        return binStart < 25 && b.forecast3d > 0;
+      });
+
+      if (lowBinForecasts.length > 0) {
+        lowBinForecasts.sort((a, b) => b.forecast3d - a.forecast3d);
+        return {
+          bestBin: lowBinForecasts[0].bin,
+          bestForecast: lowBinForecasts[0].forecast3d,
+          topThreeBins: lowBinForecasts.slice(0, 3).map(b => b.bin),
+          strategyType: 'mean-reversion'
+        };
+      }
+    }
+
+    // Momentum Strategy: Find bins with highest POSITIVE forecasts (regardless of percentile)
+    const positiveBinForecasts = binForecasts.filter(b => b.forecast3d > 0);
+
+    if (positiveBinForecasts.length > 0) {
+      positiveBinForecasts.sort((a, b) => b.forecast3d - a.forecast3d);
+      return {
+        bestBin: positiveBinForecasts[0].bin,
+        bestForecast: positiveBinForecasts[0].forecast3d,
+        topThreeBins: positiveBinForecasts.slice(0, 3).map(b => b.bin),
+        strategyType: 'momentum'
+      };
+    }
+
+    // Fallback: if no positive forecasts, return highest bins anyway
+    binForecasts.sort((a, b) => b.forecast3d - a.forecast3d);
     return {
       bestBin: binForecasts[0].bin,
       bestForecast: binForecasts[0].forecast3d,
-      topThreeBins: binForecasts.slice(0, 3).map(b => b.bin)
+      topThreeBins: binForecasts.slice(0, 3).map(b => b.bin),
+      strategyType: 'momentum'
     };
   };
 
@@ -243,10 +306,10 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
 
     const chartData = Object.values(analysis.bin_stats).map((stats: any) => ({
       bin: stats.bin_label,
-      mean_3d: stats.mean_return_3d,
-      mean_7d: stats.mean_return_7d,
-      mean_14d: stats.mean_return_14d,
-      mean_21d: stats.mean_return_21d,
+      mean_3d: stats.mean_return_3d || 0,
+      mean_7d: stats.mean_return_7d || 0,
+      mean_14d: stats.mean_return_14d || 0,
+      mean_21d: stats.mean_return_21d || 0,
       count: stats.count
     }));
 
@@ -259,10 +322,10 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
           <Tooltip />
           <Legend />
           <ReferenceLine y={0} stroke="#000" />
-          <Bar dataKey="mean_3d" fill="#2196f3" name="3-day" />
-          <Bar dataKey="mean_7d" fill="#ff9800" name="7-day" />
-          <Bar dataKey="mean_14d" fill="#4caf50" name="14-day" />
-          <Bar dataKey="mean_21d" fill="#9c27b0" name="21-day" />
+          <Bar dataKey="mean_3d" fill="#2196f3" name={h1} />
+          <Bar dataKey="mean_7d" fill="#ff9800" name={h2} />
+          <Bar dataKey="mean_14d" fill="#4caf50" name={h3} />
+          <Bar dataKey="mean_21d" fill="#9c27b0" name={h4} />
         </BarChart>
       </ResponsiveContainer>
     );
@@ -287,7 +350,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
           <Tooltip />
           <Legend />
           <ReferenceLine y={0} stroke="#000" />
-          <Bar dataKey="mean_7d" fill="#ff9800" name="7-day" />
+          <Bar dataKey="mean_7d" fill="#ff9800" name={h2} />
         </BarChart>
       </ResponsiveContainer>
     );
@@ -312,7 +375,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
           <Tooltip />
           <Legend />
           <ReferenceLine y={0} stroke="#000" />
-          <Bar dataKey="mean_14d" fill="#4caf50" name="14-day" />
+          <Bar dataKey="mean_14d" fill="#4caf50" name={h3} />
         </BarChart>
       </ResponsiveContainer>
     );
@@ -337,7 +400,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
           <Tooltip />
           <Legend />
           <ReferenceLine y={0} stroke="#000" />
-          <Bar dataKey="mean_21d" fill="#9c27b0" name="21-day" />
+          <Bar dataKey="mean_21d" fill="#9c27b0" name={h4} />
         </BarChart>
       </ResponsiveContainer>
     );
@@ -421,18 +484,47 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
         </Button>
       </Box>
 
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        Prospective extrapolation: Turn current RSI-MA percentile into expected forward % change using empirical mapping,
-        Markov transitions, regression, kernel smoothing, and ensemble methods.
-        {analysis.cached && (
-          <Chip
-            label={`Cached (${analysis.cache_age_hours?.toFixed(1)}h old)`}
-            size="small"
-            color="info"
-            sx={{ ml: 2 }}
-          />
-        )}
-      </Typography>
+      {/* Timeframe Toggle */}
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
+        <ToggleButtonGroup
+          value={timeframe}
+          exclusive
+          onChange={(_e, newTimeframe) => {
+            if (newTimeframe) setTimeframe(newTimeframe);
+          }}
+          size="small"
+        >
+          <ToggleButton value="1D">
+            Daily
+          </ToggleButton>
+          <ToggleButton value="4H">
+            4-Hour
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        <Chip
+          label={`Timeframe: ${timeframe} • Horizons: ${
+            timeframe === '4H' ? '12h / 24h / 36h / 48h' : '3d / 7d / 14d / 21d'
+          }`}
+          size="small"
+          variant="outlined"
+        />
+      </Box>
+
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="body2" color="text.secondary" component="div">
+          Prospective extrapolation: Turn current RSI-MA percentile into expected forward % change using empirical mapping,
+          Markov transitions, regression, kernel smoothing, and ensemble methods.
+          {analysis.cached && (
+            <Chip
+              label={`Cached (${analysis.cache_age_hours?.toFixed(1)}h old)`}
+              size="small"
+              color="info"
+              sx={{ ml: 2, mt: 1 }}
+            />
+          )}
+        </Typography>
+      </Box>
 
       {/* Current State & Forecast Summary */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -453,7 +545,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
         <Grid item xs={12} md={3}>
           <Card sx={{ bgcolor: prediction?.ensemble_forecast_3d > 0 ? 'success.light' : 'error.light' }}>
             <CardContent>
-              <Typography variant="h6">3-Day Forecast</Typography>
+              <Typography variant="h6">{h1} Forecast</Typography>
               <Typography variant="h4" style={{ color: prediction?.ensemble_forecast_3d > 0 ? 'green' : 'red' }}>
                 {prediction?.ensemble_forecast_3d > 0 ? '+' : ''}{prediction?.ensemble_forecast_3d?.toFixed(2) || '0'}%
               </Typography>
@@ -467,7 +559,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
         <Grid item xs={12} md={2}>
           <Card sx={{ bgcolor: prediction?.ensemble_forecast_7d > 0 ? 'success.light' : 'error.light' }}>
             <CardContent>
-              <Typography variant="h6">7-Day Forecast</Typography>
+              <Typography variant="h6">{h2} Forecast</Typography>
               <Typography variant="h4" style={{ color: prediction?.ensemble_forecast_7d > 0 ? 'green' : 'red' }}>
                 {prediction?.ensemble_forecast_7d > 0 ? '+' : ''}{prediction?.ensemble_forecast_7d?.toFixed(2) || '0'}%
               </Typography>
@@ -481,7 +573,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
         <Grid item xs={12} md={2}>
           <Card sx={{ bgcolor: prediction?.ensemble_forecast_14d > 0 ? 'success.light' : 'error.light' }}>
             <CardContent>
-              <Typography variant="h6">14-Day Forecast</Typography>
+              <Typography variant="h6">{h3} Forecast</Typography>
               <Typography variant="h4" style={{ color: prediction?.ensemble_forecast_14d > 0 ? 'green' : 'red' }}>
                 {prediction?.ensemble_forecast_14d > 0 ? '+' : ''}{prediction?.ensemble_forecast_14d?.toFixed(2) || '0'}%
               </Typography>
@@ -495,7 +587,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
         <Grid item xs={12} md={2}>
           <Card sx={{ bgcolor: prediction?.ensemble_forecast_21d > 0 ? 'success.light' : 'error.light' }}>
             <CardContent>
-              <Typography variant="h6">21-Day Forecast</Typography>
+              <Typography variant="h6">{h4} Forecast</Typography>
               <Typography variant="h4" style={{ color: prediction?.ensemble_forecast_21d > 0 ? 'green' : 'red' }}>
                 {prediction?.ensemble_forecast_21d > 0 ? '+' : ''}{prediction?.ensemble_forecast_21d?.toFixed(2) || '0'}%
               </Typography>
@@ -540,19 +632,45 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
             );
           }
 
-          // Determine current trading zone
+          // Determine current trading zone based on strategy type
           let currentZone = 'NEUTRAL';
           let currentZoneColor = 'info';
           let currentZoneAction = 'HOLD / WAIT';
 
-          if (currentPct < 15) {
-            currentZone = 'BUY ZONE (Oversold)';
-            currentZoneColor = 'success';
-            currentZoneAction = 'ENTER LONG';
-          } else if (currentPct > 75) {
-            currentZone = 'SELL ZONE (Overbought)';
-            currentZoneColor = 'error';
-            currentZoneAction = 'TAKE PROFITS / EXIT';
+          // Check if stock is mean-reverting or momentum
+          const isMeanReverting = mrAnalysis.isMeanReverting;
+          const forecastPositive = prediction?.ensemble_forecast_3d > 0;
+
+          if (isMeanReverting) {
+            // MEAN-REVERSION LOGIC: Low percentile = Buy, High percentile = Sell
+            if (currentPct < 15) {
+              currentZone = 'BUY ZONE (Oversold - Mean-Reversion)';
+              currentZoneColor = 'success';
+              currentZoneAction = 'ENTER LONG (Oversold Bounce Expected)';
+            } else if (currentPct > 75) {
+              currentZone = 'SELL ZONE (Overbought - Mean-Reversion)';
+              currentZoneColor = 'error';
+              currentZoneAction = 'TAKE PROFITS / EXIT (Pullback Expected)';
+            }
+          } else {
+            // MOMENTUM LOGIC: Follow the trend, not countertrend
+            if (currentPct > 75 && forecastPositive) {
+              currentZone = 'CONTINUATION ZONE (Strong Momentum)';
+              currentZoneColor = 'success';
+              currentZoneAction = 'ENTER LONG (Momentum Continuation)';
+            } else if (currentPct < 15 && !forecastPositive) {
+              currentZone = 'AVOID ZONE (Negative Momentum)';
+              currentZoneColor = 'error';
+              currentZoneAction = 'AVOID / EXIT (Downtrend Likely)';
+            } else if (currentPct > 50 && forecastPositive) {
+              currentZone = 'WATCH ZONE (Positive Momentum)';
+              currentZoneColor = 'info';
+              currentZoneAction = 'WAIT FOR PULLBACK OR ENTER SMALL';
+            } else {
+              currentZone = 'NEUTRAL ZONE';
+              currentZoneColor = 'info';
+              currentZoneAction = 'HOLD / WAIT FOR SIGNAL';
+            }
           }
 
           return (
@@ -627,7 +745,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                     <Grid item xs={12} sm={6}>
                       <Box sx={{ p: 2, bgcolor: '#f5f5f5', borderRadius: 2, border: '2px solid #e0e0e0' }}>
                         <Typography variant="caption" sx={{ color: '#666', fontWeight: 700, letterSpacing: 0.5 }}>
-                          3-DAY FORECAST
+                          {h1.toUpperCase()} FORECAST
                         </Typography>
                         <Typography variant="h5" sx={{ fontWeight: 700, color: prediction?.ensemble_forecast_3d > 0 ? '#2e7d32' : '#d32f2f', mt: 0.5 }}>
                           {prediction?.ensemble_forecast_3d > 0 ? '+' : ''}{prediction?.ensemble_forecast_3d?.toFixed(2)}%
@@ -668,7 +786,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                     <CardContent>
                       <Typography variant="h6" color="success.main">📈 Low Percentile (0-15%)</Typography>
                       <Typography variant="h4">{mrAnalysis.lowPercentile3d > 0 ? '+' : ''}{mrAnalysis.lowPercentile3d.toFixed(2)}%</Typography>
-                      <Typography variant="caption">Avg 3-day return when oversold</Typography>
+                      <Typography variant="caption">Avg {h1} return when oversold</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -677,7 +795,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                     <CardContent>
                       <Typography variant="h6" color="info.main">➡️ Mid Percentile (25-75%)</Typography>
                       <Typography variant="h4">{mrAnalysis.midPercentile3d > 0 ? '+' : ''}{mrAnalysis.midPercentile3d.toFixed(2)}%</Typography>
-                      <Typography variant="caption">Avg 3-day return when neutral</Typography>
+                      <Typography variant="caption">Avg {h1} return when neutral</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -686,7 +804,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                     <CardContent>
                       <Typography variant="h6" color="error.main">📉 High Percentile (75-100%)</Typography>
                       <Typography variant="h4">{mrAnalysis.highPercentile3d > 0 ? '+' : ''}{mrAnalysis.highPercentile3d.toFixed(2)}%</Typography>
-                      <Typography variant="caption">Avg 3-day return when overbought</Typography>
+                      <Typography variant="caption">Avg {h1} return when overbought</Typography>
                     </CardContent>
                   </Card>
                 </Grid>
@@ -698,9 +816,9 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                   {mrAnalysis.isMeanReverting ? '✅ STRONG Mean-Reversion Detected' : '⚠️ Weak/No Mean-Reversion'}
                 </Typography>
                 <Typography variant="body2">
-                  <strong>Mean-Reversion Strength (3-day):</strong> {mrAnalysis.meanReversionStrength3d > 0 ? '+' : ''}{mrAnalysis.meanReversionStrength3d.toFixed(2)}% advantage for oversold vs overbought
+                  <strong>Mean-Reversion Strength ({h1}):</strong> {mrAnalysis.meanReversionStrength3d > 0 ? '+' : ''}{mrAnalysis.meanReversionStrength3d.toFixed(2)}% advantage for oversold vs overbought
                   <br />
-                  <strong>Mean-Reversion Strength (7-day):</strong> {mrAnalysis.meanReversionStrength7d > 0 ? '+' : ''}{mrAnalysis.meanReversionStrength7d.toFixed(2)}% advantage
+                  <strong>Mean-Reversion Strength ({h2}):</strong> {mrAnalysis.meanReversionStrength7d > 0 ? '+' : ''}{mrAnalysis.meanReversionStrength7d.toFixed(2)}% advantage
                   <br />
                   <br />
                   {mrAnalysis.isMeanReverting ? (
@@ -708,11 +826,23 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                       📊 <strong>Interpretation:</strong> {ticker} shows classic mean-reversion behavior. When RSI-MA percentile is low (0-15%),
                       the stock tends to bounce back with <strong>{mrAnalysis.meanReversionStrength3d.toFixed(2)}% higher returns</strong> compared to when it's overbought (75-100%).
                       This is a statistically validated pattern across all 7 forecasting models.
+                      <br /><br />
+                      <strong>Strategy:</strong> Buy oversold conditions (low percentile), sell overbought conditions (high percentile).
+                    </span>
+                  ) : mrAnalysis.meanReversionStrength3d < -0.1 ? (
+                    <span>
+                      📊 <strong>Interpretation:</strong> {ticker} shows <strong>MOMENTUM</strong> behavior, NOT mean-reversion.
+                      When RSI-MA percentile is low (oversold), returns are <strong>negative</strong> ({mrAnalysis.lowPercentile3d.toFixed(2)}%).
+                      When RSI-MA percentile is high (overbought), returns are <strong>positive</strong> ({mrAnalysis.highPercentile3d.toFixed(2)}%).
+                      <br /><br />
+                      <strong>Mean-Reversion Strength: {mrAnalysis.meanReversionStrength3d.toFixed(2)}%</strong> (NEGATIVE = momentum behavior)
+                      <br /><br />
+                      <strong>Strategy:</strong> Follow the trend. Buy strength (high percentile with positive forecast), avoid weakness (low percentile with negative forecast).
                     </span>
                   ) : (
                     <span>
-                      📊 <strong>Interpretation:</strong> {ticker} shows minimal mean-reversion. Returns are similar across all percentile ranges.
-                      Consider momentum strategies instead.
+                      📊 <strong>Interpretation:</strong> {ticker} shows neutral/weak patterns. Returns are similar across all percentile ranges.
+                      Consider range-bound strategies or wait for clearer signals.
                     </span>
                   )}
                 </Typography>
@@ -739,102 +869,109 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                     <Typography variant="h5" sx={{ fontWeight: 700 }}>
                       Optimal Trading Strategy for {ticker}
                     </Typography>
+                    <Chip
+                      label={mrAnalysis.isMeanReverting ? 'MEAN-REVERSION' : 'MOMENTUM'}
+                      color={mrAnalysis.isMeanReverting ? 'success' : 'warning'}
+                      sx={{ ml: 2, fontWeight: 700 }}
+                    />
                   </Box>
 
-                  <Grid container spacing={3}>
-                    {/* BUY SIGNALS */}
-                    <Grid item xs={12} md={6}>
-                      <Box
-                        sx={{
-                          p: 3,
-                          bgcolor: 'white',
-                          borderRadius: 2,
-                          border: '3px solid',
-                          borderColor: '#388e3c',
-                          height: '100%',
-                          boxShadow: 2
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, pb: 2, borderBottom: '2px solid #e8f5e9' }}>
-                          <Typography variant="h6" sx={{ fontWeight: 700, color: '#2e7d32' }}>
-                            ✅ BUY SIGNALS
-                          </Typography>
-                        </Box>
-
-                        <Box sx={{ mb: 2, p: 2, bgcolor: '#f1f8e9', borderRadius: 1, border: '1px solid #aed581' }}>
-                          <Typography variant="caption" sx={{ color: '#33691e', fontWeight: 700, display: 'block', mb: 0.5, letterSpacing: 0.5 }}>
-                            BEST ENTRY BINS
-                          </Typography>
-                          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                            {optimalZones.topThreeBins.map((bin: string) => (
-                              <Chip key={bin} label={`${bin}%`} color="success" size="small" sx={{ fontWeight: 700 }} />
-                            ))}
-                          </Box>
-                        </Box>
-
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                            <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
-                              Entry Trigger:
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#424242' }}>
-                              RSI-MA drops below <strong>15%</strong>
+                  {mrAnalysis.isMeanReverting ? (
+                    // MEAN-REVERSION STRATEGY
+                    <Grid container spacing={3}>
+                      {/* BUY SIGNALS */}
+                      <Grid item xs={12} md={6}>
+                        <Box
+                          sx={{
+                            p: 3,
+                            bgcolor: 'white',
+                            borderRadius: 2,
+                            border: '3px solid',
+                            borderColor: '#388e3c',
+                            height: '100%',
+                            boxShadow: 2
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, pb: 2, borderBottom: '2px solid #e8f5e9' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#2e7d32' }}>
+                              ✅ BUY SIGNALS (Mean-Reversion)
                             </Typography>
                           </Box>
 
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                            <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
-                              Optimal Entry:
+                          <Box sx={{ mb: 2, p: 2, bgcolor: '#f1f8e9', borderRadius: 1, border: '1px solid #aed581' }}>
+                            <Typography variant="caption" sx={{ color: '#33691e', fontWeight: 700, display: 'block', mb: 0.5, letterSpacing: 0.5 }}>
+                              BEST ENTRY BINS (Oversold Zones)
                             </Typography>
-                            <Chip label="5-15% bin" color="success" size="small" sx={{ fontWeight: 700 }} />
-                          </Box>
-
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                            <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
-                              Target Horizon:
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#424242' }}>
-                              <strong>3-7 days</strong> (mean-reversion strongest)
-                            </Typography>
-                          </Box>
-
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                            <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
-                              Expected Return:
-                            </Typography>
-                            <Box>
-                              <Chip
-                                label={`3d: ${mrAnalysis.lowPercentile3d > 0 ? '+' : ''}${mrAnalysis.lowPercentile3d.toFixed(2)}%`}
-                                color="success"
-                                size="small"
-                                sx={{ mr: 0.5, fontWeight: 700 }}
-                              />
-                              <Chip
-                                label={`7d: ${mrAnalysis.lowPercentile7d > 0 ? '+' : ''}${mrAnalysis.lowPercentile7d.toFixed(2)}%`}
-                                color="success"
-                                size="small"
-                                sx={{ fontWeight: 700 }}
-                              />
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                              {optimalZones.topThreeBins.map((bin: string) => (
+                                <Chip key={bin} label={`${bin}%`} color="success" size="small" sx={{ fontWeight: 700 }} />
+                              ))}
                             </Box>
                           </Box>
 
-                          <Box sx={{ mt: 1, p: 2, bgcolor: '#f1f8e9', borderRadius: 1, border: '2px solid #aed581' }}>
-                            <Typography variant="caption" sx={{ fontWeight: 700, color: '#33691e', display: 'block', mb: 1, letterSpacing: 0.5 }}>
-                              POSITION SIZING
-                            </Typography>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                              <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#424242' }}>
-                                • <strong>0-5%:</strong> 75% of max <Chip label="High uncertainty" size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#fff3e0', color: '#e65100' }} />
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
+                                Entry Trigger:
                               </Typography>
-                              <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#424242' }}>
-                                • <strong>5-15%:</strong> 100% of max <Chip label="Optimal" color="success" size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
+                              <Typography variant="body2" sx={{ color: '#424242' }}>
+                                RSI-MA drops below <strong>15%</strong>
                               </Typography>
                             </Box>
-                          </Box>
 
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                            <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#d32f2f' }}>
-                              Stop Loss:
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
+                                Optimal Entry:
+                              </Typography>
+                              <Chip label="5-15% bin" color="success" size="small" sx={{ fontWeight: 700 }} />
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
+                                Target Horizon:
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: '#424242' }}>
+                                <strong>{h1}-{h2}</strong> (mean-reversion strongest)
+                              </Typography>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
+                                Expected Return:
+                              </Typography>
+                              <Box>
+                                <Chip
+                                  label={`${h1}: ${mrAnalysis.lowPercentile3d > 0 ? '+' : ''}${mrAnalysis.lowPercentile3d.toFixed(2)}%`}
+                                  color={mrAnalysis.lowPercentile3d > 0 ? 'success' : 'error'}
+                                  size="small"
+                                  sx={{ mr: 0.5, fontWeight: 700 }}
+                                />
+                                <Chip
+                                  label={`${h2}: ${mrAnalysis.lowPercentile7d > 0 ? '+' : ''}${mrAnalysis.lowPercentile7d.toFixed(2)}%`}
+                                  color={mrAnalysis.lowPercentile7d > 0 ? 'success' : 'error'}
+                                  size="small"
+                                  sx={{ fontWeight: 700 }}
+                                />
+                              </Box>
+                            </Box>
+
+                            <Box sx={{ mt: 1, p: 2, bgcolor: '#f1f8e9', borderRadius: 1, border: '2px solid #aed581' }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: '#33691e', display: 'block', mb: 1, letterSpacing: 0.5 }}>
+                                POSITION SIZING
+                              </Typography>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#424242' }}>
+                                  • <strong>0-5%:</strong> 75% of max <Chip label="High uncertainty" size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem', bgcolor: '#fff3e0', color: '#e65100' }} />
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#424242' }}>
+                                  • <strong>5-15%:</strong> 100% of max <Chip label="Optimal" color="success" size="small" sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} />
+                                </Typography>
+                              </Box>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#d32f2f' }}>
+                                Stop Loss:
                             </Typography>
                             <Chip
                               label={`-${(riskReward.downside * 0.7).toFixed(1)}%`}
@@ -897,7 +1034,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                               Reasoning:
                             </Typography>
                             <Typography variant="body2" sx={{ color: '#424242' }}>
-                              Returns drop to <strong>{mrAnalysis.highPercentile3d > 0 ? '+' : ''}{mrAnalysis.highPercentile3d.toFixed(2)}%</strong> (3d)
+                              Returns drop to <strong>{mrAnalysis.highPercentile3d > 0 ? '+' : ''}{mrAnalysis.highPercentile3d.toFixed(2)}%</strong> ({h1})
                             </Typography>
                           </Box>
 
@@ -928,6 +1065,186 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                       </Box>
                     </Grid>
                   </Grid>
+                  ) : (
+                    // MOMENTUM STRATEGY
+                    <Grid container spacing={3}>
+                      {/* ENTRY SIGNALS */}
+                      <Grid item xs={12} md={6}>
+                        <Box
+                          sx={{
+                            p: 3,
+                            bgcolor: 'white',
+                            borderRadius: 2,
+                            border: '3px solid',
+                            borderColor: '#388e3c',
+                            height: '100%',
+                            boxShadow: 2
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, pb: 2, borderBottom: '2px solid #e8f5e9' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#2e7d32' }}>
+                              ✅ ENTRY SIGNALS (Momentum)
+                            </Typography>
+                          </Box>
+
+                          <Box sx={{ mb: 2, p: 2, bgcolor: '#f1f8e9', borderRadius: 1, border: '1px solid #aed581' }}>
+                            <Typography variant="caption" sx={{ color: '#33691e', fontWeight: 700, display: 'block', mb: 0.5, letterSpacing: 0.5 }}>
+                              HIGHEST FORECAST BINS
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                              {optimalZones.topThreeBins.map((bin: string) => (
+                                <Chip key={bin} label={`${bin}%`} color="success" size="small" sx={{ fontWeight: 700 }} />
+                              ))}
+                            </Box>
+                          </Box>
+
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
+                                Strategy Type:
+                              </Typography>
+                              <Chip label="Trend Following" color="warning" size="small" sx={{ fontWeight: 700 }} />
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
+                                Entry Trigger:
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: '#424242' }}>
+                                RSI-MA rises above <strong>50%</strong> with positive forecast
+                              </Typography>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
+                                Best Entry:
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: '#424242' }}>
+                                Bins with <strong>highest forecasts</strong> ({optimalZones.topThreeBins[0]}%)
+                              </Typography>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#2e7d32' }}>
+                                Expected Return:
+                              </Typography>
+                              <Box>
+                                <Chip
+                                  label={`${h1}: ${optimalZones.bestForecast > 0 ? '+' : ''}${optimalZones.bestForecast.toFixed(2)}%`}
+                                  color={optimalZones.bestForecast > 0 ? 'success' : 'error'}
+                                  size="small"
+                                  sx={{ mr: 0.5, fontWeight: 700 }}
+                                />
+                              </Box>
+                            </Box>
+
+                            <Box sx={{ mt: 1, p: 2, bgcolor: '#fff3e0', borderRadius: 1, border: '2px solid #ffb74d' }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: '#e65100', display: 'block', mb: 1, letterSpacing: 0.5 }}>
+                                ⚠️ MOMENTUM WARNING
+                              </Typography>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#424242' }}>
+                                  • <strong>DO NOT</strong> buy low percentiles (oversold) - negative returns
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#424242' }}>
+                                  • <strong>Low Percentile ({h1}):</strong> {mrAnalysis.lowPercentile3d.toFixed(2)}% (avoid)
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#424242' }}>
+                                  • <strong>High Percentile ({h1}):</strong> {mrAnalysis.highPercentile3d.toFixed(2)}% (opportunity)
+                                </Typography>
+                              </Box>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#d32f2f' }}>
+                                Stop Loss:
+                              </Typography>
+                              <Chip
+                                label={`-${(riskReward.downside * 0.7).toFixed(1)}%`}
+                                color="error"
+                                size="small"
+                                sx={{ fontWeight: 700 }}
+                              />
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Grid>
+
+                      {/* EXIT SIGNALS */}
+                      <Grid item xs={12} md={6}>
+                        <Box
+                          sx={{
+                            p: 3,
+                            bgcolor: 'white',
+                            borderRadius: 2,
+                            border: '3px solid',
+                            borderColor: '#d32f2f',
+                            height: '100%',
+                            boxShadow: 2
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, pb: 2, borderBottom: '2px solid #ffebee' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#c62828' }}>
+                              ❌ AVOID ZONES
+                            </Typography>
+                          </Box>
+
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#d32f2f' }}>
+                                Avoid Entry Below:
+                              </Typography>
+                              <Chip label="25% percentile" color="error" size="small" sx={{ fontWeight: 700 }} />
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#d32f2f' }}>
+                                Reason:
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: '#424242' }}>
+                                Low percentiles show <strong>negative returns</strong> (downtrend continues)
+                              </Typography>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#d32f2f' }}>
+                                Exit Signal:
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: '#424242' }}>
+                                When forecast turns negative OR percentile drops below <strong>50%</strong>
+                              </Typography>
+                            </Box>
+
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                              <Typography variant="body2" sx={{ minWidth: 140, fontWeight: 700, color: '#d32f2f' }}>
+                                Trailing Stop:
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: '#424242' }}>
+                                Use <strong>15-percentile trailing stop</strong> from peak
+                              </Typography>
+                            </Box>
+
+                            <Box sx={{ mt: 2, p: 2, bgcolor: '#e3f2fd', borderRadius: 1, border: '2px solid #64b5f6' }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: '#1565c0', display: 'block', mb: 1, letterSpacing: 0.5 }}>
+                                💡 MOMENTUM TIPS
+                              </Typography>
+                              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#424242' }}>
+                                  • <strong>Ride the trend</strong> - don't fight it
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#424242' }}>
+                                  • <strong>Pullbacks are opportunities</strong> if forecast stays positive
+                                </Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.85rem', color: '#424242' }}>
+                                  • <strong>Exit if momentum breaks</strong> (negative forecast)
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  )}
                 </CardContent>
               </Card>
 
@@ -950,7 +1267,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                     >
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="zone" />
-                      <YAxis label={{ value: '3-Day Expected Return (%)', angle: -90, position: 'insideLeft' }} />
+                      <YAxis label={{ value: `${h1} Expected Return (%)`, angle: -90, position: 'insideLeft' }} />
                       <Tooltip />
                       <ReferenceLine y={0} stroke="#000" strokeWidth={2} />
                       <Bar dataKey="return" fill="#8884d8">
@@ -1010,8 +1327,12 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
 
         {renderBinStatsChart()}
 
+        <Typography variant="h6" gutterBottom sx={{ mt: 5 }}>
+          {h1} Horizon: Bin Returns Overview
+        </Typography>
+
         <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
-          <strong>Detailed Statistics by Bin</strong>
+          <strong>Detailed Statistics by Bin - {h1} Horizon</strong>
         </Typography>
 
         <TableContainer>
@@ -1020,9 +1341,9 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
               <TableRow>
                 <TableCell><strong>Percentile Bin</strong></TableCell>
                 <TableCell align="right"><strong>Count</strong></TableCell>
-                <TableCell align="right"><strong>Mean 3d</strong></TableCell>
-                <TableCell align="right"><strong>Median 3d</strong></TableCell>
-                <TableCell align="right"><strong>Std 3d</strong></TableCell>
+                <TableCell align="right"><strong>Mean {h1}</strong></TableCell>
+                <TableCell align="right"><strong>Median {h1}</strong></TableCell>
+                <TableCell align="right"><strong>Std {h1}</strong></TableCell>
                 <TableCell align="right"><strong>5th %ile</strong></TableCell>
                 <TableCell align="right"><strong>95th %ile</strong></TableCell>
                 <TableCell align="right"><strong>Upside</strong></TableCell>
@@ -1036,23 +1357,23 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                   <TableCell align="right">{stats.count}</TableCell>
                   <TableCell
                     align="right"
-                    style={{ color: stats.mean_return_3d > 0 ? 'green' : 'red', fontWeight: 'bold' }}
+                    style={{ color: (stats.mean_return_3d || 0) > 0 ? 'green' : 'red', fontWeight: 'bold' }}
                   >
-                    {stats.mean_return_3d > 0 ? '+' : ''}{stats.mean_return_3d.toFixed(2)}%
+                    {(stats.mean_return_3d || 0) > 0 ? '+' : ''}{safeFormat(stats.mean_return_3d)}%
                   </TableCell>
-                  <TableCell align="right">{stats.median_return_3d.toFixed(2)}%</TableCell>
-                  <TableCell align="right">{stats.std_return_3d.toFixed(2)}%</TableCell>
+                  <TableCell align="right">{safeFormat(stats.median_return_3d)}%</TableCell>
+                  <TableCell align="right">{safeFormat(stats.std_return_3d)}%</TableCell>
                   <TableCell align="right" style={{ color: 'red' }}>
-                    {stats.pct_5_return_3d.toFixed(2)}%
+                    {safeFormat(stats.pct_5_return_3d)}%
                   </TableCell>
                   <TableCell align="right" style={{ color: 'green' }}>
-                    +{stats.pct_95_return_3d.toFixed(2)}%
+                    +{safeFormat(stats.pct_95_return_3d)}%
                   </TableCell>
                   <TableCell align="right" style={{ color: 'green' }}>
-                    +{stats.upside_potential_3d.toFixed(2)}%
+                    +{safeFormat(stats.upside_potential_3d)}%
                   </TableCell>
                   <TableCell align="right" style={{ color: 'red' }}>
-                    {stats.downside_risk_3d.toFixed(2)}%
+                    {safeFormat(stats.downside_risk_3d)}%
                   </TableCell>
                 </TableRow>
               ))}
@@ -1065,7 +1386,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
             <strong>How to Read This Table:</strong>
           </Typography>
           <Typography variant="body2">
-            • <strong>Mean 3d:</strong> Average return 3 days forward when percentile is in this bin (direct lookup)
+            • <strong>Mean {h1}:</strong> Average return for {h1} horizon when percentile is in this bin (direct lookup)
             <br />
             • <strong>5th/95th percentiles:</strong> Risk range (5% worst case, 95% best case)
             <br />
@@ -1075,20 +1396,20 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
             <br />
             <br />
             <strong>Current Bin:</strong> {prediction?.empirical_bin_stats?.bin_label || 'N/A'} →
-            Expected 3d return: {prediction?.empirical_bin_stats?.mean_return_3d > 0 ? '+' : ''}
+            Expected {h1} return: {prediction?.empirical_bin_stats?.mean_return_3d > 0 ? '+' : ''}
             {prediction?.empirical_bin_stats?.mean_return_3d?.toFixed(2) || '0'}%
           </Typography>
         </Alert>
 
-        {/* 7-Day Bar Chart */}
+        {/* Second Horizon Bar Chart */}
         <Typography variant="h6" gutterBottom sx={{ mt: 5 }}>
-          7-Day Horizon: Bin Returns Overview
+          {h2} Horizon: Bin Returns Overview
         </Typography>
         {renderBinStatsChart7d()}
 
-        {/* 7-Day Detailed Statistics */}
+        {/* Second Horizon Detailed Statistics */}
         <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
-          <strong>Detailed Statistics by Bin - 7-Day Horizon</strong>
+          <strong>Detailed Statistics by Bin - {h2} Horizon</strong>
         </Typography>
 
         <TableContainer>
@@ -1097,9 +1418,9 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
               <TableRow>
                 <TableCell><strong>Percentile Bin</strong></TableCell>
                 <TableCell align="right"><strong>Count</strong></TableCell>
-                <TableCell align="right"><strong>Mean 7d</strong></TableCell>
-                <TableCell align="right"><strong>Median 7d</strong></TableCell>
-                <TableCell align="right"><strong>Std 7d</strong></TableCell>
+                <TableCell align="right"><strong>Mean {h2}</strong></TableCell>
+                <TableCell align="right"><strong>Median {h2}</strong></TableCell>
+                <TableCell align="right"><strong>Std {h2}</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -1109,12 +1430,12 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                   <TableCell align="right">{stats.count}</TableCell>
                   <TableCell
                     align="right"
-                    style={{ color: stats.mean_return_7d > 0 ? 'green' : 'red', fontWeight: 'bold' }}
+                    style={{ color: (stats.mean_return_7d || 0) > 0 ? 'green' : 'red', fontWeight: 'bold' }}
                   >
-                    {stats.mean_return_7d > 0 ? '+' : ''}{stats.mean_return_7d.toFixed(2)}%
+                    {(stats.mean_return_7d || 0) > 0 ? '+' : ''}{safeFormat(stats.mean_return_7d)}%
                   </TableCell>
-                  <TableCell align="right">{stats.median_return_7d.toFixed(2)}%</TableCell>
-                  <TableCell align="right">{stats.std_return_7d.toFixed(2)}%</TableCell>
+                  <TableCell align="right">{safeFormat(stats.median_return_7d)}%</TableCell>
+                  <TableCell align="right">{safeFormat(stats.std_return_7d)}%</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1129,15 +1450,15 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
           </Typography>
         </Alert>
 
-        {/* 14-Day Bar Chart */}
+        {/* Third Horizon Bar Chart */}
         <Typography variant="h6" gutterBottom sx={{ mt: 5 }}>
-          14-Day Horizon: Bin Returns Overview
+          {h3} Horizon: Bin Returns Overview
         </Typography>
         {renderBinStatsChart14d()}
 
-        {/* 14-Day Detailed Statistics */}
+        {/* Third Horizon Detailed Statistics */}
         <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
-          <strong>Detailed Statistics by Bin - 14-Day Horizon</strong>
+          <strong>Detailed Statistics by Bin - {h3} Horizon</strong>
         </Typography>
 
         <TableContainer>
@@ -1146,9 +1467,9 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
               <TableRow>
                 <TableCell><strong>Percentile Bin</strong></TableCell>
                 <TableCell align="right"><strong>Count</strong></TableCell>
-                <TableCell align="right"><strong>Mean 14d</strong></TableCell>
-                <TableCell align="right"><strong>Median 14d</strong></TableCell>
-                <TableCell align="right"><strong>Std 14d</strong></TableCell>
+                <TableCell align="right"><strong>Mean {h3}</strong></TableCell>
+                <TableCell align="right"><strong>Median {h3}</strong></TableCell>
+                <TableCell align="right"><strong>Std {h3}</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -1158,12 +1479,12 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                   <TableCell align="right">{stats.count}</TableCell>
                   <TableCell
                     align="right"
-                    style={{ color: stats.mean_return_14d > 0 ? 'green' : 'red', fontWeight: 'bold' }}
+                    style={{ color: (stats.mean_return_14d || 0) > 0 ? 'green' : 'red', fontWeight: 'bold' }}
                   >
-                    {stats.mean_return_14d > 0 ? '+' : ''}{stats.mean_return_14d.toFixed(2)}%
+                    {(stats.mean_return_14d || 0) > 0 ? '+' : ''}{safeFormat(stats.mean_return_14d)}%
                   </TableCell>
-                  <TableCell align="right">{stats.median_return_14d.toFixed(2)}%</TableCell>
-                  <TableCell align="right">{stats.std_return_14d.toFixed(2)}%</TableCell>
+                  <TableCell align="right">{safeFormat(stats.median_return_14d)}%</TableCell>
+                  <TableCell align="right">{safeFormat(stats.std_return_14d)}%</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1178,15 +1499,15 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
           </Typography>
         </Alert>
 
-        {/* 21-Day Bar Chart */}
+        {/* Fourth Horizon Bar Chart */}
         <Typography variant="h6" gutterBottom sx={{ mt: 5 }}>
-          21-Day Horizon: Bin Returns Overview
+          {h4} Horizon: Bin Returns Overview
         </Typography>
         {renderBinStatsChart21d()}
 
-        {/* 21-Day Detailed Statistics */}
+        {/* Fourth Horizon Detailed Statistics */}
         <Typography variant="subtitle1" gutterBottom sx={{ mt: 3 }}>
-          <strong>Detailed Statistics by Bin - 21-Day Horizon</strong>
+          <strong>Detailed Statistics by Bin - {h4} Horizon</strong>
         </Typography>
 
         <TableContainer>
@@ -1195,9 +1516,9 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
               <TableRow>
                 <TableCell><strong>Percentile Bin</strong></TableCell>
                 <TableCell align="right"><strong>Count</strong></TableCell>
-                <TableCell align="right"><strong>Mean 21d</strong></TableCell>
-                <TableCell align="right"><strong>Median 21d</strong></TableCell>
-                <TableCell align="right"><strong>Std 21d</strong></TableCell>
+                <TableCell align="right"><strong>Mean {h4}</strong></TableCell>
+                <TableCell align="right"><strong>Median {h4}</strong></TableCell>
+                <TableCell align="right"><strong>Std {h4}</strong></TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -1207,12 +1528,12 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                   <TableCell align="right">{stats.count}</TableCell>
                   <TableCell
                     align="right"
-                    style={{ color: stats.mean_return_21d > 0 ? 'green' : 'red', fontWeight: 'bold' }}
+                    style={{ color: (stats.mean_return_21d || 0) > 0 ? 'green' : 'red', fontWeight: 'bold' }}
                   >
-                    {stats.mean_return_21d > 0 ? '+' : ''}{stats.mean_return_21d.toFixed(2)}%
+                    {(stats.mean_return_21d || 0) > 0 ? '+' : ''}{safeFormat(stats.mean_return_21d)}%
                   </TableCell>
-                  <TableCell align="right">{stats.median_return_21d.toFixed(2)}%</TableCell>
-                  <TableCell align="right">{stats.std_return_21d.toFixed(2)}%</TableCell>
+                  <TableCell align="right">{safeFormat(stats.median_return_21d)}%</TableCell>
+                  <TableCell align="right">{safeFormat(stats.std_return_21d)}%</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -1234,7 +1555,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
           Markov Transition Matrices: Percentile Evolution Probabilities
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          P[i,j] = Probability of moving from percentile bin i to bin j after h days.
+          P[i,j] = Probability of moving from percentile bin i to bin j after the specified horizon.
           <br />
           Used to forecast future percentile distribution, then map to expected returns.
         </Typography>
@@ -1242,7 +1563,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
         {analysis.transition_matrices && Object.entries(analysis.transition_matrices).map(([horizon, tm]: [string, any]) => (
           <Box key={horizon} sx={{ mb: 4 }}>
             <Typography variant="subtitle1" gutterBottom>
-              <strong>{horizon} Transition Matrix</strong> (Sample size: {tm.sample_sizes?.reduce((a: number, b: number) => a + b, 0) || 0})
+              <strong>{tm.horizon_label || horizon} Transition Matrix</strong> (Sample size: {tm.sample_sizes?.reduce((a: number, b: number) => a + b, 0) || 0})
             </Typography>
             {renderTransitionMatrix(tm)}
           </Box>
@@ -1264,13 +1585,13 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
             <br />
             <strong>Current Markov Forecasts:</strong>
             <br />
-            3-day: {prediction?.markov_forecast_3d > 0 ? '+' : ''}{prediction?.markov_forecast_3d?.toFixed(2) || '0'}%
+            {h1}: {prediction?.markov_forecast_3d > 0 ? '+' : ''}{prediction?.markov_forecast_3d?.toFixed(2) || '0'}%
             <br />
-            7-day: {prediction?.markov_forecast_7d > 0 ? '+' : ''}{prediction?.markov_forecast_7d?.toFixed(2) || '0'}%
+            {h2}: {prediction?.markov_forecast_7d > 0 ? '+' : ''}{prediction?.markov_forecast_7d?.toFixed(2) || '0'}%
             <br />
-            14-day: {prediction?.markov_forecast_14d > 0 ? '+' : ''}{prediction?.markov_forecast_14d?.toFixed(2) || '0'}%
+            {h3}: {prediction?.markov_forecast_14d > 0 ? '+' : ''}{prediction?.markov_forecast_14d?.toFixed(2) || '0'}%
             <br />
-            21-day: {prediction?.markov_forecast_21d > 0 ? '+' : ''}{prediction?.markov_forecast_21d?.toFixed(2) || '0'}%
+            {h4}: {prediction?.markov_forecast_21d > 0 ? '+' : ''}{prediction?.markov_forecast_21d?.toFixed(2) || '0'}%
           </Typography>
         </Alert>
       </TabPanel>
@@ -1278,7 +1599,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
       {/* Tab 2: Model Comparison */}
       <TabPanel value={tabValue} index={3}>
         <Typography variant="h6" gutterBottom>
-          Model Comparison: All Methods for 3-Day Forecast
+          Model Comparison: All Methods for {h1} Forecast
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Compare predictions from different methods: Empirical, Markov, Linear Regression, Polynomial,
@@ -1290,7 +1611,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
             <TableHead>
               <TableRow>
                 <TableCell><strong>Method</strong></TableCell>
-                <TableCell align="right"><strong>3-Day Forecast</strong></TableCell>
+                <TableCell align="right"><strong>{h1} Forecast</strong></TableCell>
                 <TableCell><strong>Notes</strong></TableCell>
               </TableRow>
             </TableHead>
@@ -1401,7 +1722,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
 
         {/* 7-Day Forecast Table */}
         <Typography variant="h6" gutterBottom sx={{ mt: 5 }}>
-          Model Comparison: All Methods for 7-Day Forecast
+          Model Comparison: All Methods for {h2} Forecast
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Compare predictions from different methods for the 7-day horizon.
@@ -1412,7 +1733,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
             <TableHead>
               <TableRow>
                 <TableCell><strong>Method</strong></TableCell>
-                <TableCell align="right"><strong>7-Day Forecast</strong></TableCell>
+                <TableCell align="right"><strong>{h2} Forecast</strong></TableCell>
                 <TableCell><strong>Notes</strong></TableCell>
               </TableRow>
             </TableHead>
@@ -1487,7 +1808,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
 
         {/* 14-Day Forecast Table */}
         <Typography variant="h6" gutterBottom sx={{ mt: 5 }}>
-          Model Comparison: All Methods for 14-Day Forecast
+          Model Comparison: All Methods for {h3} Forecast
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Compare predictions from different methods for the 14-day horizon.
@@ -1498,7 +1819,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
             <TableHead>
               <TableRow>
                 <TableCell><strong>Method</strong></TableCell>
-                <TableCell align="right"><strong>14-Day Forecast</strong></TableCell>
+                <TableCell align="right"><strong>{h3} Forecast</strong></TableCell>
                 <TableCell><strong>Notes</strong></TableCell>
               </TableRow>
             </TableHead>
@@ -1573,7 +1894,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
 
         {/* 21-Day Forecast Table */}
         <Typography variant="h6" gutterBottom sx={{ mt: 5 }}>
-          Model Comparison: All Methods for 21-Day Forecast
+          Model Comparison: All Methods for {h4} Forecast
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Compare predictions from different methods for the 21-day horizon.
@@ -1584,7 +1905,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
             <TableHead>
               <TableRow>
                 <TableCell><strong>Method</strong></TableCell>
-                <TableCell align="right"><strong>21-Day Forecast</strong></TableCell>
+                <TableCell align="right"><strong>{h4} Forecast</strong></TableCell>
                 <TableCell><strong>Notes</strong></TableCell>
               </TableRow>
             </TableHead>
@@ -1860,13 +2181,17 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
             {/* Chart for this model's forecasts across all bins */}
             <ResponsiveContainer width="100%" height={350}>
               <BarChart
-                data={Object.entries(mapping.bin_forecasts).map(([bin, forecasts]: [string, any]) => ({
-                  bin,
-                  '3d': forecasts['3d'] || 0,
-                  '7d': forecasts['7d'] || 0,
-                  '14d': forecasts['14d'] || 0,
-                  '21d': forecasts['21d'] || 0,
-                }))}
+                data={Object.entries(mapping.bin_forecasts).map(([bin, forecasts]: [string, any]) => {
+                  // Use dynamic horizon keys from API (e.g., 3d, 6d, 9d, 12d for 4H)
+                  const horizonBars = analysis?.horizon_bars || [3, 7, 14, 21];
+                  return {
+                    bin,
+                    '3d': forecasts[`${horizonBars[0]}d`] || 0,
+                    '7d': forecasts[`${horizonBars[1]}d`] || 0,
+                    '14d': forecasts[`${horizonBars[2]}d`] || 0,
+                    '21d': forecasts[`${horizonBars[3]}d`] || 0,
+                  };
+                })}
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="bin" />
@@ -1874,10 +2199,10 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                 <Tooltip />
                 <Legend />
                 <ReferenceLine y={0} stroke="#000" strokeWidth={2} />
-                <Bar dataKey="3d" fill="#2196f3" name="3-day" />
-                <Bar dataKey="7d" fill="#ff9800" name="7-day" />
-                <Bar dataKey="14d" fill="#4caf50" name="14-day" />
-                <Bar dataKey="21d" fill="#9c27b0" name="21-day" />
+                <Bar dataKey="3d" fill="#2196f3" name={h1} />
+                <Bar dataKey="7d" fill="#ff9800" name={h2} />
+                <Bar dataKey="14d" fill="#4caf50" name={h3} />
+                <Bar dataKey="21d" fill="#9c27b0" name={h4} />
               </BarChart>
             </ResponsiveContainer>
 
@@ -1887,50 +2212,57 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
                 <TableHead>
                   <TableRow>
                     <TableCell><strong>Percentile Bin</strong></TableCell>
-                    <TableCell align="right"><strong>3-Day Forecast</strong></TableCell>
-                    <TableCell align="right"><strong>7-Day Forecast</strong></TableCell>
-                    <TableCell align="right"><strong>14-Day Forecast</strong></TableCell>
-                    <TableCell align="right"><strong>21-Day Forecast</strong></TableCell>
-                    {mapping.bin_uncertainties && Object.values(mapping.bin_uncertainties)[0]?.['3d'] !== undefined && (
-                      <TableCell align="right"><strong>Uncertainty (3d)</strong></TableCell>
+                    <TableCell align="right"><strong>{h1} Forecast</strong></TableCell>
+                    <TableCell align="right"><strong>{h2} Forecast</strong></TableCell>
+                    <TableCell align="right"><strong>{h3} Forecast</strong></TableCell>
+                    <TableCell align="right"><strong>{h4} Forecast</strong></TableCell>
+                    {mapping.bin_uncertainties && Object.values(mapping.bin_uncertainties)[0]?.[`${analysis?.horizon_bars?.[0] || 3}d`] !== undefined && (
+                      <TableCell align="right"><strong>Uncertainty ({h1})</strong></TableCell>
                     )}
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {Object.entries(mapping.bin_forecasts).map(([bin, forecasts]: [string, any]) => {
                     const uncertainties = mapping.bin_uncertainties?.[bin] || {};
+                    // Use dynamic horizon keys from API
+                    const horizonBars = analysis?.horizon_bars || [3, 7, 14, 21];
+                    const h1Key = `${horizonBars[0]}d`;
+                    const h2Key = `${horizonBars[1]}d`;
+                    const h3Key = `${horizonBars[2]}d`;
+                    const h4Key = `${horizonBars[3]}d`;
+
                     return (
                       <TableRow key={bin}>
                         <TableCell><strong>{bin}%</strong></TableCell>
                         <TableCell
                           align="right"
-                          style={{ color: forecasts['3d'] > 0 ? 'green' : 'red', fontWeight: 'bold' }}
+                          style={{ color: (forecasts[h1Key] || 0) > 0 ? 'green' : 'red', fontWeight: 'bold' }}
                         >
-                          {forecasts['3d'] > 0 ? '+' : ''}{forecasts['3d']?.toFixed(2) || 0}%
+                          {(forecasts[h1Key] || 0) > 0 ? '+' : ''}{forecasts[h1Key]?.toFixed(2) || 0}%
                         </TableCell>
                         <TableCell
                           align="right"
-                          style={{ color: forecasts['7d'] > 0 ? 'green' : 'red', fontWeight: 'bold' }}
+                          style={{ color: (forecasts[h2Key] || 0) > 0 ? 'green' : 'red', fontWeight: 'bold' }}
                         >
-                          {forecasts['7d'] > 0 ? '+' : ''}{forecasts['7d']?.toFixed(2) || 0}%
+                          {(forecasts[h2Key] || 0) > 0 ? '+' : ''}{forecasts[h2Key]?.toFixed(2) || 0}%
                         </TableCell>
                         <TableCell
                           align="right"
-                          style={{ color: forecasts['14d'] > 0 ? 'green' : 'red', fontWeight: 'bold' }}
+                          style={{ color: (forecasts[h3Key] || 0) > 0 ? 'green' : 'red', fontWeight: 'bold' }}
                         >
-                          {forecasts['14d'] > 0 ? '+' : ''}{forecasts['14d']?.toFixed(2) || 0}%
+                          {(forecasts[h3Key] || 0) > 0 ? '+' : ''}{forecasts[h3Key]?.toFixed(2) || 0}%
                         </TableCell>
                         <TableCell
                           align="right"
-                          style={{ color: forecasts['21d'] > 0 ? 'green' : 'red', fontWeight: 'bold' }}
+                          style={{ color: (forecasts[h4Key] || 0) > 0 ? 'green' : 'red', fontWeight: 'bold' }}
                         >
-                          {forecasts['21d'] > 0 ? '+' : ''}{forecasts['21d']?.toFixed(2) || 0}%
+                          {(forecasts[h4Key] || 0) > 0 ? '+' : ''}{forecasts[h4Key]?.toFixed(2) || 0}%
                         </TableCell>
-                        {uncertainties['3d'] !== undefined && (
+                        {uncertainties[h1Key] !== undefined && (
                           <TableCell align="right">
-                            {typeof uncertainties['3d'] === 'number' && uncertainties['3d'] < 10
-                              ? uncertainties['3d'].toFixed(3)
-                              : uncertainties['3d']?.toFixed(2)}
+                            {typeof uncertainties[h1Key] === 'number' && uncertainties[h1Key] < 10
+                              ? uncertainties[h1Key].toFixed(3)
+                              : uncertainties[h1Key]?.toFixed(2)}
                           </TableCell>
                         )}
                       </TableRow>
@@ -1944,7 +2276,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
 
         {/* Cross-Model Comparison Chart */}
         <Typography variant="h6" gutterBottom sx={{ mt: 5 }}>
-          Cross-Model Comparison: 3-Day Forecasts by Percentile Bin
+          Cross-Model Comparison: {h1} Forecasts by Percentile Bin
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Overlay all models on a single chart to see agreement/divergence patterns.
@@ -1973,7 +2305,7 @@ const PercentileForwardMapper: React.FC<PercentileForwardMapperProps> = ({ ticke
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="bin" />
-                <YAxis label={{ value: '3-Day Forecast (%)', angle: -90, position: 'insideLeft' }} />
+                <YAxis label={{ value: `${h1} Forecast (%)`, angle: -90, position: 'insideLeft' }} />
                 <Tooltip />
                 <Legend />
                 <ReferenceLine y={0} stroke="#000" strokeWidth={2} />
