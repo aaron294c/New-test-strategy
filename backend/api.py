@@ -30,6 +30,13 @@ from convergence_analyzer import analyze_convergence_for_ticker
 from position_manager import get_position_management
 from enhanced_mtf_analyzer import run_enhanced_analysis
 from percentile_forward_mapping import run_percentile_forward_analysis
+from stock_statistics import (
+    STOCK_METADATA,
+    NVDA_4H_DATA, NVDA_DAILY_DATA,
+    MSFT_4H_DATA, MSFT_DAILY_DATA,
+    GOOGL_4H_DATA, GOOGL_DAILY_DATA,
+    AAPL_4H_DATA, AAPL_DAILY_DATA
+)
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -1089,14 +1096,368 @@ async def get_percentile_forward_mapping_4h(ticker: str, force_refresh: bool = F
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ============================================================================
+# Multi-Timeframe Trading Guide Endpoints
+# ============================================================================
+
+# Helper function to get stock data
+def get_stock_data(ticker: str, timeframe: str):
+    """Get data for a specific stock and timeframe."""
+    data_map = {
+        "NVDA": {"4h": NVDA_4H_DATA, "daily": NVDA_DAILY_DATA},
+        "MSFT": {"4h": MSFT_4H_DATA, "daily": MSFT_DAILY_DATA},
+        "GOOGL": {"4h": GOOGL_4H_DATA, "daily": GOOGL_DAILY_DATA},
+        "AAPL": {"4h": AAPL_4H_DATA, "daily": AAPL_DAILY_DATA}
+    }
+
+    if ticker not in data_map:
+        raise HTTPException(status_code=404, detail=f"Stock {ticker} not found")
+
+    if timeframe not in ["4h", "daily"]:
+        raise HTTPException(status_code=400, detail="Timeframe must be '4h' or 'daily'")
+
+    return data_map[ticker][timeframe]
+
+class TradingRecommendationRequest(BaseModel):
+    ticker: str
+    current_4h_bin: str
+    current_daily_bin: str
+
+@app.get("/stocks")
+async def get_stocks():
+    """Get all available stocks with metadata."""
+    return {
+        ticker: {
+            "name": meta.name,
+            "personality": meta.personality,
+            "reliability_4h": meta.reliability_4h,
+            "reliability_daily": meta.reliability_daily,
+            "ease_rating": meta.ease_rating,
+            "best_4h_bin": meta.best_4h_bin,
+            "best_4h_t_score": meta.best_4h_t_score
+        }
+        for ticker, meta in STOCK_METADATA.items()
+    }
+
+@app.get("/stock/{ticker}")
+async def get_stock(ticker: str):
+    """Get detailed metadata for a specific stock."""
+    if ticker not in STOCK_METADATA:
+        raise HTTPException(status_code=404, detail=f"Stock {ticker} not found")
+
+    meta = STOCK_METADATA[ticker]
+    return {
+        "ticker": meta.ticker,
+        "name": meta.name,
+        "personality": meta.personality,
+        "reliability_4h": meta.reliability_4h,
+        "reliability_daily": meta.reliability_daily,
+        "tradeable_4h_zones": meta.tradeable_4h_zones,
+        "dead_zones_4h": meta.dead_zones_4h,
+        "best_4h_bin": meta.best_4h_bin,
+        "best_4h_t_score": meta.best_4h_t_score,
+        "ease_rating": meta.ease_rating,
+        "characteristics": {
+            "is_mean_reverter": meta.is_mean_reverter,
+            "is_momentum": not meta.is_mean_reverter,
+            "volatility_level": meta.volatility_level
+        },
+        "guidance": {
+            "entry": meta.entry_guidance,
+            "avoid": meta.avoid_guidance,
+            "special_notes": meta.special_notes
+        }
+    }
+
+@app.get("/bins/{ticker}/{timeframe}")
+async def get_bins(ticker: str, timeframe: str):
+    """Get all percentile bins for a stock and timeframe."""
+    data = get_stock_data(ticker, timeframe)
+
+    return {
+        bin_range: {
+            "bin_range": stats.bin_range,
+            "mean": stats.mean,
+            "median": stats.median,
+            "std": stats.std,
+            "sample_size": stats.sample_size,
+            "se": stats.se,
+            "t_score": stats.t_score,
+            "is_significant": stats.is_significant,
+            "percentile_5th": stats.percentile_5th,
+            "percentile_95th": stats.percentile_95th,
+            "upside": stats.upside,
+            "downside": stats.downside
+        }
+        for bin_range, stats in data.items()
+    }
+
+@app.post("/recommendation")
+async def get_recommendation(request: TradingRecommendationRequest):
+    """Get trading recommendation based on current bins."""
+    ticker = request.ticker
+    current_4h_bin = request.current_4h_bin
+    current_daily_bin = request.current_daily_bin
+
+    if ticker not in STOCK_METADATA:
+        raise HTTPException(status_code=404, detail=f"Stock {ticker} not found")
+
+    # Get data
+    fourh_data = get_stock_data(ticker, "4h")
+    daily_data = get_stock_data(ticker, "daily")
+    meta = STOCK_METADATA[ticker]
+
+    # Get bin statistics
+    if current_4h_bin not in fourh_data:
+        raise HTTPException(status_code=400, detail=f"Invalid 4H bin: {current_4h_bin}")
+    if current_daily_bin not in daily_data:
+        raise HTTPException(status_code=400, detail=f"Invalid Daily bin: {current_daily_bin}")
+
+    fourh_stats = fourh_data[current_4h_bin]
+    daily_stats = daily_data[current_daily_bin]
+
+    # Calculate position size
+    position_size, confidence = calculate_position_size(
+        daily_stats.t_score,
+        fourh_stats.t_score
+    )
+
+    # Determine action
+    if daily_stats.is_significant and fourh_stats.is_significant:
+        if daily_stats.mean > 0 and fourh_stats.mean > 0:
+            action = "ENTER"
+        elif daily_stats.mean < 0 or fourh_stats.mean < 0:
+            action = "AVOID"
+        else:
+            action = "WAIT"
+    elif daily_stats.is_significant and daily_stats.mean > 0:
+        action = "WAIT_FOR_4H_DIP"
+    else:
+        action = "NO_TRADE"
+
+    # Build guidance
+    signal_strength_daily = "✅✅✅" if abs(daily_stats.t_score) >= 3 else "✅✅" if abs(daily_stats.t_score) >= 2 else "⚠️"
+    signal_strength_4h = "✅✅✅" if abs(fourh_stats.t_score) >= 3 else "✅✅" if abs(fourh_stats.t_score) >= 2 else "⚠️"
+
+    guidance = f"{'✅' if daily_stats.is_significant else '❌'} Daily 7d signal is {'significant' if daily_stats.is_significant else 'not significant'} (t={daily_stats.t_score:.2f}): {daily_stats.mean:+.2f}% expected. "
+    guidance += f"{'✅' if fourh_stats.is_significant else '❌'} 4H signal is {'significant' if fourh_stats.is_significant else 'not significant'} (t={fourh_stats.t_score:.2f}): {fourh_stats.mean:+.2f}% expected (48h). "
+    guidance += f"📊 {meta.personality}: {meta.special_notes}"
+
+    return {
+        "ticker": ticker,
+        "stock_name": meta.name,
+        "personality": meta.personality,
+        "current_4h_bin": current_4h_bin,
+        "current_daily_bin": current_daily_bin,
+        "fourh_mean": fourh_stats.mean,
+        "fourh_t_score": fourh_stats.t_score,
+        "fourh_is_significant": fourh_stats.is_significant,
+        "fourh_signal_strength": signal_strength_4h,
+        "daily_mean": daily_stats.mean,
+        "daily_t_score": daily_stats.t_score,
+        "daily_is_significant": daily_stats.is_significant,
+        "daily_signal_strength": signal_strength_daily,
+        "recommended_action": action,
+        "position_size": position_size,
+        "confidence": confidence,
+        "detailed_guidance": guidance,
+        "stop_loss_5th_percentile": fourh_stats.percentile_5th,
+        "upside_95th_percentile": fourh_stats.percentile_95th
+    }
+
+def calculate_position_size(daily_t: float, fourh_t: float) -> tuple[int, str]:
+    """Calculate position size based on t-scores."""
+    # Normalize t-scores to 0-2 scale
+    daily_score = min(max(daily_t / 2.0, 0), 2)
+    fourh_score = min(max(fourh_t / 2.0, 0), 2)
+
+    # Combined scoring
+    if daily_score >= 1.5:  # Daily t >= 3.0
+        if fourh_score >= 1.5:  # 4H t >= 3.0
+            return 70, "VERY HIGH"
+        elif fourh_score >= 1.0:  # 4H t >= 2.0
+            return 50, "HIGH"
+        else:
+            return 30, "MEDIUM"
+    elif daily_score >= 1.0:  # Daily t >= 2.0
+        if fourh_score >= 1.5:
+            return 50, "HIGH"
+        elif fourh_score >= 1.0:
+            return 40, "MEDIUM-HIGH"
+        else:
+            return 20, "MEDIUM"
+    else:
+        return 0, "NO POSITION"
+
+@app.get("/position-calculator")
+async def position_calculator(daily_t: float, fourh_t: float):
+    """Calculate position size based on t-scores."""
+    position, confidence = calculate_position_size(daily_t, fourh_t)
+
+    return {
+        "daily_t_score": daily_t,
+        "fourh_t_score": fourh_t,
+        "position_size": position,
+        "confidence": confidence,
+        "explanation": f"Daily t={daily_t:.2f}, 4H t={fourh_t:.2f} → {confidence} confidence → {position}% position"
+    }
+
+@app.get("/comparison")
+async def compare_stocks(bin_4h: str = "25-50", bin_daily: str = "25-50"):
+    """Compare all stocks at the same percentile bins."""
+    results = []
+
+    for ticker in ["NVDA", "MSFT", "GOOGL", "AAPL"]:
+        try:
+            fourh_data = get_stock_data(ticker, "4h")
+            daily_data = get_stock_data(ticker, "daily")
+            meta = STOCK_METADATA[ticker]
+
+            fourh_stats = fourh_data.get(bin_4h)
+            daily_stats = daily_data.get(bin_daily)
+
+            if fourh_stats and daily_stats:
+                position, confidence = calculate_position_size(
+                    daily_stats.t_score,
+                    fourh_stats.t_score
+                )
+
+                results.append({
+                    "ticker": ticker,
+                    "name": meta.name,
+                    "personality": meta.personality,
+                    "fourh_mean": fourh_stats.mean,
+                    "fourh_t": fourh_stats.t_score,
+                    "daily_mean": daily_stats.mean,
+                    "daily_t": daily_stats.t_score,
+                    "position_size": position,
+                    "confidence": confidence,
+                    "ease_rating": meta.ease_rating
+                })
+        except Exception as e:
+            continue
+
+    # Sort by position size
+    results.sort(key=lambda x: x["position_size"], reverse=True)
+
+    return {
+        "bin_4h": bin_4h,
+        "bin_daily": bin_daily,
+        "stocks": results
+    }
+
+@app.get("/trade-management/{ticker}")
+async def get_trade_management_rules(ticker: str):
+    """Get dynamic trade management rules for a specific stock."""
+    if ticker not in STOCK_METADATA:
+        raise HTTPException(status_code=404, detail=f"Stock {ticker} not found")
+
+    fourh_data = get_stock_data(ticker, "4h")
+    meta = STOCK_METADATA[ticker]
+
+    # Analyze all bins to determine best ADD zones
+    add_rules = []
+    trim_rules = []
+    exit_rules = []
+
+    bin_order = ["0-5", "5-15", "15-25", "25-50", "50-75", "75-85", "85-95", "95-100"]
+
+    for bin_range in bin_order:
+        stats = fourh_data.get(bin_range)
+        if not stats:
+            continue
+
+        # ADD rules (significant positive expected returns)
+        if stats.is_significant and stats.mean > 0:
+            position, confidence = calculate_position_size(3.0, stats.t_score)  # Assume strong daily signal
+
+            if stats.t_score >= 4.0:
+                intensity = "⚡⚡ AGGRESSIVE ADD"
+            elif stats.t_score >= 3.0:
+                intensity = "⚡ STRONG ADD"
+            elif stats.t_score >= 2.0:
+                intensity = "✅ ADD"
+            else:
+                continue
+
+            add_rules.append({
+                "bin": bin_range + "%",
+                "intensity": intensity,
+                "max_position": position,
+                "expected_return": stats.mean,
+                "t_score": stats.t_score,
+                "confidence": confidence,
+                "stop_loss": stats.percentile_5th,
+                "upside": stats.percentile_95th
+            })
+
+        # TRIM rules (high percentiles - take profits)
+        if bin_range in ["75-85", "85-95", "95-100"]:
+            if bin_range == "75-85":
+                trim_pct = 25
+                action = "⚠️ TRIM"
+            elif bin_range == "85-95":
+                trim_pct = 50
+                action = "⚠️⚠️ TRIM"
+            else:  # 95-100
+                trim_pct = 100
+                action = "🛑 EXIT"
+
+            trim_rules.append({
+                "bin": bin_range + "%",
+                "action": action,
+                "trim_percentage": trim_pct,
+                "reason": "Taking profits at high percentile"
+            })
+
+        # EXIT rules (significantly bearish bins)
+        if stats.is_significant and stats.mean < -0.5:
+            exit_rules.append({
+                "bin": bin_range + "%",
+                "action": "❌ IMMEDIATE EXIT",
+                "expected_return": stats.mean,
+                "t_score": stats.t_score,
+                "reason": f"Bearish signal: {stats.mean:.2f}% expected with t={stats.t_score:.2f}"
+            })
+
+    # Calculate dynamic stop loss (worst 5th percentile from tradeable bins)
+    tradeable_bins_data = [fourh_data[b] for b in meta.tradeable_4h_zones if b in fourh_data]
+    stop_loss_values = [b.percentile_5th for b in tradeable_bins_data if b.percentile_5th is not None]
+    dynamic_stop_loss = min(stop_loss_values) if stop_loss_values else -3.0
+
+    return {
+        "ticker": ticker,
+        "stock_name": meta.name,
+        "personality": meta.personality,
+        "add_rules": add_rules,
+        "trim_rules": trim_rules,
+        "exit_rules": exit_rules,
+        "stop_loss_guidance": {
+            "dynamic_stop_loss": round(dynamic_stop_loss, 2),
+            "recommended_stop": max(dynamic_stop_loss, -3.5),  # Cap at -3.5%
+            "explanation": f"Based on 5th percentile of tradeable bins. Protects against {abs(dynamic_stop_loss):.1f}% downside."
+        },
+        "time_management": {
+            "hold_period": "7 days (Daily timeframe)",
+            "early_exit_trigger": "Target hit in < 5 days",
+            "daily_monitoring": "Check 4H percentile daily for ADD/TRIM opportunities"
+        }
+    }
+
+# ============================================================================
+# Startup Event
+# ============================================================================
+
 @app.on_event("startup")
 async def startup_event():
     """Initialize on startup."""
     print("\n" + "="*60)
     print("RSI-MA Performance Analytics API")
+    print("Multi-Timeframe Trading Guide Enabled")
     print("="*60)
     print(f"Cache directory: {os.path.abspath(CACHE_DIR)}")
     print(f"Default tickers: {', '.join(DEFAULT_TICKERS)}")
+    print(f"Trading Guide stocks: NVDA, MSFT, GOOGL, AAPL")
     print("="*60 + "\n")
 
 if __name__ == "__main__":

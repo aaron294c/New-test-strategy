@@ -18,6 +18,34 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
       },
+      '/stock': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/stocks': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/bins': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/recommendation': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/trade-management': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/position-calculator': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+      '/comparison': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
     },
   },
 })
