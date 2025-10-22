@@ -162,6 +162,58 @@ AAPL_DAILY_DATA = {
     "95-100": BinStatistics("95-100%", 0.33, 1.00, 3.87, 36, 0.40, 0.68, -4.80, 2.72, 1.67, 2.08),
 }
 
+# ============================================
+# GOLD (GLD) DATA
+# ============================================
+
+GLD_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 0.33, -0.1, 2.48, 57, 0.33, 1.01, -2.62, 5.21, 2.2, -1.35),
+    "5-15": BinStatistics("5-15%", 0.25, 0.07, 1.73, 115, 0.16, 1.52, -2.33, 2.92, 1.53, -1.11),
+    "15-25": BinStatistics("15-25%", 0.12, 0.01, 1.71, 118, 0.16, 0.79, -2.88, 3.05, 1.45, -1.21),
+    "25-50": BinStatistics("25-50%", 0.4, 0.31, 1.73, 282, 0.1, 3.92, -2.29, 3.07, 1.55, -1.24),
+    "50-75": BinStatistics("50-75%", 0.5, 0.45, 1.69, 311, 0.1, 5.22, -2.11, 3.05, 1.45, -1.12),
+    "75-85": BinStatistics("75-85%", 0.52, 0.37, 1.63, 127, 0.14, 3.56, -1.91, 3.39, 1.53, -1.0),
+    "85-95": BinStatistics("85-95%", 0.6, 0.73, 1.82, 123, 0.16, 3.67, -2.46, 3.49, 1.57, -1.41),
+    "95-100": BinStatistics("95-100%", 0.93, 1.11, 1.86, 58, 0.24, 3.82, -2.29, 3.34, 2.04, -1.17),
+}
+
+GLD_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 1.67, 1.4, 3.59, 36, 0.6, 2.8, -2.82, 7.65, 3.39, -1.75),
+    "5-15": BinStatistics("5-15%", 0.36, 0.28, 2.1, 76, 0.24, 1.5, -2.48, 4.27, 1.88, -1.46),
+    "15-25": BinStatistics("15-25%", 0.76, 0.47, 2.38, 79, 0.27, 2.86, -2.78, 5.07, 2.2, -1.46),
+    "25-50": BinStatistics("25-50%", 0.47, 0.36, 2.52, 218, 0.17, 2.76, -4.02, 4.29, 2.01, -1.73),
+    "50-75": BinStatistics("50-75%", 0.78, 0.65, 2.57, 208, 0.18, 4.41, -2.96, 5.56, 2.46, -1.59),
+    "75-85": BinStatistics("75-85%", 0.64, 0.86, 2.65, 90, 0.28, 2.28, -3.35, 4.5, 2.57, -1.9),
+    "85-95": BinStatistics("85-95%", 0.82, 0.77, 2.89, 82, 0.32, 2.57, -3.89, 6.03, 2.62, -1.99),
+    "95-100": BinStatistics("95-100%", 1.32, 1.35, 2.34, 40, 0.37, 3.58, -1.64, 5.06, 2.39, -1.49),
+}
+
+# ============================================
+# SILVER (SLV) DATA
+# ============================================
+
+SLV_4H_DATA = {
+    "0-5": BinStatistics("0-5%", -0.21, 0.02, 3.02, 59, 0.39, -0.54, -4.69, 4.88, 2.1, -2.61),
+    "5-15": BinStatistics("5-15%", 0.23, -0.21, 3.21, 102, 0.32, 0.72, -4.56, 5.46, 3.0, -2.43),
+    "15-25": BinStatistics("15-25%", -0.4, -0.2, 3.49, 115, 0.33, -1.22, -5.67, 4.92, 2.45, -2.91),
+    "25-50": BinStatistics("25-50%", 0.47, 0.45, 3.4, 285, 0.2, 2.32, -4.49, 6.1, 2.71, -2.61),
+    "50-75": BinStatistics("50-75%", 0.57, 0.5, 3.4, 321, 0.19, 3.02, -4.91, 6.4, 2.9, -2.42),
+    "75-85": BinStatistics("75-85%", 0.74, 0.61, 3.14, 128, 0.28, 2.65, -4.63, 5.69, 2.55, -2.19),
+    "85-95": BinStatistics("85-95%", 0.73, 0.52, 2.62, 122, 0.24, 3.06, -3.73, 5.09, 2.19, -1.7),
+    "95-100": BinStatistics("95-100%", 1.75, 1.7, 2.85, 58, 0.37, 4.68, -2.29, 6.14, 3.04, -1.38),
+}
+
+SLV_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 1.91, 2.5, 4.04, 35, 0.68, 2.8, -3.39, 8.69, 4.68, -2.24),
+    "5-15": BinStatistics("5-15%", 0.71, 0.24, 4.38, 73, 0.51, 1.38, -4.8, 9.15, 3.88, -2.93),
+    "15-25": BinStatistics("15-25%", 1.23, 0.78, 4.51, 74, 0.52, 2.35, -5.31, 9.33, 4.02, -2.87),
+    "25-50": BinStatistics("25-50%", 1.0, 0.7, 5.38, 228, 0.36, 2.81, -7.56, 10.09, 4.98, -3.57),
+    "50-75": BinStatistics("50-75%", 0.69, 0.33, 4.78, 211, 0.33, 2.09, -6.79, 8.78, 4.11, -3.49),
+    "75-85": BinStatistics("75-85%", -0.42, -0.57, 5.47, 97, 0.56, -0.76, -9.66, 8.0, 4.36, -4.73),
+    "85-95": BinStatistics("85-95%", 1.51, 1.59, 3.88, 75, 0.45, 3.37, -5.0, 7.63, 3.77, -2.76),
+    "95-100": BinStatistics("95-100%", 1.07, 1.84, 4.33, 40, 0.68, 1.56, -7.51, 7.0, 3.72, -3.86),
+}
+
 
 # ============================================
 # STOCK METADATA
@@ -264,6 +316,42 @@ STOCK_METADATA = {
         entry_guidance="ONLY trade 4H extremes (0-25%), be patient for good setups",
         avoid_guidance="NEVER trade 4H 25-95% range (62.5% of time - no statistical edge)",
         special_notes="U-shaped curve - mid-range has zero predictive power, median/mean divergence common"
+    ),
+    "GLD": StockMetadata(
+        ticker="GLD",
+        name="SPDR Gold Trust",
+        personality="Safe Haven - Momentum Trending",
+        reliability_4h="High",
+        reliability_daily="High",
+        tradeable_4h_zones=['25-50', '50-75', '75-85', '85-95', '95-100'],
+        dead_zones_4h=['0-5', '15-25'],
+        best_4h_bin="50-75",
+        best_4h_t_score=5.22,
+        ease_rating=5,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="Low",
+        entry_guidance="Enter LONG when percentile < 25 (oversold). Gold shows mean reversion at extremes.",
+        avoid_guidance="Avoid trading in 0-25 range at 4H - weak signals. Be cautious in high volatility periods.",
+        special_notes="Gold is a safe haven asset. Best during market uncertainty. Works well for swing trades (7-14 day holds). Daily shows strong edge across most bins."
+    ),
+    "SLV": StockMetadata(
+        ticker="SLV",
+        name="iShares Silver Trust",
+        personality="Volatile Safe Haven - Momentum",
+        reliability_4h="High",
+        reliability_daily="High",
+        tradeable_4h_zones=['25-50', '50-75', '75-85', '85-95', '95-100'],
+        dead_zones_4h=['0-5', '5-15', '15-25'],
+        best_4h_bin="95-100",
+        best_4h_t_score=4.68,
+        ease_rating=4,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="Medium",
+        entry_guidance="Enter LONG when percentile < 25 (oversold). Silver shows stronger mean reversion than gold.",
+        avoid_guidance="Avoid 0-25 range at 4H - weak/negative signals. Be cautious of high volatility (>5% daily moves).",
+        special_notes="Silver is more volatile than gold. Strong mean reversion at extremes (0-25%ile on Daily). Best for 7-14 day holds. 95-100 4H zone is strongest."
     )
 }
 
@@ -283,6 +371,10 @@ def get_stock_data(ticker: str, timeframe: str) -> Dict[str, BinStatistics]:
         ("GOOGL", "Daily"): GOOGL_DAILY_DATA,
         ("AAPL", "4H"): AAPL_4H_DATA,
         ("AAPL", "Daily"): AAPL_DAILY_DATA,
+        ("GLD", "4H"): GLD_4H_DATA,
+        ("GLD", "Daily"): GLD_DAILY_DATA,
+        ("SLV", "4H"): SLV_4H_DATA,
+        ("SLV", "Daily"): SLV_DAILY_DATA,
     }
 
     key = (ticker, timeframe)

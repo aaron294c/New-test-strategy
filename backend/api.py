@@ -35,7 +35,9 @@ from stock_statistics import (
     NVDA_4H_DATA, NVDA_DAILY_DATA,
     MSFT_4H_DATA, MSFT_DAILY_DATA,
     GOOGL_4H_DATA, GOOGL_DAILY_DATA,
-    AAPL_4H_DATA, AAPL_DAILY_DATA
+    AAPL_4H_DATA, AAPL_DAILY_DATA,
+    GLD_4H_DATA, GLD_DAILY_DATA,
+    SLV_4H_DATA, SLV_DAILY_DATA
 )
 
 # Initialize FastAPI app
@@ -59,7 +61,7 @@ CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # Default tickers
-DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY"]
+DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY", "GLD", "SLV"]
 
 # ============================================================================
 # Request/Response Models
@@ -1103,11 +1105,16 @@ async def get_percentile_forward_mapping_4h(ticker: str, force_refresh: bool = F
 # Helper function to get stock data
 def get_stock_data(ticker: str, timeframe: str):
     """Get data for a specific stock and timeframe."""
+    # Normalize timeframe to lowercase
+    timeframe = timeframe.lower()
+
     data_map = {
         "NVDA": {"4h": NVDA_4H_DATA, "daily": NVDA_DAILY_DATA},
         "MSFT": {"4h": MSFT_4H_DATA, "daily": MSFT_DAILY_DATA},
         "GOOGL": {"4h": GOOGL_4H_DATA, "daily": GOOGL_DAILY_DATA},
-        "AAPL": {"4h": AAPL_4H_DATA, "daily": AAPL_DAILY_DATA}
+        "AAPL": {"4h": AAPL_4H_DATA, "daily": AAPL_DAILY_DATA},
+        "GLD": {"4h": GLD_4H_DATA, "daily": GLD_DAILY_DATA},
+        "SLV": {"4h": SLV_4H_DATA, "daily": SLV_DAILY_DATA}
     }
 
     if ticker not in data_map:
@@ -1171,8 +1178,58 @@ async def get_stock(ticker: str):
 
 @app.get("/bins/{ticker}/{timeframe}")
 async def get_bins(ticker: str, timeframe: str):
-    """Get all percentile bins for a stock and timeframe."""
+    """Get all percentile bins for a stock and timeframe with enriched trading guidance."""
+    # Normalize timeframe to lowercase
+    timeframe = timeframe.lower()
     data = get_stock_data(ticker, timeframe)
+
+    # Get stock metadata for context
+    if ticker not in STOCK_METADATA:
+        raise HTTPException(status_code=404, detail=f"Stock {ticker} not found")
+
+    meta = STOCK_METADATA[ticker]
+
+    # Helper function to determine action for a bin
+    def get_bin_action(bin_range: str, mean: float, t_score: float, is_significant: bool) -> str:
+        if not is_significant:
+            return "Avoid - weak signal"
+
+        if mean > 1.5 and is_significant:
+            return "Enter Long"
+        elif mean > 0.5 and is_significant:
+            return "Add to position"
+        elif mean < -1.5 and is_significant:
+            return "Trim/Avoid"
+        elif mean < 0:
+            return "Avoid"
+        else:
+            return "Wait for better entry"
+
+    # Helper function to get signal strength emoji
+    def get_signal_strength(t_score: float) -> str:
+        t = abs(t_score)
+        if t >= 4.0:
+            return "✅✅✅"
+        elif t >= 3.0:
+            return "✅✅"
+        elif t >= 2.0:
+            return "✅"
+        elif t >= 1.5:
+            return "⚠️"
+        else:
+            return "❌"
+
+    # Helper function to get position size guidance
+    def get_position_size_guidance(t_score: float, mean: float) -> str:
+        t = abs(t_score)
+        if t >= 3.0 and abs(mean) >= 2.0:
+            return "Large (50-70%)"
+        elif t >= 2.0 and abs(mean) >= 1.0:
+            return "Medium (30-50%)"
+        elif t >= 2.0:
+            return "Small (10-30%)"
+        else:
+            return "None (wait)"
 
     return {
         bin_range: {
@@ -1187,7 +1244,10 @@ async def get_bins(ticker: str, timeframe: str):
             "percentile_5th": stats.percentile_5th,
             "percentile_95th": stats.percentile_95th,
             "upside": stats.upside,
-            "downside": stats.downside
+            "downside": stats.downside,
+            "action": get_bin_action(bin_range, stats.mean, stats.t_score, stats.is_significant),
+            "signal_strength": get_signal_strength(stats.t_score),
+            "position_size_guidance": get_position_size_guidance(stats.t_score, stats.mean)
         }
         for bin_range, stats in data.items()
     }
@@ -1307,7 +1367,7 @@ async def compare_stocks(bin_4h: str = "25-50", bin_daily: str = "25-50"):
     """Compare all stocks at the same percentile bins."""
     results = []
 
-    for ticker in ["NVDA", "MSFT", "GOOGL", "AAPL"]:
+    for ticker in ["NVDA", "MSFT", "GOOGL", "AAPL", "GLD", "SLV"]:
         try:
             fourh_data = get_stock_data(ticker, "4h")
             daily_data = get_stock_data(ticker, "daily")
@@ -1457,9 +1517,9 @@ async def startup_event():
     print("="*60)
     print(f"Cache directory: {os.path.abspath(CACHE_DIR)}")
     print(f"Default tickers: {', '.join(DEFAULT_TICKERS)}")
-    print(f"Trading Guide stocks: NVDA, MSFT, GOOGL, AAPL")
+    print(f"Trading Guide stocks: NVDA, MSFT, GOOGL, AAPL, GLD, SLV")
     print("="*60 + "\n")
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True, log_level="info")

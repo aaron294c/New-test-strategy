@@ -184,13 +184,21 @@ const MultiTimeframeGuide: React.FC = () => {
       const response = await axios.get(
         `${API_BASE_URL}/bins/${selectedStock}/${timeframe}`
       );
+      // Convert object to array
+      const binsArray = Object.values(response.data);
       if (timeframe === '4H') {
-        setFourHBins(response.data.bins);
+        setFourHBins(binsArray);
       } else {
-        setDailyBins(response.data.bins);
+        setDailyBins(binsArray);
       }
     } catch (error) {
       console.error(`Error loading ${timeframe} bins:`, error);
+      // Set empty array on error to prevent crashes
+      if (timeframe === '4H') {
+        setFourHBins([]);
+      } else {
+        setDailyBins([]);
+      }
     }
   };
 
@@ -361,7 +369,7 @@ const MultiTimeframeGuide: React.FC = () => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {fourHBins.map((bin) => {
+          {(fourHBins || []).map((bin) => {
             const isCurrentBin = bin.bin_range === current4HBin + '%';
             return (
               <TableRow
@@ -430,7 +438,7 @@ const MultiTimeframeGuide: React.FC = () => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {dailyBins.map((bin) => {
+          {(dailyBins || []).map((bin) => {
             const isCurrentBin = bin.bin_range === currentDailyBin + '%';
             return (
               <TableRow
@@ -814,15 +822,17 @@ const MultiTimeframeGuide: React.FC = () => {
       {/* Stock Selector */}
       <Box sx={{ mb: 3 }}>
         <Tabs
-          value={['NVDA', 'MSFT', 'GOOGL', 'AAPL'].indexOf(selectedStock)}
+          value={['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV'].indexOf(selectedStock)}
           onChange={(_, newValue) =>
-            setSelectedStock(['NVDA', 'MSFT', 'GOOGL', 'AAPL'][newValue])
+            setSelectedStock(['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV'][newValue])
           }
         >
           <Tab label="NVDA" />
           <Tab label="MSFT" />
           <Tab label="GOOGL" />
           <Tab label="AAPL" />
+          <Tab label="GLD" />
+          <Tab label="SLV" />
         </Tabs>
       </Box>
 
