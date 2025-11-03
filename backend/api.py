@@ -37,7 +37,9 @@ from stock_statistics import (
     GOOGL_4H_DATA, GOOGL_DAILY_DATA,
     AAPL_4H_DATA, AAPL_DAILY_DATA,
     GLD_4H_DATA, GLD_DAILY_DATA,
-    SLV_4H_DATA, SLV_DAILY_DATA
+    SLV_4H_DATA, SLV_DAILY_DATA,
+    TSLA_4H_DATA, TSLA_DAILY_DATA,
+    NFLX_4H_DATA, NFLX_DAILY_DATA
 )
 
 # Initialize FastAPI app
@@ -1114,7 +1116,9 @@ def get_stock_data(ticker: str, timeframe: str):
         "GOOGL": {"4h": GOOGL_4H_DATA, "daily": GOOGL_DAILY_DATA},
         "AAPL": {"4h": AAPL_4H_DATA, "daily": AAPL_DAILY_DATA},
         "GLD": {"4h": GLD_4H_DATA, "daily": GLD_DAILY_DATA},
-        "SLV": {"4h": SLV_4H_DATA, "daily": SLV_DAILY_DATA}
+        "SLV": {"4h": SLV_4H_DATA, "daily": SLV_DAILY_DATA},
+        "TSLA": {"4h": TSLA_4H_DATA, "daily": TSLA_DAILY_DATA},
+        "NFLX": {"4h": NFLX_4H_DATA, "daily": NFLX_DAILY_DATA}
     }
 
     if ticker not in data_map:
@@ -1517,7 +1521,7 @@ async def startup_event():
     print("="*60)
     print(f"Cache directory: {os.path.abspath(CACHE_DIR)}")
     print(f"Default tickers: {', '.join(DEFAULT_TICKERS)}")
-    print(f"Trading Guide stocks: NVDA, MSFT, GOOGL, AAPL, GLD, SLV")
+    print(f"Trading Guide stocks: NVDA, MSFT, GOOGL, AAPL, GLD, SLV, TSLA, NFLX")
     print("="*60 + "\n")
 
 if __name__ == "__main__":

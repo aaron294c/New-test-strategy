@@ -87,7 +87,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'QQQ', 'SPY', 'GLD', 'SLV'];
+const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'QQQ', 'SPY', 'GLD', 'SLV', 'TSLA', 'NFLX'];
 
 interface TabPanelProps {
   children?: React.ReactNode;

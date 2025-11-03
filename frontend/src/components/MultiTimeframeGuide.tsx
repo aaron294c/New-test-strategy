@@ -822,9 +822,9 @@ const MultiTimeframeGuide: React.FC = () => {
       {/* Stock Selector */}
       <Box sx={{ mb: 3 }}>
         <Tabs
-          value={['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV'].indexOf(selectedStock)}
+          value={['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV', 'TSLA', 'NFLX'].indexOf(selectedStock)}
           onChange={(_, newValue) =>
-            setSelectedStock(['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV'][newValue])
+            setSelectedStock(['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV', 'TSLA', 'NFLX'][newValue])
           }
         >
           <Tab label="NVDA" />
@@ -833,6 +833,8 @@ const MultiTimeframeGuide: React.FC = () => {
           <Tab label="AAPL" />
           <Tab label="GLD" />
           <Tab label="SLV" />
+          <Tab label="TSLA" />
+          <Tab label="NFLX" />
         </Tabs>
       </Box>
 

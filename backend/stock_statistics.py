@@ -214,6 +214,58 @@ SLV_DAILY_DATA = {
     "95-100": BinStatistics("95-100%", 1.07, 1.84, 4.33, 40, 0.68, 1.56, -7.51, 7.0, 3.72, -3.86),
 }
 
+# ============================================
+# Tesla, Inc. (TSLA) DATA
+# ============================================
+
+TSLA_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 1.31, 0.75, 4.73, 53, 0.65, 2.02, -7.09, 8.26, 4.21, -3.11),
+    "5-15": BinStatistics("5-15%", 0.1, 0.01, 7.05, 123, 0.64, 0.15, -10.67, 12.19, 5.48, -5.38),
+    "15-25": BinStatistics("15-25%", 0.07, -0.57, 6.17, 124, 0.55, 0.13, -9.32, 8.49, 5.44, -4.36),
+    "25-50": BinStatistics("25-50%", 0.25, -0.07, 7.45, 308, 0.42, 0.6, -11.39, 11.81, 5.98, -5.32),
+    "50-75": BinStatistics("50-75%", 0.33, -0.48, 6.87, 300, 0.4, 0.84, -9.88, 12.49, 5.6, -4.46),
+    "75-85": BinStatistics("75-85%", 1.56, 1.43, 7.37, 114, 0.69, 2.26, -9.87, 15.14, 6.0, -4.77),
+    "85-95": BinStatistics("85-95%", 1.79, 0.7, 6.79, 113, 0.64, 2.79, -7.64, 15.06, 6.26, -3.85),
+    "95-100": BinStatistics("95-100%", 2.26, 1.56, 7.2, 57, 0.95, 2.37, -6.89, 16.24, 7.01, -3.82),
+}
+
+TSLA_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", -2.06, -1.08, 8.97, 40, 1.42, -1.45, -14.97, 14.77, 6.34, -7.66),
+    "5-15": BinStatistics("5-15%", 0.15, -1.19, 10.33, 79, 1.16, 0.13, -15.09, 16.25, 8.97, -7.62),
+    "15-25": BinStatistics("15-25%", -2.22, -4.4, 9.69, 81, 1.08, -2.06, -18.72, 14.3, 7.26, -8.74),
+    "25-50": BinStatistics("25-50%", 0.82, 0.63, 10.91, 208, 0.76, 1.09, -16.2, 20.35, 8.48, -7.94),
+    "50-75": BinStatistics("50-75%", 1.39, 1.39, 10.08, 209, 0.7, 2.0, -14.46, 19.73, 8.23, -7.14),
+    "75-85": BinStatistics("75-85%", 0.31, -0.95, 9.58, 102, 0.95, 0.33, -15.14, 18.84, 8.53, -6.18),
+    "85-95": BinStatistics("85-95%", 4.06, 2.66, 11.51, 71, 1.37, 2.97, -12.48, 30.44, 11.31, -5.84),
+    "95-100": BinStatistics("95-100%", 8.66, 7.71, 11.21, 41, 1.75, 4.95, -6.77, 26.2, 14.45, -3.79),
+}
+
+# ============================================
+# Netflix Inc. (NFLX) DATA
+# ============================================
+
+NFLX_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 0.12, -0.58, 3.76, 64, 0.47, 0.26, -4.85, 6.74, 3.73, -2.35),
+    "5-15": BinStatistics("5-15%", 1.15, 0.91, 4.13, 118, 0.38, 3.02, -4.02, 7.74, 3.49, -2.52),
+    "15-25": BinStatistics("15-25%", 0.37, -0.1, 3.2, 120, 0.29, 1.25, -3.82, 5.67, 2.8, -1.91),
+    "25-50": BinStatistics("25-50%", 0.24, 0.38, 3.55, 299, 0.21, 1.18, -5.2, 5.15, 2.62, -2.77),
+    "50-75": BinStatistics("50-75%", 0.78, 0.61, 3.78, 300, 0.22, 3.56, -4.83, 6.44, 3.01, -2.35),
+    "75-85": BinStatistics("75-85%", 0.75, 0.48, 3.87, 115, 0.36, 2.08, -4.42, 5.61, 3.22, -2.35),
+    "85-95": BinStatistics("85-95%", 0.98, 0.99, 4.24, 114, 0.4, 2.48, -5.8, 7.22, 3.31, -3.0),
+    "95-100": BinStatistics("95-100%", 0.75, 1.38, 4.01, 60, 0.52, 1.44, -7.86, 5.69, 3.06, -2.97),
+}
+
+NFLX_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 0.84, -0.67, 6.89, 38, 1.12, 0.75, -7.63, 14.38, 6.92, -4.09),
+    "5-15": BinStatistics("5-15%", 1.2, 0.67, 6.9, 80, 0.77, 1.56, -8.58, 14.61, 6.1, -4.21),
+    "15-25": BinStatistics("15-25%", 2.35, 2.18, 5.88, 86, 0.63, 3.7, -6.81, 11.21, 5.66, -3.83),
+    "25-50": BinStatistics("25-50%", 2.08, 1.47, 6.96, 222, 0.47, 4.45, -7.08, 16.03, 6.17, -3.92),
+    "50-75": BinStatistics("50-75%", 1.35, 0.81, 6.47, 204, 0.45, 2.98, -9.02, 11.9, 5.66, -4.01),
+    "75-85": BinStatistics("75-85%", 1.86, 0.89, 6.45, 92, 0.67, 2.77, -8.22, 13.76, 5.85, -3.79),
+    "85-95": BinStatistics("85-95%", 1.35, 1.67, 6.17, 73, 0.72, 1.87, -10.91, 10.19, 4.91, -5.08),
+    "95-100": BinStatistics("95-100%", 2.37, 2.23, 3.37, 40, 0.53, 4.46, -2.56, 8.58, 3.84, -1.49),
+}
+
 
 # ============================================
 # STOCK METADATA
@@ -352,6 +404,42 @@ STOCK_METADATA = {
         entry_guidance="Enter LONG when percentile < 25 (oversold). Silver shows stronger mean reversion than gold.",
         avoid_guidance="Avoid 0-25 range at 4H - weak/negative signals. Be cautious of high volatility (>5% daily moves).",
         special_notes="Silver is more volatile than gold. Strong mean reversion at extremes (0-25%ile on Daily). Best for 7-14 day holds. 95-100 4H zone is strongest."
+    ),
+    "TSLA": StockMetadata(
+        ticker="TSLA",
+        name="Tesla, Inc.",
+        personality="High Volatility Momentum - Strong trending behavior",
+        reliability_4h="High",
+        reliability_daily="High",
+        tradeable_4h_zones=['0-5', '75-85', '85-95', '95-100'],
+        dead_zones_4h=['5-15', '15-25', '25-50', '50-75'],
+        best_4h_bin="85-95",
+        best_4h_t_score=2.79,
+        ease_rating=8,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="High",
+        entry_guidance="Enter LONG when momentum is confirmed (percentile > 75). TSLA shows strong trending behavior. Avoid catching falling knives.",
+        avoid_guidance="Avoid trading in 25-50 range - weak signals. Never fight the trend. Be cautious during earnings.",
+        special_notes="TSLA is extremely volatile and momentum-driven. Best for trend following strategies. Use wider stops. Works well for 7-14 day momentum plays. High news sensitivity."
+    ),
+    "NFLX": StockMetadata(
+        ticker="NFLX",
+        name="Netflix Inc.",
+        personality="High Volatility Momentum - Earnings Driven",
+        reliability_4h="High",
+        reliability_daily="High",
+        tradeable_4h_zones=['5-15', '50-75', '75-85', '85-95'],
+        dead_zones_4h=['0-5', '15-25', '25-50', '95-100'],
+        best_4h_bin="50-75",
+        best_4h_t_score=3.56,
+        ease_rating=9,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="High",
+        entry_guidance="Enter LONG when percentile > 75 (momentum plays). NFLX shows strong momentum characteristics. Watch for earnings catalysts.",
+        avoid_guidance="Avoid trading in 0-5, 15-25, 25-50, 95-100 ranges - weak signals. Exercise extreme caution around earnings dates (high volatility).",
+        special_notes="NFLX is highly volatile (avg daily std > 5%) Strong momentum characteristics - trends can persist Earnings-driven stock with unpredictable reactions to quarterly reports Best for experienced traders comfortable with high volatility Consider position sizing due to large price swings Best 4H trading zones: 5-15, 50-75, 75-85, 85-95"
     )
 }
 
@@ -375,6 +463,10 @@ def get_stock_data(ticker: str, timeframe: str) -> Dict[str, BinStatistics]:
         ("GLD", "Daily"): GLD_DAILY_DATA,
         ("SLV", "4H"): SLV_4H_DATA,
         ("SLV", "Daily"): SLV_DAILY_DATA,
+        ("TSLA", "4H"): TSLA_4H_DATA,
+        ("TSLA", "Daily"): TSLA_DAILY_DATA,
+        ("NFLX", "4H"): NFLX_4H_DATA,
+        ("NFLX", "Daily"): NFLX_DAILY_DATA,
     }
 
     key = (ticker, timeframe)
