@@ -822,10 +822,12 @@ const MultiTimeframeGuide: React.FC = () => {
       {/* Stock Selector */}
       <Box sx={{ mb: 3 }}>
         <Tabs
-          value={['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV', 'TSLA', 'NFLX'].indexOf(selectedStock)}
+          value={['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO', 'LLY', 'TSM', 'ORCL', 'OXY'].indexOf(selectedStock)}
           onChange={(_, newValue) =>
-            setSelectedStock(['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV', 'TSLA', 'NFLX'][newValue])
+            setSelectedStock(['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO', 'LLY', 'TSM', 'ORCL', 'OXY'][newValue])
           }
+          variant="scrollable"
+          scrollButtons="auto"
         >
           <Tab label="NVDA" />
           <Tab label="MSFT" />
@@ -835,6 +837,14 @@ const MultiTimeframeGuide: React.FC = () => {
           <Tab label="SLV" />
           <Tab label="TSLA" />
           <Tab label="NFLX" />
+          <Tab label="BRK-B" />
+          <Tab label="WMT" />
+          <Tab label="UNH" />
+          <Tab label="AVGO" />
+          <Tab label="LLY" />
+          <Tab label="TSM" />
+          <Tab label="ORCL" />
+          <Tab label="OXY" />
         </Tabs>
       </Box>
 

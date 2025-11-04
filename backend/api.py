@@ -39,7 +39,15 @@ from stock_statistics import (
     GLD_4H_DATA, GLD_DAILY_DATA,
     SLV_4H_DATA, SLV_DAILY_DATA,
     TSLA_4H_DATA, TSLA_DAILY_DATA,
-    NFLX_4H_DATA, NFLX_DAILY_DATA
+    NFLX_4H_DATA, NFLX_DAILY_DATA,
+    BRKB_4H_DATA, BRKB_DAILY_DATA,
+    WMT_4H_DATA, WMT_DAILY_DATA,
+    UNH_4H_DATA, UNH_DAILY_DATA,
+    AVGO_4H_DATA, AVGO_DAILY_DATA,
+    LLY_4H_DATA, LLY_DAILY_DATA,
+    TSM_4H_DATA, TSM_DAILY_DATA,
+    ORCL_4H_DATA, ORCL_DAILY_DATA,
+    OXY_4H_DATA, OXY_DAILY_DATA
 )
 
 # Initialize FastAPI app
@@ -1118,7 +1126,15 @@ def get_stock_data(ticker: str, timeframe: str):
         "GLD": {"4h": GLD_4H_DATA, "daily": GLD_DAILY_DATA},
         "SLV": {"4h": SLV_4H_DATA, "daily": SLV_DAILY_DATA},
         "TSLA": {"4h": TSLA_4H_DATA, "daily": TSLA_DAILY_DATA},
-        "NFLX": {"4h": NFLX_4H_DATA, "daily": NFLX_DAILY_DATA}
+        "NFLX": {"4h": NFLX_4H_DATA, "daily": NFLX_DAILY_DATA},
+        "BRK-B": {"4h": BRKB_4H_DATA, "daily": BRKB_DAILY_DATA},
+        "WMT": {"4h": WMT_4H_DATA, "daily": WMT_DAILY_DATA},
+        "UNH": {"4h": UNH_4H_DATA, "daily": UNH_DAILY_DATA},
+        "AVGO": {"4h": AVGO_4H_DATA, "daily": AVGO_DAILY_DATA},
+        "LLY": {"4h": LLY_4H_DATA, "daily": LLY_DAILY_DATA},
+        "TSM": {"4h": TSM_4H_DATA, "daily": TSM_DAILY_DATA},
+        "ORCL": {"4h": ORCL_4H_DATA, "daily": ORCL_DAILY_DATA},
+        "OXY": {"4h": OXY_4H_DATA, "daily": OXY_DAILY_DATA}
     }
 
     if ticker not in data_map:
@@ -1371,7 +1387,7 @@ async def compare_stocks(bin_4h: str = "25-50", bin_daily: str = "25-50"):
     """Compare all stocks at the same percentile bins."""
     results = []
 
-    for ticker in ["NVDA", "MSFT", "GOOGL", "AAPL", "GLD", "SLV"]:
+    for ticker in ["NVDA", "MSFT", "GOOGL", "AAPL", "GLD", "SLV", "TSLA", "NFLX", "BRK-B", "WMT", "UNH", "AVGO", "LLY", "TSM", "ORCL", "OXY"]:
         try:
             fourh_data = get_stock_data(ticker, "4h")
             daily_data = get_stock_data(ticker, "daily")
@@ -1521,7 +1537,7 @@ async def startup_event():
     print("="*60)
     print(f"Cache directory: {os.path.abspath(CACHE_DIR)}")
     print(f"Default tickers: {', '.join(DEFAULT_TICKERS)}")
-    print(f"Trading Guide stocks: NVDA, MSFT, GOOGL, AAPL, GLD, SLV, TSLA, NFLX")
+    print(f"Trading Guide stocks: NVDA, MSFT, GOOGL, AAPL, GLD, SLV, TSLA, NFLX, BRK-B, WMT, UNH, AVGO, LLY, TSM, ORCL, OXY")
     print("="*60 + "\n")
 
 if __name__ == "__main__":

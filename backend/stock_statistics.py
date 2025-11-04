@@ -266,6 +266,58 @@ NFLX_DAILY_DATA = {
     "95-100": BinStatistics("95-100%", 2.37, 2.23, 3.37, 40, 0.53, 4.46, -2.56, 8.58, 3.84, -1.49),
 }
 
+# ============================================
+# Berkshire Hathaway Inc. Class B (BRK-B) DATA
+# ============================================
+
+BRKB_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 0.11, -0.23, 2.78, 50, 0.39, 0.27, -3.48, 4.74, 2.23, -1.85),
+    "5-15": BinStatistics("5-15%", -0.07, -0.29, 1.8, 122, 0.16, -0.42, -2.97, 3.06, 1.41, -1.37),
+    "15-25": BinStatistics("15-25%", 0.22, 0.3, 1.81, 126, 0.16, 1.35, -2.51, 2.9, 1.55, -1.39),
+    "25-50": BinStatistics("25-50%", 0.12, 0.03, 2.04, 291, 0.12, 1.01, -2.88, 3.0, 1.61, -1.38),
+    "50-75": BinStatistics("50-75%", 0.28, 0.24, 1.61, 316, 0.09, 3.09, -2.45, 3.04, 1.36, -1.14),
+    "75-85": BinStatistics("75-85%", 0.28, 0.38, 1.72, 124, 0.15, 1.79, -2.41, 2.96, 1.35, -1.31),
+    "85-95": BinStatistics("85-95%", 0.4, 0.26, 1.89, 109, 0.18, 2.22, -2.01, 4.14, 1.66, -1.2),
+    "95-100": BinStatistics("95-100%", 0.53, 0.31, 1.84, 54, 0.25, 2.12, -1.84, 4.27, 1.62, -1.06),
+}
+
+BRKB_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 0.95, 1.1, 3.15, 35, 0.53, 1.79, -4.35, 5.88, 2.38, -3.18),
+    "5-15": BinStatistics("5-15%", 0.58, 0.29, 2.15, 73, 0.25, 2.32, -2.57, 4.46, 1.94, -1.36),
+    "15-25": BinStatistics("15-25%", 0.47, 0.81, 2.58, 77, 0.29, 1.61, -4.07, 4.11, 2.0, -2.36),
+    "25-50": BinStatistics("25-50%", 0.7, 0.38, 2.66, 228, 0.18, 3.95, -3.06, 5.44, 2.54, -1.66),
+    "50-75": BinStatistics("50-75%", 0.33, 0.31, 2.78, 214, 0.19, 1.72, -3.64, 4.99, 2.28, -2.12),
+    "75-85": BinStatistics("75-85%", 0.66, 0.45, 2.74, 83, 0.3, 2.2, -3.21, 4.31, 2.4, -2.12),
+    "85-95": BinStatistics("85-95%", 0.07, 0.27, 2.5, 86, 0.27, 0.25, -3.95, 3.65, 2.12, -2.18),
+    "95-100": BinStatistics("95-100%", 0.62, 0.81, 2.28, 35, 0.39, 1.61, -2.75, 3.86, 2.15, -1.67),
+}
+
+# ============================================
+# Walmart Inc. (WMT) DATA
+# ============================================
+
+WMT_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 0.62, 0.22, 2.93, 55, 0.4, 1.57, -2.95, 4.88, 2.33, -1.49),
+    "5-15": BinStatistics("5-15%", 0.29, 0.29, 2.38, 124, 0.21, 1.34, -2.9, 3.67, 1.77, -1.64),
+    "15-25": BinStatistics("15-25%", 0.24, 0.38, 2.46, 119, 0.23, 1.06, -3.32, 4.29, 1.7, -1.93),
+    "25-50": BinStatistics("25-50%", 0.19, 0.2, 2.28, 304, 0.13, 1.49, -3.11, 3.36, 1.7, -1.59),
+    "50-75": BinStatistics("50-75%", 0.62, 0.49, 2.11, 285, 0.12, 4.99, -2.26, 4.18, 1.81, -1.29),
+    "75-85": BinStatistics("75-85%", 0.39, 0.32, 2.59, 108, 0.25, 1.57, -3.02, 4.17, 2.1, -1.67),
+    "85-95": BinStatistics("85-95%", 0.7, 0.7, 2.27, 131, 0.2, 3.55, -2.3, 3.78, 1.84, -1.47),
+    "95-100": BinStatistics("95-100%", 0.71, 0.99, 1.91, 59, 0.25, 2.83, -2.47, 3.49, 1.8, -1.28),
+}
+
+WMT_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 0.47, 0.47, 2.54, 41, 0.4, 1.18, -3.19, 3.66, 1.97, -1.89),
+    "5-15": BinStatistics("5-15%", 0.35, 0.41, 3.61, 75, 0.42, 0.83, -4.21, 5.36, 3.02, -2.56),
+    "15-25": BinStatistics("15-25%", 1.44, 1.05, 3.88, 79, 0.44, 3.31, -3.59, 7.87, 3.56, -1.83),
+    "25-50": BinStatistics("25-50%", 0.77, 0.72, 3.32, 223, 0.22, 3.47, -3.94, 6.54, 2.8, -2.17),
+    "50-75": BinStatistics("50-75%", 0.95, 0.99, 2.96, 206, 0.21, 4.61, -3.48, 6.12, 2.72, -1.95),
+    "75-85": BinStatistics("75-85%", 0.37, 0.73, 3.35, 84, 0.37, 1.01, -5.76, 5.71, 2.47, -2.88),
+    "85-95": BinStatistics("85-95%", 1.07, 1.17, 2.94, 84, 0.32, 3.34, -4.42, 5.86, 2.29, -2.58),
+    "95-100": BinStatistics("95-100%", 1.7, 1.61, 2.47, 39, 0.4, 4.3, -2.52, 5.25, 2.91, -1.4),
+}
+
 
 # ============================================
 # STOCK METADATA
@@ -440,6 +492,150 @@ STOCK_METADATA = {
         entry_guidance="Enter LONG when percentile > 75 (momentum plays). NFLX shows strong momentum characteristics. Watch for earnings catalysts.",
         avoid_guidance="Avoid trading in 0-5, 15-25, 25-50, 95-100 ranges - weak signals. Exercise extreme caution around earnings dates (high volatility).",
         special_notes="NFLX is highly volatile (avg daily std > 5%) Strong momentum characteristics - trends can persist Earnings-driven stock with unpredictable reactions to quarterly reports Best for experienced traders comfortable with high volatility Consider position sizing due to large price swings Best 4H trading zones: 5-15, 50-75, 75-85, 85-95"
+    ),
+    "BRK-B": StockMetadata(
+        ticker="BRK-B",
+        name="Berkshire Hathaway Inc. Class B",
+        personality="Momentum Trending",
+        reliability_4h="High",
+        reliability_daily="Medium",
+        tradeable_4h_zones=['50-75', '85-95', '95-100'],
+        dead_zones_4h=['0-5', '5-15', '15-25', '25-50'],
+        best_4h_bin="50-75",
+        best_4h_t_score=3.09,
+        ease_rating=6,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="Low",
+        entry_guidance="Standard entry rules apply",
+        avoid_guidance="Avoid weak signal zones",
+        special_notes="Trade based on t-score strength"
+    ),
+    "WMT": StockMetadata(
+        ticker="WMT",
+        name="Walmart Inc.",
+        personality="Momentum Trending",
+        reliability_4h="High",
+        reliability_daily="High",
+        tradeable_4h_zones=['50-75', '85-95', '95-100'],
+        dead_zones_4h=['5-15', '15-25', '25-50'],
+        best_4h_bin="50-75",
+        best_4h_t_score=4.99,
+        ease_rating=8,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="Medium",
+        entry_guidance="Standard entry rules apply",
+        avoid_guidance="Avoid weak signal zones",
+        special_notes="Trade based on t-score strength"
+    ),
+    "UNH": StockMetadata(
+        ticker="UNH",
+        name="UnitedHealth Group Inc.",
+        personality="Momentum Trending",
+        reliability_4h="Medium",
+        reliability_daily="Low",
+        tradeable_4h_zones=['85-95', '95-100'],
+        dead_zones_4h=['5-15', '50-75', '75-85'],
+        best_4h_bin="95-100",
+        best_4h_t_score=2.66,
+        ease_rating=3,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="High",
+        entry_guidance="Standard entry rules apply",
+        avoid_guidance="Avoid weak signal zones",
+        special_notes="Trade based on t-score strength"
+    ),
+    "AVGO": StockMetadata(
+        ticker="AVGO",
+        name="Broadcom Inc.",
+        personality="Momentum Trending",
+        reliability_4h="High",
+        reliability_daily="High",
+        tradeable_4h_zones=['0-5', '50-75', '75-85'],
+        dead_zones_4h=['5-15', '15-25', '25-50'],
+        best_4h_bin="50-75",
+        best_4h_t_score=4.96,
+        ease_rating=10,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="High",
+        entry_guidance="Standard entry rules apply",
+        avoid_guidance="Avoid weak signal zones",
+        special_notes="Trade based on t-score strength"
+    ),
+    "LLY": StockMetadata(
+        ticker="LLY",
+        name="Eli Lilly and Company",
+        personality="Momentum Trending",
+        reliability_4h="Medium",
+        reliability_daily="Medium",
+        tradeable_4h_zones=['85-95', '95-100'],
+        dead_zones_4h=['5-15', '15-25', '25-50'],
+        best_4h_bin="95-100",
+        best_4h_t_score=5.38,
+        ease_rating=5,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="High",
+        entry_guidance="Standard entry rules apply",
+        avoid_guidance="Avoid weak signal zones",
+        special_notes="Trade based on t-score strength"
+    ),
+    "TSM": StockMetadata(
+        ticker="TSM",
+        name="Taiwan Semiconductor",
+        personality="Momentum Trending",
+        reliability_4h="High",
+        reliability_daily="High",
+        tradeable_4h_zones=['0-5', '5-15', '15-25', '50-75'],
+        dead_zones_4h=['25-50', '75-85', '85-95', '95-100'],
+        best_4h_bin="5-15",
+        best_4h_t_score=3.69,
+        ease_rating=9,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="High",
+        entry_guidance="Standard entry rules apply",
+        avoid_guidance="Avoid weak signal zones",
+        special_notes="Trade based on t-score strength"
+    ),
+    "ORCL": StockMetadata(
+        ticker="ORCL",
+        name="Oracle Corporation",
+        personality="Momentum Trending",
+        reliability_4h="High",
+        reliability_daily="High",
+        tradeable_4h_zones=['0-5', '85-95', '95-100'],
+        dead_zones_4h=['5-15', '15-25', '25-50', '50-75', '75-85'],
+        best_4h_bin="0-5",
+        best_4h_t_score=3.81,
+        ease_rating=8,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="High",
+        entry_guidance="Standard entry rules apply",
+        avoid_guidance="Avoid weak signal zones",
+        special_notes="Trade based on t-score strength"
+    ),
+    "OXY": StockMetadata(
+        ticker="OXY",
+        name="Occidental Petroleum",
+        personality="Momentum Trending",
+        reliability_4h="Low",
+        reliability_daily="Medium",
+        tradeable_4h_zones=['25-50'],
+        dead_zones_4h=['5-15', '15-25', '75-85', '85-95', '95-100'],
+        best_4h_bin="25-50",
+        best_4h_t_score=-2.59,
+        ease_rating=4,
+        is_mean_reverter=False,
+        is_momentum=True,
+        volatility_level="Medium",
+        entry_guidance="Standard entry rules apply",
+        avoid_guidance="Avoid weak signal zones",
+        special_notes="Trade based on t-score strength"
     )
 }
 
@@ -467,6 +663,22 @@ def get_stock_data(ticker: str, timeframe: str) -> Dict[str, BinStatistics]:
         ("TSLA", "Daily"): TSLA_DAILY_DATA,
         ("NFLX", "4H"): NFLX_4H_DATA,
         ("NFLX", "Daily"): NFLX_DAILY_DATA,
+        ("BRK-B", "4H"): BRKB_4H_DATA,
+        ("BRK-B", "Daily"): BRKB_DAILY_DATA,
+        ("WMT", "4H"): WMT_4H_DATA,
+        ("WMT", "Daily"): WMT_DAILY_DATA,
+        ("UNH", "4H"): UNH_4H_DATA,
+        ("UNH", "Daily"): UNH_DAILY_DATA,
+        ("AVGO", "4H"): AVGO_4H_DATA,
+        ("AVGO", "Daily"): AVGO_DAILY_DATA,
+        ("LLY", "4H"): LLY_4H_DATA,
+        ("LLY", "Daily"): LLY_DAILY_DATA,
+        ("TSM", "4H"): TSM_4H_DATA,
+        ("TSM", "Daily"): TSM_DAILY_DATA,
+        ("ORCL", "4H"): ORCL_4H_DATA,
+        ("ORCL", "Daily"): ORCL_DAILY_DATA,
+        ("OXY", "4H"): OXY_4H_DATA,
+        ("OXY", "Daily"): OXY_DAILY_DATA,
     }
 
     key = (ticker, timeframe)
@@ -524,3 +736,160 @@ def get_action_for_4h_bin(bin_range: str, stats: BinStatistics) -> Dict:
             return {"action": "Wait (no edge)", "size": "0%", "color": "error"}
         else:
             return {"action": "Avoid / Trim", "size": "Trim 30-50%", "color": "error"}
+
+# ============================================
+# UnitedHealth Group Inc. (UNH) DATA
+# ============================================
+
+UNH_4H_DATA = {
+    "0-5": BinStatistics("0-5%", -1.05, -1.29, 5.0, 63, 0.63, -1.67, -7.42, 4.49, 3.29, -3.55),
+    "5-15": BinStatistics("5-15%", -0.27, 0.09, 4.0, 118, 0.37, -0.73, -7.29, 4.52, 2.43, -3.06),
+    "15-25": BinStatistics("15-25%", 0.61, 0.28, 3.47, 125, 0.31, 1.96, -4.62, 7.21, 2.58, -1.9),
+    "25-50": BinStatistics("25-50%", -0.57, 0.07, 4.97, 283, 0.3, -1.92, -6.27, 4.48, 2.2, -3.48),
+    "50-75": BinStatistics("50-75%", -0.34, 0.34, 4.75, 304, 0.27, -1.24, -6.93, 4.59, 2.04, -3.44),
+    "75-85": BinStatistics("75-85%", -0.16, 0.18, 3.78, 117, 0.35, -0.45, -6.37, 4.48, 2.1, -2.88),
+    "85-95": BinStatistics("85-95%", 0.84, 0.25, 4.34, 122, 0.39, 2.13, -5.53, 9.36, 3.55, -2.36),
+    "95-100": BinStatistics("95-100%", 2.01, 0.06, 5.69, 57, 0.75, 2.66, -4.31, 13.76, 5.85, -1.98),
+}
+
+UNH_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", -0.34, 0.1, 4.11, 44, 0.62, -0.55, -6.51, 4.97, 2.73, -3.7),
+    "5-15": BinStatistics("5-15%", 0.66, 1.38, 5.25, 70, 0.63, 1.05, -6.83, 10.67, 3.81, -4.06),
+    "15-25": BinStatistics("15-25%", 0.22, 0.79, 4.77, 78, 0.54, 0.41, -7.11, 6.59, 3.08, -3.89),
+    "25-50": BinStatistics("25-50%", -0.77, -0.08, 5.97, 219, 0.4, -1.91, -11.55, 6.3, 3.05, -4.42),
+    "50-75": BinStatistics("50-75%", 0.66, 0.56, 6.23, 213, 0.43, 1.54, -7.61, 12.14, 4.45, -4.06),
+    "75-85": BinStatistics("75-85%", -0.37, 0.42, 5.5, 82, 0.61, -0.6, -7.52, 5.92, 2.91, -4.55),
+    "85-95": BinStatistics("85-95%", 0.46, 0.3, 4.69, 83, 0.51, 0.9, -7.08, 8.59, 3.16, -3.42),
+    "95-100": BinStatistics("95-100%", -2.92, -1.56, 7.97, 40, 1.26, -2.31, -26.56, 3.84, 2.35, -5.75),
+}
+
+# ============================================
+# Broadcom Inc. (AVGO) DATA
+# ============================================
+
+AVGO_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 1.63, 1.14, 5.45, 54, 0.74, 2.19, -4.55, 9.87, 4.55, -2.96),
+    "5-15": BinStatistics("5-15%", 0.58, 0.35, 5.05, 127, 0.45, 1.3, -6.1, 7.93, 4.35, -3.37),
+    "15-25": BinStatistics("15-25%", -0.21, -0.28, 4.32, 119, 0.4, -0.54, -5.83, 7.71, 3.22, -3.06),
+    "25-50": BinStatistics("25-50%", 0.47, 0.08, 5.54, 295, 0.32, 1.44, -7.49, 10.2, 4.58, -3.73),
+    "50-75": BinStatistics("50-75%", 1.71, 1.36, 6.14, 317, 0.34, 4.96, -6.81, 11.99, 4.93, -3.43),
+    "75-85": BinStatistics("75-85%", 1.17, 0.48, 5.77, 111, 0.55, 2.14, -6.79, 10.02, 4.63, -3.22),
+    "85-95": BinStatistics("85-95%", 1.27, 0.29, 7.11, 115, 0.66, 1.91, -7.28, 8.05, 5.26, -3.09),
+    "95-100": BinStatistics("95-100%", 1.42, 2.18, 5.3, 53, 0.73, 1.95, -6.07, 8.55, 4.89, -3.47),
+}
+
+AVGO_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 5.03, 4.65, 8.75, 38, 1.42, 3.54, -8.0, 21.35, 8.86, -5.68),
+    "5-15": BinStatistics("5-15%", 3.04, 2.57, 6.28, 78, 0.71, 4.27, -5.16, 14.88, 6.02, -3.66),
+    "15-25": BinStatistics("15-25%", 3.0, 3.04, 6.09, 86, 0.66, 4.57, -6.93, 10.96, 5.76, -4.12),
+    "25-50": BinStatistics("25-50%", 0.88, 0.77, 6.37, 216, 0.43, 2.03, -9.02, 11.21, 5.25, -4.39),
+    "50-75": BinStatistics("50-75%", 1.42, 0.79, 7.27, 218, 0.49, 2.88, -9.5, 13.26, 5.92, -4.63),
+    "75-85": BinStatistics("75-85%", 2.61, 1.1, 6.99, 72, 0.82, 3.17, -7.25, 15.35, 6.64, -3.72),
+    "85-95": BinStatistics("85-95%", 3.03, 0.93, 9.88, 82, 1.09, 2.78, -8.08, 23.46, 9.35, -3.93),
+    "95-100": BinStatistics("95-100%", 1.47, 1.42, 7.91, 40, 1.25, 1.17, -10.25, 8.88, 5.32, -4.96),
+}
+
+# ============================================
+# Eli Lilly and Company (LLY) DATA
+# ============================================
+
+LLY_4H_DATA = {
+    "0-5": BinStatistics("0-5%", -0.72, -0.91, 3.47, 58, 0.46, -1.58, -5.21, 3.99, 2.61, -2.91),
+    "5-15": BinStatistics("5-15%", 0.11, 0.29, 3.51, 132, 0.31, 0.36, -6.15, 4.71, 2.48, -2.82),
+    "15-25": BinStatistics("15-25%", -0.25, -0.23, 4.51, 110, 0.43, -0.59, -8.6, 6.28, 3.06, -3.22),
+    "25-50": BinStatistics("25-50%", 0.36, 0.28, 4.82, 299, 0.28, 1.29, -7.11, 7.96, 3.24, -3.14),
+    "50-75": BinStatistics("50-75%", 0.36, 0.49, 4.06, 302, 0.23, 1.55, -6.4, 7.17, 2.88, -2.88),
+    "75-85": BinStatistics("75-85%", 0.71, 0.87, 4.3, 119, 0.39, 1.8, -5.42, 6.89, 3.45, -3.49),
+    "85-95": BinStatistics("85-95%", 1.38, 1.31, 3.42, 114, 0.32, 4.3, -4.03, 6.52, 3.27, -1.98),
+    "95-100": BinStatistics("95-100%", 2.73, 2.52, 3.83, 57, 0.51, 5.38, -3.41, 9.66, 3.82, -2.39),
+}
+
+LLY_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 0.99, 1.81, 5.67, 43, 0.87, 1.14, -6.98, 9.04, 4.87, -4.4),
+    "5-15": BinStatistics("5-15%", 3.55, 2.67, 6.91, 66, 0.85, 4.18, -6.19, 15.4, 6.32, -4.42),
+    "15-25": BinStatistics("15-25%", 1.58, 0.63, 6.76, 94, 0.7, 2.27, -6.24, 15.36, 5.76, -3.82),
+    "25-50": BinStatistics("25-50%", 0.32, 0.59, 5.5, 222, 0.37, 0.87, -9.63, 9.29, 3.87, -4.09),
+    "50-75": BinStatistics("50-75%", 0.61, -0.11, 5.55, 202, 0.39, 1.55, -7.74, 10.94, 5.09, -3.53),
+    "75-85": BinStatistics("75-85%", 1.15, 1.76, 5.36, 94, 0.55, 2.08, -7.72, 9.21, 4.03, -4.7),
+    "85-95": BinStatistics("85-95%", 0.68, 1.16, 4.67, 76, 0.54, 1.26, -5.92, 7.67, 3.97, -3.61),
+    "95-100": BinStatistics("95-100%", 1.27, 1.7, 4.0, 37, 0.66, 1.93, -5.52, 7.47, 3.7, -3.22),
+}
+
+# ============================================
+# Taiwan Semiconductor (TSM) DATA
+# ============================================
+
+TSM_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 1.56, 1.81, 3.52, 60, 0.45, 3.44, -3.45, 6.95, 3.61, -2.23),
+    "5-15": BinStatistics("5-15%", 1.42, 1.59, 4.17, 118, 0.38, 3.69, -5.31, 7.75, 4.19, -2.48),
+    "15-25": BinStatistics("15-25%", 1.1, 0.74, 4.26, 128, 0.38, 2.91, -4.85, 8.05, 3.92, -2.77),
+    "25-50": BinStatistics("25-50%", 0.34, -0.18, 4.3, 287, 0.25, 1.33, -5.78, 8.18, 3.78, -3.03),
+    "50-75": BinStatistics("50-75%", 0.88, 0.67, 4.53, 305, 0.26, 3.4, -5.88, 8.94, 3.96, -3.09),
+    "75-85": BinStatistics("75-85%", -0.16, 0.31, 4.35, 127, 0.39, -0.42, -8.59, 5.67, 2.94, -3.73),
+    "85-95": BinStatistics("85-95%", 0.4, 0.38, 3.45, 117, 0.32, 1.24, -5.86, 6.11, 2.65, -2.52),
+    "95-100": BinStatistics("95-100%", 0.28, 0.35, 4.26, 46, 0.63, 0.44, -5.39, 5.62, 3.28, -3.0),
+}
+
+TSM_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 0.37, 1.07, 4.91, 41, 0.77, 0.48, -7.14, 7.55, 3.84, -4.53),
+    "5-15": BinStatistics("5-15%", 2.26, 1.46, 5.37, 73, 0.63, 3.6, -4.59, 13.34, 5.49, -2.65),
+    "15-25": BinStatistics("15-25%", 1.94, 1.73, 6.04, 87, 0.65, 2.99, -6.09, 11.96, 5.7, -3.65),
+    "25-50": BinStatistics("25-50%", 0.39, -0.45, 6.0, 219, 0.41, 0.96, -8.69, 11.47, 5.43, -4.25),
+    "50-75": BinStatistics("50-75%", 1.31, 1.23, 5.96, 206, 0.42, 3.15, -6.99, 10.98, 5.04, -4.11),
+    "75-85": BinStatistics("75-85%", 1.24, 0.71, 5.47, 88, 0.58, 2.12, -6.53, 9.0, 5.2, -3.51),
+    "85-95": BinStatistics("85-95%", 1.16, 1.17, 5.32, 72, 0.63, 1.86, -6.79, 9.44, 4.63, -3.42),
+    "95-100": BinStatistics("95-100%", 4.14, 1.81, 9.31, 46, 1.37, 3.02, -7.61, 26.26, 8.88, -3.94),
+}
+
+# ============================================
+# Oracle Corporation (ORCL) DATA
+# ============================================
+
+ORCL_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 1.82, 1.68, 3.35, 49, 0.48, 3.81, -2.51, 7.78, 3.33, -1.94),
+    "5-15": BinStatistics("5-15%", 0.41, 0.38, 3.55, 121, 0.32, 1.27, -4.77, 5.98, 3.0, -2.49),
+    "15-25": BinStatistics("15-25%", 0.05, -0.08, 3.83, 129, 0.34, 0.14, -5.95, 5.22, 2.97, -2.7),
+    "25-50": BinStatistics("25-50%", 0.35, -0.01, 4.99, 304, 0.29, 1.22, -6.09, 7.26, 3.45, -2.75),
+    "50-75": BinStatistics("50-75%", 0.37, 0.08, 4.87, 296, 0.28, 1.3, -7.13, 9.81, 3.71, -3.07),
+    "75-85": BinStatistics("75-85%", 0.22, 0.81, 5.49, 116, 0.51, 0.43, -10.14, 11.06, 3.68, -4.35),
+    "85-95": BinStatistics("85-95%", 2.05, 1.23, 7.26, 117, 0.67, 3.05, -5.3, 12.47, 5.0, -2.67),
+    "95-100": BinStatistics("95-100%", 2.97, 2.44, 7.97, 57, 1.06, 2.82, -11.37, 17.98, 6.08, -4.33),
+}
+
+ORCL_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", -0.1, 0.52, 5.52, 44, 0.83, -0.12, -9.61, 6.29, 3.99, -5.02),
+    "5-15": BinStatistics("5-15%", 2.52, 0.74, 8.92, 77, 1.02, 2.48, -5.75, 19.62, 6.75, -3.11),
+    "15-25": BinStatistics("15-25%", 0.01, -0.6, 6.49, 85, 0.7, 0.02, -7.18, 8.56, 4.8, -3.67),
+    "25-50": BinStatistics("25-50%", 0.5, 0.09, 5.43, 203, 0.38, 1.31, -7.93, 9.4, 4.47, -3.6),
+    "50-75": BinStatistics("50-75%", 2.16, 1.43, 6.85, 213, 0.47, 4.59, -7.35, 14.38, 5.93, -4.12),
+    "75-85": BinStatistics("75-85%", 1.74, 1.45, 7.43, 90, 0.78, 2.23, -10.29, 15.27, 5.73, -5.48),
+    "85-95": BinStatistics("85-95%", 1.81, 1.45, 5.88, 73, 0.69, 2.63, -7.6, 10.98, 4.29, -4.33),
+    "95-100": BinStatistics("95-100%", 2.37, 2.46, 5.07, 48, 0.73, 3.25, -6.05, 11.77, 4.81, -3.55),
+}
+
+# ============================================
+# Occidental Petroleum (OXY) DATA
+# ============================================
+
+OXY_4H_DATA = {
+    "0-5": BinStatistics("0-5%", -1.12, -0.18, 4.85, 59, 0.63, -1.77, -8.14, 6.05, 2.09, -3.65),
+    "5-15": BinStatistics("5-15%", -0.08, -0.32, 2.83, 115, 0.26, -0.29, -4.43, 4.68, 2.28, -2.17),
+    "15-25": BinStatistics("15-25%", -0.11, 0.26, 2.9, 122, 0.26, -0.41, -4.73, 5.03, 2.19, -2.56),
+    "25-50": BinStatistics("25-50%", -0.6, -0.42, 4.03, 301, 0.23, -2.59, -6.43, 4.85, 2.48, -3.1),
+    "50-75": BinStatistics("50-75%", 0.3, 0.45, 3.22, 300, 0.19, 1.6, -4.96, 4.96, 2.54, -2.44),
+    "75-85": BinStatistics("75-85%", 0.02, 0.31, 3.38, 115, 0.31, 0.07, -6.18, 5.16, 2.53, -2.81),
+    "85-95": BinStatistics("85-95%", -0.15, -0.53, 2.75, 110, 0.26, -0.59, -4.32, 4.1, 2.34, -2.23),
+    "95-100": BinStatistics("95-100%", -0.06, 0.27, 3.29, 67, 0.4, -0.14, -5.41, 5.12, 2.36, -2.87),
+}
+
+OXY_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 2.26, 2.13, 5.74, 40, 0.91, 2.49, -4.23, 12.01, 5.91, -2.67),
+    "5-15": BinStatistics("5-15%", 0.31, -0.4, 4.15, 91, 0.43, 0.72, -4.69, 6.64, 3.86, -2.47),
+    "15-25": BinStatistics("15-25%", -0.7, -1.18, 4.95, 78, 0.56, -1.25, -8.01, 7.65, 4.41, -3.89),
+    "25-50": BinStatistics("25-50%", 0.37, -0.2, 4.87, 199, 0.35, 1.06, -6.32, 8.1, 4.28, -3.39),
+    "50-75": BinStatistics("50-75%", 0.26, 0.63, 5.82, 215, 0.4, 0.65, -7.63, 8.53, 4.18, -4.43),
+    "75-85": BinStatistics("75-85%", -1.36, -1.55, 4.4, 88, 0.47, -2.91, -7.54, 5.13, 2.83, -4.27),
+    "85-95": BinStatistics("85-95%", -1.76, -1.42, 5.05, 81, 0.56, -3.14, -8.26, 4.56, 3.06, -4.75),
+    "95-100": BinStatistics("95-100%", -0.96, -0.53, 3.89, 42, 0.6, -1.6, -8.31, 4.55, 2.39, -3.48),
+}
+
