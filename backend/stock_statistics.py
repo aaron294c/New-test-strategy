@@ -349,6 +349,45 @@ class StockMetadata:
 
 
 STOCK_METADATA = {
+    # Market Indices - Broad Market Exposure
+    "SPY": StockMetadata(
+        ticker="SPY",
+        name="S&P 500 ETF",
+        personality="Market Benchmark",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐⭐ Excellent",
+        tradeable_4h_zones=["0-75%"],
+        dead_zones_4h=["75-100%"],
+        best_4h_bin="5-25%",
+        best_4h_t_score=0.0,  # Will be calculated from real data
+        ease_rating=5,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Low",
+        entry_guidance="Buy market dips at ≤15% percentile for mean reversion plays",
+        avoid_guidance="Avoid entering above 75% percentile - limited upside",
+        special_notes="Tracks broad market, excellent for mean reversion at extreme lows"
+    ),
+    "QQQ": StockMetadata(
+        ticker="QQQ",
+        name="Nasdaq 100 ETF",
+        personality="Tech Momentum Leader",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐⭐ Excellent",
+        tradeable_4h_zones=["0-75%"],
+        dead_zones_4h=["75-100%"],
+        best_4h_bin="5-25%",
+        best_4h_t_score=0.0,  # Will be calculated from real data
+        ease_rating=5,
+        is_mean_reverter=True,
+        is_momentum=True,  # Can exhibit both behaviors
+        volatility_level="Medium",
+        entry_guidance="Buy tech dips at ≤15% percentile, can ride momentum above 50%",
+        avoid_guidance="Avoid entering above 75% without momentum confirmation",
+        special_notes="Tech-heavy, higher beta than SPY, good for both mean reversion and momentum"
+    ),
+
+    # Individual Stocks
     "NVDA": StockMetadata(
         ticker="NVDA",
         name="NVIDIA",

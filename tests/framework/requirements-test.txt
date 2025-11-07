@@ -1,0 +1,41 @@
+# Testing Framework Requirements
+# Install with: pip install -r requirements-test.txt
+
+# Core Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-mock>=3.11.1
+pytest-asyncio>=0.21.0
+pytest-timeout>=2.1.0
+pytest-xdist>=3.3.1
+
+# Data & Scientific Computing
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.11.0
+
+# Statistical Testing
+statsmodels>=0.14.0
+scikit-learn>=1.3.0
+
+# Mocking & Fixtures
+faker>=19.0.0
+factory-boy>=3.3.0
+
+# Performance Testing
+pytest-benchmark>=4.0.0
+memory-profiler>=0.61.0
+
+# Code Quality
+pytest-flake8>=1.1.1
+pytest-mypy>=0.10.3
+black>=23.7.0
+
+# Reporting
+pytest-html>=3.2.0
+pytest-json-report>=1.5.0
+coverage[toml]>=7.3.0
+
+# Utilities
+python-dateutil>=2.8.2
+pytz>=2023.3

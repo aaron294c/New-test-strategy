@@ -66,6 +66,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Import and add Swing Framework router (REAL historical trade data)
+try:
+    from swing_framework_api import router as swing_framework_router
+    app.include_router(swing_framework_router)
+    print("✓ Swing Framework API registered (REAL trade data)")
+except Exception as e:
+    print(f"⚠️  Could not load Swing Framework API: {e}")
+
 # Cache directory for results
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)

@@ -46,6 +46,7 @@ import PositionManagement from './components/PositionManagement';
 import EnhancedDivergenceLifecycle from './components/EnhancedDivergenceLifecycle';
 import PercentileForwardMapper from './components/PercentileForwardMapper';
 import MultiTimeframeGuide from './components/MultiTimeframeGuide';
+import SwingTradingFramework from './components/TradingFramework/SwingTradingFramework';
 
 // Create theme with dark mode support
 const theme = createTheme({
@@ -243,6 +244,7 @@ function Dashboard() {
             <Paper elevation={3} sx={{ mb: 3 }}>
               <Tabs value={activeTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
                 <Tab icon={<TrendingUpIcon />} label="📚 TRADING GUIDE" />
+                <Tab icon={<AssessmentIcon />} label="🎯 SWING FRAMEWORK" />
                 <Tab icon={<TrendingUpIcon />} label="🔴 LIVE SIGNALS" />
                 <Tab icon={<ShowChartIcon />} label="💼 POSITION MANAGEMENT" />
                 <Tab icon={<TimelineIcon />} label="🎯 Multi-Timeframe Divergence" />
@@ -263,6 +265,10 @@ function Dashboard() {
             </TabPanel>
 
             <TabPanel value={activeTab} index={1}>
+              <SwingTradingFramework ticker={selectedTicker} />
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={2}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <LiveTradingSignals ticker={selectedTicker} />
@@ -270,7 +276,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={2}>
+            <TabPanel value={activeTab} index={3}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <PositionManagement ticker={selectedTicker} />
@@ -278,7 +284,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={3}>
+            <TabPanel value={activeTab} index={4}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <MultiTimeframeDivergence ticker={selectedTicker} />
@@ -286,7 +292,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={4}>
+            <TabPanel value={activeTab} index={5}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <EnhancedDivergenceLifecycle ticker={selectedTicker} />
@@ -294,7 +300,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={5}>
+            <TabPanel value={activeTab} index={6}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <PercentileForwardMapper ticker={selectedTicker} />
@@ -302,7 +308,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={6}>
+            <TabPanel value={activeTab} index={7}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <RSIPercentileChart
@@ -314,7 +320,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={7}>
+            <TabPanel value={activeTab} index={8}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <PerformanceMatrixHeatmap
@@ -335,7 +341,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={8}>
+            <TabPanel value={activeTab} index={9}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <ReturnDistributionChart
@@ -348,7 +354,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={9}>
+            <TabPanel value={activeTab} index={10}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <StrategyRulesPanel
@@ -362,7 +368,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={10}>
+            <TabPanel value={activeTab} index={11}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <OptimalExitPanel
@@ -376,7 +382,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={11}>
+            <TabPanel value={activeTab} index={12}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <ExitStrategyComparison
@@ -387,7 +393,7 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={11}>
+            <TabPanel value={activeTab} index={13}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <TradeSimulationViewer
