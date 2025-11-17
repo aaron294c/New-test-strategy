@@ -3,6 +3,7 @@
  *
  * Shows LIVE RSI-MA percentile and risk-adjusted expectancy for all tickers
  * Highlights buy opportunities based on current market conditions
+ * WITH SORTABLE COLUMNS AND DATA FOR ALL PERCENTILE RANGES
  */
 
 import React, { useState, useEffect } from 'react';
@@ -20,6 +21,7 @@ import {
   CircularProgress,
   Alert,
   Tooltip,
+  TableSortLabel,
 } from '@mui/material';
 import {
   TrendingDown,
@@ -27,6 +29,9 @@ import {
   CheckCircle,
   Warning,
   Info,
+  Cancel,
+  ArrowUpward,
+  ArrowDownward,
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -54,7 +59,7 @@ interface MarketState {
   is_mean_reverter: boolean;
   is_momentum: boolean;
   volatility_level: string;
-  live_expectancy: LiveExpectancy | null;
+  live_expectancy: LiveExpectancy;
 }
 
 interface MarketStateResponse {
@@ -68,10 +73,15 @@ interface MarketStateResponse {
   };
 }
 
+type SortField = 'ticker' | 'percentile' | 'win_rate' | 'return' | 'risk_adj_expectancy' | 'hold_days';
+type SortOrder = 'asc' | 'desc';
+
 export const CurrentMarketState: React.FC = () => {
   const [marketData, setMarketData] = useState<MarketStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>('percentile');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const fetchCurrentState = async () => {
     setLoading(true);
@@ -99,6 +109,104 @@ export const CurrentMarketState: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle sort order
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field - default to ascending
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const getSortedData = (data: MarketState[]): MarketState[] => {
+    const sorted = [...data].sort((a, b) => {
+      let aValue: number | string;
+      let bValue: number | string;
+
+      switch (sortField) {
+        case 'ticker':
+          aValue = a.ticker;
+          bValue = b.ticker;
+          break;
+        case 'percentile':
+          aValue = a.current_percentile;
+          bValue = b.current_percentile;
+          break;
+        case 'win_rate':
+          aValue = a.live_expectancy.expected_win_rate;
+          bValue = b.live_expectancy.expected_win_rate;
+          break;
+        case 'return':
+          aValue = a.live_expectancy.expected_return_pct;
+          bValue = b.live_expectancy.expected_return_pct;
+          break;
+        case 'risk_adj_expectancy':
+          aValue = a.live_expectancy.risk_adjusted_expectancy_pct;
+          bValue = b.live_expectancy.risk_adjusted_expectancy_pct;
+          break;
+        case 'hold_days':
+          aValue = a.live_expectancy.expected_holding_days;
+          bValue = b.live_expectancy.expected_holding_days;
+          break;
+        default:
+          aValue = a.current_percentile;
+          bValue = b.current_percentile;
+      }
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortOrder === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      return sortOrder === 'asc'
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
+    });
+
+    return sorted;
+  };
+
+  const getBuySignalIcon = (state: MarketState) => {
+    const percentile = state.current_percentile;
+
+    if (percentile <= 5) {
+      return (
+        <Tooltip title="Strong Buy - Extreme Low (≤5%)">
+          <CheckCircle color="success" fontSize="small" />
+        </Tooltip>
+      );
+    } else if (percentile <= 15) {
+      return (
+        <Tooltip title="Buy - Low (5-15%)">
+          <Warning color="warning" fontSize="small" />
+        </Tooltip>
+      );
+    } else {
+      return (
+        <Tooltip title="Not in Entry Zone (>15%)">
+          <Cancel color="error" fontSize="small" />
+        </Tooltip>
+      );
+    }
+  };
+
+  const getPercentileColor = (percentile: number) => {
+    if (percentile <= 5) return '#4caf50'; // Green - strong buy
+    if (percentile <= 15) return '#ff9800'; // Orange - buy
+    if (percentile <= 30) return '#2196f3'; // Blue - watch
+    return '#9e9e9e'; // Gray - neutral
+  };
+
+  const getExpectancyColor = (expectancy: number) => {
+    if (expectancy > 0.4) return '#4caf50'; // Green - excellent
+    if (expectancy > 0.2) return '#8bc34a'; // Light green - good
+    if (expectancy > 0) return '#ff9800'; // Orange - marginal
+    return '#f44336'; // Red - negative
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
@@ -120,29 +228,7 @@ export const CurrentMarketState: React.FC = () => {
   }
 
   const { market_state, summary } = marketData;
-
-  const getBuySignalIcon = (state: MarketState) => {
-    if (!state.in_entry_zone) return null;
-
-    if (state.percentile_cohort === 'extreme_low') {
-      return <CheckCircle color="success" fontSize="small" />;
-    }
-    return <Warning color="warning" fontSize="small" />;
-  };
-
-  const getPercentileColor = (percentile: number) => {
-    if (percentile <= 5) return '#4caf50'; // Green - strong buy
-    if (percentile <= 15) return '#ff9800'; // Orange - buy
-    if (percentile <= 30) return '#2196f3'; // Blue - watch
-    return '#9e9e9e'; // Gray - neutral
-  };
-
-  const getExpectancyColor = (expectancy: number) => {
-    if (expectancy > 0.4) return '#4caf50'; // Green - excellent
-    if (expectancy > 0.2) return '#8bc34a'; // Light green - good
-    if (expectancy > 0) return '#ff9800'; // Orange - marginal
-    return '#f44336'; // Red - negative
-  };
+  const sortedData = getSortedData(market_state);
 
   return (
     <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
@@ -179,20 +265,68 @@ export const CurrentMarketState: React.FC = () => {
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Ticker</TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={sortField === 'ticker'}
+                  direction={sortField === 'ticker' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('ticker')}
+                >
+                  Ticker
+                </TableSortLabel>
+              </TableCell>
               <TableCell>Signal</TableCell>
-              <TableCell align="right">Current %ile</TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'percentile'}
+                  direction={sortField === 'percentile' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('percentile')}
+                >
+                  Current %ile
+                </TableSortLabel>
+              </TableCell>
               <TableCell>Zone</TableCell>
               <TableCell>Regime</TableCell>
-              <TableCell align="right">Expected Win Rate</TableCell>
-              <TableCell align="right">Expected Return</TableCell>
-              <TableCell align="right">Risk-Adj. Expectancy</TableCell>
-              <TableCell align="right">Avg Hold (days)</TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'win_rate'}
+                  direction={sortField === 'win_rate' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('win_rate')}
+                >
+                  Expected Win Rate
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'return'}
+                  direction={sortField === 'return' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('return')}
+                >
+                  Expected Return
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'risk_adj_expectancy'}
+                  direction={sortField === 'risk_adj_expectancy' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('risk_adj_expectancy')}
+                >
+                  Risk-Adj. Expectancy
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'hold_days'}
+                  direction={sortField === 'hold_days' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('hold_days')}
+                >
+                  Avg Hold (days)
+                </TableSortLabel>
+              </TableCell>
               <TableCell align="right">Sample Size</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {market_state.map((state) => (
+            {sortedData.map((state) => (
               <TableRow
                 key={state.ticker}
                 sx={{
@@ -239,7 +373,7 @@ export const CurrentMarketState: React.FC = () => {
                           ? '≤5%'
                           : state.percentile_cohort === 'low'
                           ? '5-15%'
-                          : 'N/A'
+                          : state.current_percentile.toFixed(0) + '%'
                       }
                       size="small"
                       color={
@@ -261,69 +395,57 @@ export const CurrentMarketState: React.FC = () => {
                   />
                 </TableCell>
 
-                {state.live_expectancy ? (
-                  <>
-                    <TableCell align="right">
-                      <Typography variant="body2">
-                        {(state.live_expectancy.expected_win_rate * 100).toFixed(1)}%
-                      </Typography>
-                    </TableCell>
+                <TableCell align="right">
+                  <Typography variant="body2">
+                    {(state.live_expectancy.expected_win_rate * 100).toFixed(1)}%
+                  </Typography>
+                </TableCell>
 
-                    <TableCell align="right">
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color:
-                            state.live_expectancy.expected_return_pct > 0
-                              ? '#4caf50'
-                              : '#f44336',
-                        }}
-                      >
-                        {state.live_expectancy.expected_return_pct > 0 ? '+' : ''}
-                        {state.live_expectancy.expected_return_pct.toFixed(2)}%
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {state.live_expectancy.expected_return_per_day_pct > 0 ? '+' : ''}
-                        {state.live_expectancy.expected_return_per_day_pct.toFixed(3)}%/day
-                      </Typography>
-                    </TableCell>
+                <TableCell align="right">
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color:
+                        state.live_expectancy.expected_return_pct > 0
+                          ? '#4caf50'
+                          : '#f44336',
+                    }}
+                  >
+                    {state.live_expectancy.expected_return_pct > 0 ? '+' : ''}
+                    {state.live_expectancy.expected_return_pct.toFixed(2)}%
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {state.live_expectancy.expected_return_per_day_pct > 0 ? '+' : ''}
+                    {state.live_expectancy.expected_return_per_day_pct.toFixed(3)}%/day
+                  </Typography>
+                </TableCell>
 
-                    <TableCell align="right">
-                      <Typography
-                        variant="body2"
-                        fontWeight="bold"
-                        sx={{
-                          color: getExpectancyColor(
-                            state.live_expectancy.risk_adjusted_expectancy_pct
-                          ),
-                        }}
-                      >
-                        {state.live_expectancy.risk_adjusted_expectancy_pct > 0 ? '+' : ''}
-                        {state.live_expectancy.risk_adjusted_expectancy_pct.toFixed(2)}%
-                      </Typography>
-                    </TableCell>
+                <TableCell align="right">
+                  <Typography
+                    variant="body2"
+                    fontWeight="bold"
+                    sx={{
+                      color: getExpectancyColor(
+                        state.live_expectancy.risk_adjusted_expectancy_pct
+                      ),
+                    }}
+                  >
+                    {state.live_expectancy.risk_adjusted_expectancy_pct > 0 ? '+' : ''}
+                    {state.live_expectancy.risk_adjusted_expectancy_pct.toFixed(2)}%
+                  </Typography>
+                </TableCell>
 
-                    <TableCell align="right">
-                      <Typography variant="body2">
-                        {state.live_expectancy.expected_holding_days.toFixed(1)}
-                      </Typography>
-                    </TableCell>
+                <TableCell align="right">
+                  <Typography variant="body2">
+                    {state.live_expectancy.expected_holding_days.toFixed(1)}
+                  </Typography>
+                </TableCell>
 
-                    <TableCell align="right">
-                      <Typography variant="body2" color="text.secondary">
-                        n={state.live_expectancy.sample_size}
-                      </Typography>
-                    </TableCell>
-                  </>
-                ) : (
-                  <>
-                    <TableCell align="center" colSpan={5}>
-                      <Typography variant="caption" color="text.secondary">
-                        Not in entry zone - no expected performance data
-                      </Typography>
-                    </TableCell>
-                  </>
-                )}
+                <TableCell align="right">
+                  <Typography variant="body2" color="text.secondary">
+                    n={state.live_expectancy.sample_size}
+                  </Typography>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -334,12 +456,12 @@ export const CurrentMarketState: React.FC = () => {
         <Alert severity="info" icon={<Info />}>
           <Typography variant="body2">
             <strong>Live Expectancy</strong> shows expected performance based on historical
-            cohort statistics if you enter at the current percentile. Risk-adjusted expectancy
+            cohort statistics for the current percentile range. Risk-adjusted expectancy
             accounts for volatility level ({' '}
             <Tooltip title="Low volatility stocks get full value, medium = 1.5x divisor, high = 2.0x">
               <span style={{ textDecoration: 'underline', cursor: 'help' }}>volatility adjustment</span>
             </Tooltip>
-            ).
+            ). <strong>Click column headers to sort.</strong>
           </Typography>
         </Alert>
       </Box>

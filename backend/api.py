@@ -74,6 +74,51 @@ try:
 except Exception as e:
     print(f"⚠️  Could not load Swing Framework API: {e}")
 
+# Import and add Gamma Scanner router
+try:
+    import sys
+    from pathlib import Path
+    # Add gamma directory to path directly
+    gamma_dir = Path(__file__).parent / "api" / "gamma"
+    if str(gamma_dir) not in sys.path:
+        sys.path.insert(0, str(gamma_dir))
+
+    # Import directly from gamma_endpoint module
+    from gamma_endpoint import router as gamma_router
+    app.include_router(gamma_router)
+    print("✓ Gamma Wall Scanner API registered")
+except Exception as e:
+    print(f"⚠️  Could not load Gamma Scanner API: {e}")
+
+# Import and add Price Fetcher router
+try:
+    import sys
+    from pathlib import Path
+    api_dir = Path(__file__).parent / "api"
+    if str(api_dir) not in sys.path:
+        sys.path.insert(0, str(api_dir))
+
+    from price_fetcher import router as price_router
+    app.include_router(price_router)
+    print("✓ Price Fetcher API registered")
+except Exception as e:
+    print(f"⚠️  Could not load Price Fetcher API: {e}")
+
+# Import and add Lower Extension API
+try:
+    import sys
+    from pathlib import Path
+    api_lower_ext_dir = Path(__file__).parent / "api"
+    if str(api_lower_ext_dir) not in sys.path:
+        sys.path.insert(0, str(api_lower_ext_dir))
+
+    from lower_extension import calculate_mbad_levels
+    from nadaraya_watson import calculate_nadaraya_watson_lower_band
+    print("✓ Lower Extension API module loaded")
+    print("✓ Nadaraya-Watson Envelope API module loaded")
+except Exception as e:
+    print(f"⚠️  Could not load indicator APIs: {e}")
+
 # Cache directory for results
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -1531,6 +1576,217 @@ async def get_trade_management_rules(ticker: str):
             "daily_monitoring": "Check 4H percentile daily for ADD/TRIM opportunities"
         }
     }
+
+# ============================================================================
+# Lower Extension Distance API Endpoints
+# ============================================================================
+
+@app.get("/api/lower-extension/metrics/{ticker}")
+async def get_lower_extension_metrics(ticker: str, length: int = 256, lookback_days: int = 30):
+    """
+    Get lower extension distance metrics for a ticker
+
+    Computes signed percent distance to blue lower extension line
+    with 30-day lookback breach metrics
+    """
+    try:
+        # Fetch REAL data using backtester
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=[ticker],
+            lookback_period=max(500, length + lookback_days + 50),
+            rsi_length=14,
+            ma_length=14,
+            max_horizon=21
+        )
+
+        # Get real price data from yfinance
+        data = backtester.fetch_data(ticker)
+        if data is None or len(data) == 0:
+            raise HTTPException(status_code=404, detail=f"Could not fetch data for {ticker}")
+
+        # Get close and open prices for IV weighting
+        close_prices = data['Close'].values
+        open_prices = data['Open'].values
+        if len(close_prices) < length:
+            raise HTTPException(status_code=400, detail=f"Insufficient data for {ticker} (need {length} points, got {len(close_prices)})")
+
+        # Current price
+        current_price = float(close_prices[-1])
+
+        # Generate historical prices for the last lookback_days
+        historical_prices = []
+        for i in range(lookback_days, 0, -1):
+            if len(close_prices) > i:
+                idx = len(close_prices) - i - 1
+                price = float(close_prices[idx])
+                date = data.index[idx]
+                historical_prices.append({
+                    'timestamp': date.isoformat() if hasattr(date, 'isoformat') else str(date),
+                    'price': round(price, 2)
+                })
+
+        # Calculate MBAD levels using enough historical data with IV weighting
+        all_close_prices = close_prices[-length-lookback_days:]
+        all_open_prices = open_prices[-length-lookback_days:]
+        levels = calculate_mbad_levels(all_close_prices, opens=all_open_prices, length=length, ticker=ticker)
+
+        lower_ext = levels['ext_lower']
+
+        # Calculate metrics
+        pct_dist_lower_ext = round(((current_price - lower_ext) / lower_ext) * 100, 2)
+        is_below_lower_ext = bool(pct_dist_lower_ext < 0)
+        abs_pct_dist_lower_ext = round(abs(pct_dist_lower_ext), 2)
+
+        # 30-day metrics
+        pct_dists = [((p['price'] - lower_ext) / lower_ext) * 100 for p in historical_prices]
+        min_pct_dist_30d = round(min(pct_dists), 2)
+        median_abs_pct_dist_30d = round(float(np.median(np.abs(pct_dists))), 2)
+        breach_count_30d = int(sum(1 for d in pct_dists if d < 0))
+        breach_rate_30d = round(breach_count_30d / len(pct_dists), 4)
+        recent_breached = bool(any(d < 0 for d in pct_dists[-5:]))
+
+        # Proximity score
+        proximity_threshold = 5.0
+        proximity_score_30d = max(0, min(1, 1 - (median_abs_pct_dist_30d / proximity_threshold)))
+        proximity_score_30d = round(proximity_score_30d, 3)
+
+        return {
+            'symbol': ticker.upper(),
+            'price': current_price,
+            'lower_ext': lower_ext,
+            'pct_dist_lower_ext': pct_dist_lower_ext,
+            'is_below_lower_ext': is_below_lower_ext,
+            'abs_pct_dist_lower_ext': abs_pct_dist_lower_ext,
+            'min_pct_dist_30d': min_pct_dist_30d,
+            'median_abs_pct_dist_30d': median_abs_pct_dist_30d,
+            'breach_count_30d': breach_count_30d,
+            'breach_rate_30d': breach_rate_30d,
+            'recent_breached': recent_breached,
+            'proximity_score_30d': proximity_score_30d,
+            'last_update': datetime.now().strftime('%b %d, %I:%M%p').lower(),
+            'historical_prices': historical_prices,
+            'all_levels': levels
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/lower-extension/candles/{ticker}")
+async def get_candle_data(ticker: str, days: int = 60):
+    """Get candlestick data for chart visualization"""
+    try:
+        # Fetch REAL data using backtester
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=[ticker],
+            lookback_period=max(500, days + 100),
+            rsi_length=14,
+            ma_length=14,
+            max_horizon=21
+        )
+
+        # Get real OHLC data from yfinance
+        data = backtester.fetch_data(ticker)
+        if data is None or len(data) == 0:
+            raise HTTPException(status_code=404, detail=f"Could not fetch data for {ticker}")
+
+        # Get last N days of OHLC data
+        recent_data = data.tail(days)
+
+        candles = []
+        for idx in recent_data.index:
+            row = recent_data.loc[idx]
+            candles.append({
+                'time': idx.strftime('%Y-%m-%d') if hasattr(idx, 'strftime') else str(idx),
+                'open': round(float(row['Open']), 2),
+                'high': round(float(row['High']), 2),
+                'low': round(float(row['Low']), 2),
+                'close': round(float(row['Close']), 2)
+            })
+
+        return {'symbol': ticker.upper(), 'candles': candles}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# Nadaraya-Watson Envelope API
+# ============================================================================
+
+@app.get("/api/nadaraya-watson/metrics/{ticker}")
+async def get_nadaraya_watson_metrics(
+    ticker: str,
+    length: int = 200,
+    bandwidth: float = 8.0,
+    atr_period: int = 50,
+    atr_mult: float = 2.0
+):
+    """
+    Get Nadaraya-Watson Envelope lower band metrics for a symbol.
+
+    Args:
+        ticker: Stock/index symbol
+        length: Window size for kernel regression (default: 200, max: 500, min: 20)
+        bandwidth: Kernel bandwidth parameter h (default: 8.0)
+        atr_period: Period for ATR calculation (default: 50)
+        atr_mult: ATR multiplier for envelope width (default: 2.0)
+
+    Returns:
+        JSON with NW estimate, bands, breach status, and distance metrics
+    """
+    try:
+        # Fetch REAL data using backtester
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=[ticker],
+            lookback_period=max(500, length + atr_period + 50),
+            rsi_length=14,
+            ma_length=14,
+            max_horizon=21
+        )
+
+        # Get real price data from yfinance
+        data = backtester.fetch_data(ticker)
+        if data is None or len(data) == 0:
+            raise HTTPException(status_code=404, detail=f"Could not fetch data for {ticker}")
+
+        # Get OHLC data
+        close_prices = data['Close'].values
+        high_prices = data['High'].values
+        low_prices = data['Low'].values
+
+        if len(close_prices) < max(length, atr_period):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient data for {ticker} (need {max(length, atr_period)} points, got {len(close_prices)})"
+            )
+
+        # Calculate Nadaraya-Watson lower band
+        result = calculate_nadaraya_watson_lower_band(
+            close_prices,
+            length=length,
+            bandwidth=bandwidth,
+            atr_period=atr_period,
+            atr_mult=atr_mult,
+            highs=high_prices,
+            lows=low_prices
+        )
+
+        if not result['is_valid']:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Not enough data to calculate Nadaraya-Watson for {ticker}"
+            )
+
+        # Add symbol and timestamp
+        result['symbol'] = ticker.upper()
+        result['last_update'] = datetime.now().strftime('%b %d, %I:%M%p').lower()
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # ============================================================================
 # Startup Event

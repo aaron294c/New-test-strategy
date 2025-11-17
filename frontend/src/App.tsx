@@ -47,6 +47,9 @@ import EnhancedDivergenceLifecycle from './components/EnhancedDivergenceLifecycl
 import PercentileForwardMapper from './components/PercentileForwardMapper';
 import MultiTimeframeGuide from './components/MultiTimeframeGuide';
 import SwingTradingFramework from './components/TradingFramework/SwingTradingFramework';
+import { GammaScannerTab } from './components/GammaScanner';
+import { RiskDistanceTab } from './components/RiskDistance';
+import LowerExtensionPage from './pages/LowerExtensionPage';
 
 // Create theme with dark mode support
 const theme = createTheme({
@@ -257,6 +260,9 @@ function Dashboard() {
                 <Tab icon={<TrendingUpIcon />} label="Optimal Exit" />
                 <Tab icon={<TrendingUpIcon />} label="Exit Strategies" />
                 <Tab icon={<ShowChartIcon />} label="Trade Simulation" />
+                <Tab icon={<AssessmentIcon />} label="🔰 GAMMA WALL SCANNER" />
+                <Tab icon={<ShowChartIcon />} label="📏 RISK DISTANCE" />
+                <Tab icon={<TrendingUpIcon />} label="📐 LOWER EXTENSION" />
               </Tabs>
             </Paper>
 
@@ -401,6 +407,18 @@ function Dashboard() {
                   />
                 </Grid>
               </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={14}>
+              <GammaScannerTab />
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={15}>
+              <RiskDistanceTab />
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={16}>
+              <LowerExtensionPage />
             </TabPanel>
           </>
         )}

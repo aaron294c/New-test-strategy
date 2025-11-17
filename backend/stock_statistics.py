@@ -532,6 +532,24 @@ STOCK_METADATA = {
         avoid_guidance="Avoid trading in 0-5, 15-25, 25-50, 95-100 ranges - weak signals. Exercise extreme caution around earnings dates (high volatility).",
         special_notes="NFLX is highly volatile (avg daily std > 5%) Strong momentum characteristics - trends can persist Earnings-driven stock with unpredictable reactions to quarterly reports Best for experienced traders comfortable with high volatility Consider position sizing due to large price swings Best 4H trading zones: 5-15, 50-75, 75-85, 85-95"
     ),
+    "AMZN": StockMetadata(
+        ticker="AMZN",
+        name="Amazon.com Inc.",
+        personality="Mean Reversion - High Volume Leader",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐⭐ Excellent",
+        tradeable_4h_zones=["0-75%"],
+        dead_zones_4h=["75-100%"],
+        best_4h_bin="5-15%",
+        best_4h_t_score=0.0,  # Will be calculated from real data
+        ease_rating=4,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Medium",
+        entry_guidance="Buy at ≤15% percentile for mean reversion plays, strong bounce potential",
+        avoid_guidance="Avoid entering above 75% percentile - limited upside potential",
+        special_notes="Large cap with strong mean reversion characteristics, excellent liquidity for swing trading"
+    ),
     "BRK-B": StockMetadata(
         ticker="BRK-B",
         name="Berkshire Hathaway Inc. Class B",

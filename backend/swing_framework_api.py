@@ -112,13 +112,19 @@ async def get_cached_cohort_stats() -> Dict:
     print("  Cache miss - fetching fresh cohort statistics...")
     all_data = await get_swing_framework_data()
 
-    # Extract just the cohort stats we need
+    # Extract ALL cohort stats (all percentile ranges)
     cohort_stats = {}
     for ticker, ticker_data in all_data['tickers'].items():
         backtest_stats = ticker_data.get('backtest_stats', {})
         cohort_stats[ticker] = {
             'cohort_extreme_low': backtest_stats.get('cohort_extreme_low'),
             'cohort_low': backtest_stats.get('cohort_low'),
+            'cohort_medium_low': backtest_stats.get('cohort_medium_low'),
+            'cohort_medium': backtest_stats.get('cohort_medium'),
+            'cohort_medium_high': backtest_stats.get('cohort_medium_high'),
+            'cohort_high': backtest_stats.get('cohort_high'),
+            'cohort_extreme_high': backtest_stats.get('cohort_extreme_high'),
+            'cohort_all': backtest_stats.get('cohort_all'),
             'metadata': ticker_data.get('metadata', {})
         }
 
@@ -146,19 +152,48 @@ def calculate_backtest_stats(trades: List[Dict]) -> Dict:
 
     total_return = sum(t['return_pct'] for t in trades)
 
-    # RSI-MA Cohort Analysis
-    extreme_low_trades = [t for t in trades if t.get('percentile_cohort') == 'extreme_low']
-    low_trades = [t for t in trades if t.get('percentile_cohort') == 'low']
+    # RSI-MA Cohort Analysis - All percentile ranges
+    extreme_low_trades = [t for t in trades if t.get('percentile_cohort') == 'extreme_low']  # 0-5%
+    low_trades = [t for t in trades if t.get('percentile_cohort') == 'low']  # 5-15%
 
-    def cohort_stats(cohort_trades):
-        if not cohort_trades:
+    # Additional cohorts for all percentile ranges
+    def get_cohort_for_percentile(pct):
+        """Determine cohort based on entry percentile"""
+        if pct <= 5.0:
+            return 'extreme_low'
+        elif pct <= 15.0:
+            return 'low'
+        elif pct <= 30.0:
+            return 'medium_low'
+        elif pct <= 50.0:
+            return 'medium'
+        elif pct <= 70.0:
+            return 'medium_high'
+        elif pct <= 85.0:
+            return 'high'
+        else:
+            return 'extreme_high'
+
+    # Categorize all trades into cohorts
+    cohort_trades = {}
+    for t in trades:
+        cohort = t.get('percentile_cohort')
+        if not cohort and 'entry_percentile' in t:
+            cohort = get_cohort_for_percentile(t['entry_percentile'])
+        if cohort:
+            if cohort not in cohort_trades:
+                cohort_trades[cohort] = []
+            cohort_trades[cohort].append(t)
+
+    def cohort_stats(cohort_trades_list):
+        if not cohort_trades_list:
             return None
-        cohort_wins = [t for t in cohort_trades if t['return_pct'] > 0]
+        cohort_wins = [t for t in cohort_trades_list if t['return_pct'] > 0]
         return {
-            "count": len(cohort_trades),
-            "win_rate": len(cohort_wins) / len(cohort_trades),
-            "avg_return": sum(t['return_pct'] for t in cohort_trades) / len(cohort_trades),
-            "avg_holding_days": sum(t['holding_days'] for t in cohort_trades) / len(cohort_trades)
+            "count": len(cohort_trades_list),
+            "win_rate": len(cohort_wins) / len(cohort_trades_list),
+            "avg_return": sum(t['return_pct'] for t in cohort_trades_list) / len(cohort_trades_list),
+            "avg_holding_days": sum(t['holding_days'] for t in cohort_trades_list) / len(cohort_trades_list)
         }
 
     return {
@@ -171,9 +206,15 @@ def calculate_backtest_stats(trades: List[Dict]) -> Dict:
         "total_return": total_return,
         "max_return": max(t['return_pct'] for t in trades) if trades else 0.0,
         "min_return": min(t['return_pct'] for t in trades) if trades else 0.0,
-        # RSI-MA Percentile Cohort Breakdown
-        "cohort_extreme_low": cohort_stats(extreme_low_trades),  # ≤5th percentile
-        "cohort_low": cohort_stats(low_trades)  # 5-15th percentile
+        # RSI-MA Percentile Cohort Breakdown - All ranges
+        "cohort_extreme_low": cohort_stats(cohort_trades.get('extreme_low', [])),  # 0-5%
+        "cohort_low": cohort_stats(cohort_trades.get('low', [])),  # 5-15%
+        "cohort_medium_low": cohort_stats(cohort_trades.get('medium_low', [])),  # 15-30%
+        "cohort_medium": cohort_stats(cohort_trades.get('medium', [])),  # 30-50%
+        "cohort_medium_high": cohort_stats(cohort_trades.get('medium_high', [])),  # 50-70%
+        "cohort_high": cohort_stats(cohort_trades.get('high', [])),  # 70-85%
+        "cohort_extreme_high": cohort_stats(cohort_trades.get('extreme_high', [])),  # 85-100%
+        "cohort_all": cohort_stats(trades)  # Fallback - all trades
     }
 
 
@@ -190,7 +231,7 @@ async def get_swing_framework_data():
     """
 
     # Include both stocks and market indices
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN"]
     results = {}
 
     bin_data_map = {
@@ -200,9 +241,10 @@ async def get_swing_framework_data():
         "AAPL": (AAPL_4H_DATA, AAPL_DAILY_DATA),
         "TSLA": (TSLA_4H_DATA, TSLA_DAILY_DATA),
         "NFLX": (NFLX_4H_DATA, NFLX_DAILY_DATA),
-        # Indices don't have pre-computed bin data - will use real-time calculation
+        # Indices and stocks without pre-computed bin data - will use real-time calculation
         "SPY": (None, None),
-        "QQQ": (None, None)
+        "QQQ": (None, None),
+        "AMZN": (None, None)
     }
 
     for ticker in tickers:
@@ -240,41 +282,34 @@ async def get_swing_framework_data():
                     indicator = backtester.calculate_rsi_ma_indicator(data)
                     percentile_ranks = backtester.calculate_percentile_ranks(indicator)
 
-                    # Find REAL entry events at low percentiles (0-15%)
+                    # Find REAL entry events across ALL percentile ranges (not just 0-15%)
                     entry_events = backtester.find_entry_events_enhanced(
                         percentile_ranks,
                         data['Close'],
-                        threshold=15.0  # 0-15% entry zone
+                        threshold=100.0  # Capture ALL percentiles (0-100%)
                     )
 
-                    print(f"  Found {len(entry_events)} total entry events")
+                    print(f"  Found {len(entry_events)} total entry events across all percentiles")
 
-                    # Separate into percentile cohorts for RSI-MA analysis
-                    extreme_low_events = [e for e in entry_events if e['entry_percentile'] <= 5.0]
-                    low_events = [e for e in entry_events if 5.0 < e['entry_percentile'] <= 15.0]
+                    # Separate into ALL percentile cohorts for comprehensive analysis
+                    cohort_events = {
+                        'extreme_low': [e for e in entry_events if e['entry_percentile'] <= 5.0],
+                        'low': [e for e in entry_events if 5.0 < e['entry_percentile'] <= 15.0],
+                        'medium_low': [e for e in entry_events if 15.0 < e['entry_percentile'] <= 30.0],
+                        'medium': [e for e in entry_events if 30.0 < e['entry_percentile'] <= 50.0],
+                        'medium_high': [e for e in entry_events if 50.0 < e['entry_percentile'] <= 70.0],
+                        'high': [e for e in entry_events if 70.0 < e['entry_percentile'] <= 85.0],
+                        'extreme_high': [e for e in entry_events if 85.0 < e['entry_percentile'] <= 100.0]
+                    }
 
-                    print(f"    ≤5th percentile: {len(extreme_low_events)} events")
-                    print(f"    5-15th percentile: {len(low_events)} events")
+                    for cohort_name, events in cohort_events.items():
+                        print(f"    {cohort_name}: {len(events)} events")
 
-                    # Target ~150 total trades with balanced sampling from both cohorts
-                    # Take more from the cohort with more data, but maintain representation
-                    target_total = 150
+                    # Use ALL events - no artificial sampling
+                    # Each cohort will have its natural sample size based on historical frequency
+                    sampled_events = entry_events
 
-                    if len(entry_events) <= target_total:
-                        # Use all available events
-                        sampled_events = entry_events
-                    else:
-                        # Sample proportionally from both cohorts
-                        extreme_sample_size = min(len(extreme_low_events), target_total // 2)
-                        low_sample_size = min(len(low_events), target_total - extreme_sample_size)
-
-                        # Take most recent events from each cohort
-                        sampled_extreme = extreme_low_events[-extreme_sample_size:] if extreme_sample_size > 0 else []
-                        sampled_low = low_events[-low_sample_size:] if low_sample_size > 0 else []
-
-                        sampled_events = sampled_extreme + sampled_low
-
-                    print(f"  Sampling {len(sampled_events)} trades for analysis")
+                    print(f"  Using ALL {len(sampled_events)} trades across all percentile ranges (natural distribution)")
 
                     # Generate REAL trades from historical data
                     historical_trades = []
@@ -296,14 +331,22 @@ async def get_swing_framework_data():
                         exit_price = data.iloc[exit_idx]['Close']
                         exit_percentile = percentile_ranks.iloc[exit_idx]
 
-                        # Determine percentile cohort for RSI-MA tracking
+                        # Determine percentile cohort for RSI-MA tracking (ALL ranges)
                         entry_pct = float(event['entry_percentile'])
                         if entry_pct <= 5.0:
-                            cohort = "extreme_low"  # ≤5th percentile
+                            cohort = "extreme_low"
                         elif entry_pct <= 15.0:
-                            cohort = "low"  # 5-15th percentile
+                            cohort = "low"
+                        elif entry_pct <= 30.0:
+                            cohort = "medium_low"
+                        elif entry_pct <= 50.0:
+                            cohort = "medium"
+                        elif entry_pct <= 70.0:
+                            cohort = "medium_high"
+                        elif entry_pct <= 85.0:
+                            cohort = "high"
                         else:
-                            cohort = "other"  # Shouldn't happen with threshold=15
+                            cohort = "extreme_high"
 
                         trade = {
                             "entry_date": entry_date.strftime("%Y-%m-%d") if hasattr(entry_date, 'strftime') else str(entry_date),
@@ -439,32 +482,37 @@ async def get_current_indices_state():
             in_low = 5.0 < current_percentile <= 15.0
             in_entry_zone = in_extreme_low or in_low
 
-            # Get historical performance for this percentile range
-            if in_extreme_low:
+            # Determine percentile cohort for all ranges
+            if current_percentile <= 5.0:
                 percentile_cohort = "extreme_low"
                 zone_label = "≤5th percentile (Extreme Low)"
-            elif in_low:
+            elif current_percentile <= 15.0:
                 percentile_cohort = "low"
                 zone_label = "5-15th percentile (Low)"
+            elif current_percentile <= 30.0:
+                percentile_cohort = "medium_low"
+                zone_label = "15-30th percentile (Medium Low)"
+            elif current_percentile <= 50.0:
+                percentile_cohort = "medium"
+                zone_label = "30-50th percentile (Medium)"
+            elif current_percentile <= 70.0:
+                percentile_cohort = "medium_high"
+                zone_label = "50-70th percentile (Medium High)"
+            elif current_percentile <= 85.0:
+                percentile_cohort = "high"
+                zone_label = "70-85th percentile (High)"
             else:
-                percentile_cohort = "none"
-                zone_label = f"{current_percentile:.1f}th percentile (Not in entry zone)"
+                percentile_cohort = "extreme_high"
+                zone_label = "85-100th percentile (Extreme High)"
 
-            # Get historical cohort performance from CACHE (fast!)
-            cohort_stats = {
-                'cohort_extreme_low': ticker_cohort_data.get('cohort_extreme_low'),
-                'cohort_low': ticker_cohort_data.get('cohort_low')
-            }
+            # Get historical cohort performance from CACHE for ALL cohorts
+            cohort_performance = ticker_cohort_data.get(f'cohort_{percentile_cohort}')
 
-            # Extract expected performance for current cohort
-            if in_extreme_low:
-                cohort_performance = cohort_stats.get('cohort_extreme_low')
-            elif in_low:
-                cohort_performance = cohort_stats.get('cohort_low')
-            else:
-                cohort_performance = None
+            # Fallback to 'cohort_all' if specific cohort has no data
+            if not cohort_performance:
+                cohort_performance = ticker_cohort_data.get('cohort_all')
 
-            # Calculate live risk-adjusted expectancy
+            # Calculate live risk-adjusted expectancy (ALWAYS show data, even if not in entry zone)
             if cohort_performance:
                 expected_win_rate = cohort_performance['win_rate']
                 expected_return = cohort_performance['avg_return']
@@ -484,7 +532,15 @@ async def get_current_indices_state():
                     "sample_size": cohort_performance['count']
                 }
             else:
-                live_expectancy = None
+                # No data for this cohort - return zeros
+                live_expectancy = {
+                    "expected_win_rate": 0.0,
+                    "expected_return_pct": 0.0,
+                    "expected_holding_days": 0.0,
+                    "expected_return_per_day_pct": 0.0,
+                    "risk_adjusted_expectancy_pct": 0.0,
+                    "sample_size": 0
+                }
 
             current_states.append({
                 "ticker": ticker,
@@ -533,7 +589,7 @@ async def get_current_market_state():
 
     OPTIMIZED: Uses cached cohort statistics, only fetches current percentiles
     """
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN"]
 
     # Get cached cohort stats (fast - uses cache after first call)
     print("Fetching cohort statistics...")
@@ -589,32 +645,37 @@ async def get_current_market_state():
             in_low = 5.0 < current_percentile <= 15.0
             in_entry_zone = in_extreme_low or in_low
 
-            # Get historical performance for this percentile range
-            if in_extreme_low:
+            # Determine percentile cohort for all ranges
+            if current_percentile <= 5.0:
                 percentile_cohort = "extreme_low"
                 zone_label = "≤5th percentile (Extreme Low)"
-            elif in_low:
+            elif current_percentile <= 15.0:
                 percentile_cohort = "low"
                 zone_label = "5-15th percentile (Low)"
+            elif current_percentile <= 30.0:
+                percentile_cohort = "medium_low"
+                zone_label = "15-30th percentile (Medium Low)"
+            elif current_percentile <= 50.0:
+                percentile_cohort = "medium"
+                zone_label = "30-50th percentile (Medium)"
+            elif current_percentile <= 70.0:
+                percentile_cohort = "medium_high"
+                zone_label = "50-70th percentile (Medium High)"
+            elif current_percentile <= 85.0:
+                percentile_cohort = "high"
+                zone_label = "70-85th percentile (High)"
             else:
-                percentile_cohort = "none"
-                zone_label = f"{current_percentile:.1f}th percentile (Not in entry zone)"
+                percentile_cohort = "extreme_high"
+                zone_label = "85-100th percentile (Extreme High)"
 
-            # Get historical cohort performance from CACHE (fast!)
-            cohort_stats = {
-                'cohort_extreme_low': ticker_cohort_data.get('cohort_extreme_low'),
-                'cohort_low': ticker_cohort_data.get('cohort_low')
-            }
+            # Get historical cohort performance from CACHE for ALL cohorts
+            cohort_performance = ticker_cohort_data.get(f'cohort_{percentile_cohort}')
 
-            # Extract expected performance for current cohort
-            if in_extreme_low:
-                cohort_performance = cohort_stats.get('cohort_extreme_low')
-            elif in_low:
-                cohort_performance = cohort_stats.get('cohort_low')
-            else:
-                cohort_performance = None
+            # Fallback to 'cohort_all' if specific cohort has no data
+            if not cohort_performance:
+                cohort_performance = ticker_cohort_data.get('cohort_all')
 
-            # Calculate live risk-adjusted expectancy
+            # Calculate live risk-adjusted expectancy (ALWAYS show data, even if not in entry zone)
             if cohort_performance:
                 expected_win_rate = cohort_performance['win_rate']
                 expected_return = cohort_performance['avg_return']
@@ -634,7 +695,15 @@ async def get_current_market_state():
                     "sample_size": cohort_performance['count']
                 }
             else:
-                live_expectancy = None
+                # No data for this cohort - return zeros
+                live_expectancy = {
+                    "expected_win_rate": 0.0,
+                    "expected_return_pct": 0.0,
+                    "expected_holding_days": 0.0,
+                    "expected_return_per_day_pct": 0.0,
+                    "risk_adjusted_expectancy_pct": 0.0,
+                    "sample_size": 0
+                }
 
             current_states.append({
                 "ticker": ticker,
