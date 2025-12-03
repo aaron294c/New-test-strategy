@@ -7,7 +7,8 @@ from backtesting, not simulated/fake data.
 
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
+from scipy.stats import norm
 import pandas as pd
 from enhanced_backtester import EnhancedPerformanceMatrixBacktester
 from stock_statistics import (
@@ -19,6 +20,7 @@ from stock_statistics import (
     TSLA_4H_DATA, TSLA_DAILY_DATA,
     NFLX_4H_DATA, NFLX_DAILY_DATA
 )
+from percentile_forward_4h import fetch_4h_data, calculate_rsi_ma_4h
 
 router = APIRouter(prefix="/api/swing-framework", tags=["swing-framework"])
 
@@ -50,6 +52,195 @@ def convert_bins_to_dict(bin_data: Dict) -> Dict:
             "se": float(stats.se)
         }
     return result
+
+
+# Mapping of available 4H bin statistics for quick lookup
+FOUR_H_BIN_MAP: Dict[str, Dict] = {
+    "NVDA": NVDA_4H_DATA,
+    "MSFT": MSFT_4H_DATA,
+    "GOOGL": GOOGL_4H_DATA,
+    "AAPL": AAPL_4H_DATA,
+    "TSLA": TSLA_4H_DATA,
+    "NFLX": NFLX_4H_DATA,
+}
+
+FOUR_H_DEFAULT_HOLDING_DAYS = 4.0  # Approximate 4H holding horizon (in days) for expectancy display
+
+
+def estimate_win_rate_from_bin(mean: float, std: float) -> float:
+    """Approximate win rate from bin statistics using a normal assumption."""
+    if std <= 0:
+        return 1.0 if mean > 0 else 0.0
+    try:
+        return float(norm.sf(0, loc=mean, scale=std))
+    except Exception:
+        return 0.5
+
+
+def bin_to_cohort_stats(bin_stats) -> Dict[str, float]:
+    """Convert BinStatistics to cohort stats compatible with live expectancy."""
+    return {
+        "count": int(bin_stats.sample_size),
+        "win_rate": estimate_win_rate_from_bin(float(bin_stats.mean), float(bin_stats.std)),
+        "avg_return": float(bin_stats.mean),
+        "avg_holding_days": FOUR_H_DEFAULT_HOLDING_DAYS
+    }
+
+
+def combine_bins(bin_stats_list: List) -> Optional[Dict[str, float]]:
+    """Combine multiple BinStatistics entries into weighted cohort stats."""
+    if not bin_stats_list:
+        return None
+
+    total_samples = sum(b.sample_size for b in bin_stats_list)
+    if total_samples == 0:
+        return None
+
+    weighted_return = sum(float(b.mean) * b.sample_size for b in bin_stats_list) / total_samples
+    weighted_win_rate = sum(
+        estimate_win_rate_from_bin(float(b.mean), float(b.std)) * b.sample_size for b in bin_stats_list
+    ) / total_samples
+
+    return {
+        "count": int(total_samples),
+        "win_rate": float(weighted_win_rate),
+        "avg_return": float(weighted_return),
+        "avg_holding_days": FOUR_H_DEFAULT_HOLDING_DAYS
+    }
+
+
+def get_4h_cohort_stats_from_bins(ticker: str) -> Optional[Dict[str, Dict[str, float]]]:
+    """Build cohort stats from pre-computed 4H bin data when available."""
+    bin_data = FOUR_H_BIN_MAP.get(ticker)
+    if not bin_data:
+        return None
+
+    cohort_stats = {
+        "cohort_extreme_low": bin_to_cohort_stats(bin_data["0-5"]) if "0-5" in bin_data else None,
+        "cohort_low": bin_to_cohort_stats(bin_data["5-15"]) if "5-15" in bin_data else None,
+        "cohort_medium_low": bin_to_cohort_stats(bin_data["15-25"]) if "15-25" in bin_data else None,
+        "cohort_medium": bin_to_cohort_stats(bin_data["25-50"]) if "25-50" in bin_data else None,
+        "cohort_medium_high": bin_to_cohort_stats(bin_data["50-75"]) if "50-75" in bin_data else None,
+        "cohort_high": bin_to_cohort_stats(bin_data["75-85"]) if "75-85" in bin_data else None,
+        "cohort_extreme_high": combine_bins([b for k, b in bin_data.items() if k in ["85-95", "95-100"]])
+    }
+
+    cohort_all_bins = [b for b in bin_data.values() if getattr(b, "sample_size", 0) > 0]
+    cohort_stats["cohort_all"] = combine_bins(cohort_all_bins)
+
+    return cohort_stats
+
+
+def get_percentile_cohort(percentile: float) -> tuple[str, str]:
+    """Map percentile to cohort identifier and human-readable zone label."""
+    if percentile <= 5.0:
+        return "extreme_low", "≤5th percentile (Extreme Low)"
+    if percentile <= 15.0:
+        return "low", "5-15th percentile (Low)"
+    if percentile <= 30.0:
+        return "medium_low", "15-30th percentile (Medium Low)"
+    if percentile <= 50.0:
+        return "medium", "30-50th percentile (Medium)"
+    if percentile <= 70.0:
+        return "medium_high", "50-70th percentile (Medium High)"
+    if percentile <= 85.0:
+        return "high", "70-85th percentile (High)"
+    return "extreme_high", "85-100th percentile (Extreme High)"
+
+
+def compute_4h_cohort_stats_from_data(
+    backtester: EnhancedPerformanceMatrixBacktester,
+    data_frame: pd.DataFrame,
+    percentile_ranks: pd.Series
+) -> Dict[str, Dict[str, float]]:
+    """Compute cohort stats directly from 4H data as a fallback when bin data is unavailable."""
+    entry_events = backtester.find_entry_events_enhanced(
+        percentile_ranks,
+        data_frame['Close'],
+        threshold=100.0
+    )
+
+    trades: List[Dict] = []
+    for event in entry_events:
+        entry_date = event['entry_date']
+        if entry_date not in data_frame.index:
+            continue
+
+        entry_idx = data_frame.index.get_loc(entry_date)
+        exit_idx, _ = find_exit_point(
+            data_frame,
+            percentile_ranks,
+            entry_idx,
+            max_days=21,
+            exit_percentile=50.0,
+            stop_loss_pct=2.0
+        )
+
+        exit_date = data_frame.index[exit_idx]
+        exit_price = data_frame.iloc[exit_idx]['Close']
+        entry_price = event['entry_price']
+        entry_pct = float(event['entry_percentile'])
+        percentile_cohort, _ = get_percentile_cohort(entry_pct)
+
+        holding_days = max((exit_date - entry_date).total_seconds() / 86400, 0.1)
+
+        trades.append({
+            "entry_date": entry_date.strftime("%Y-%m-%d %H:%M") if hasattr(entry_date, "strftime") else str(entry_date),
+            "exit_date": exit_date.strftime("%Y-%m-%d %H:%M") if hasattr(exit_date, "strftime") else str(exit_date),
+            "entry_price": float(entry_price),
+            "exit_price": float(exit_price),
+            "entry_percentile": entry_pct,
+            "exit_percentile": float(percentile_ranks.iloc[exit_idx]),
+            "holding_days": holding_days,
+            "return_pct": float((exit_price - entry_price) / entry_price * 100),
+            "regime": "mean_reversion" if entry_pct <= 50.0 else "momentum",
+            "percentile_cohort": percentile_cohort
+        })
+
+    # Build cohort buckets
+    cohorts: Dict[str, List[Dict]] = {
+        "extreme_low": [],
+        "low": [],
+        "medium_low": [],
+        "medium": [],
+        "medium_high": [],
+        "high": [],
+        "extreme_high": []
+    }
+
+    for trade in trades:
+        cohort = trade.get("percentile_cohort")
+        if cohort in cohorts:
+            cohorts[cohort].append(trade)
+
+    # Helper to convert list of trades to stats
+    def stats_for(trade_list: List[Dict]) -> Optional[Dict[str, float]]:
+        if not trade_list:
+            return None
+        agg = calculate_backtest_stats(trade_list)
+        return {
+            "count": agg.get("total_trades", 0),
+            "win_rate": agg.get("win_rate", 0.0),
+            "avg_return": agg.get("avg_return", 0.0),
+            "avg_holding_days": agg.get("avg_holding_days", FOUR_H_DEFAULT_HOLDING_DAYS)
+        }
+
+    all_stats = calculate_backtest_stats(trades)
+    return {
+        "cohort_extreme_low": stats_for(cohorts["extreme_low"]),
+        "cohort_low": stats_for(cohorts["low"]),
+        "cohort_medium_low": stats_for(cohorts["medium_low"]),
+        "cohort_medium": stats_for(cohorts["medium"]),
+        "cohort_medium_high": stats_for(cohorts["medium_high"]),
+        "cohort_high": stats_for(cohorts["high"]),
+        "cohort_extreme_high": stats_for(cohorts["extreme_high"]),
+        "cohort_all": {
+            "count": all_stats.get("total_trades", 0),
+            "win_rate": all_stats.get("win_rate", 0.0),
+            "avg_return": all_stats.get("avg_return", 0.0),
+            "avg_holding_days": all_stats.get("avg_holding_days", FOUR_H_DEFAULT_HOLDING_DAYS)
+        }
+    }
 
 
 def find_exit_point(
@@ -732,6 +923,142 @@ async def get_current_market_state():
 
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "market_state": current_states,
+        "summary": {
+            "total_tickers": len(current_states),
+            "in_entry_zone": sum(1 for s in current_states if s['in_entry_zone']),
+            "extreme_low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'extreme_low'),
+            "low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'low')
+        }
+    }
+
+
+@router.get("/current-state-4h")
+async def get_current_market_state_4h():
+    """
+    Get CURRENT RSI-MA percentile and live expectancy for the 4-hour timeframe.
+    Uses pre-computed 4H bin statistics when available and falls back to on-the-fly
+    cohort calculations from 4H price data.
+    """
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN"]
+    current_states = []
+
+    print("Fetching 4H current percentiles...")
+    # Daily cohort cache as a final fallback if 4H data is unavailable
+    daily_cohort_cache = await get_cached_cohort_stats()
+
+    for ticker in tickers:
+        try:
+            metadata = STOCK_METADATA.get(ticker)
+            if not metadata:
+                print(f"  No metadata for {ticker}, skipping")
+                continue
+
+            data_for_current = None
+            data_source = "4h"
+
+            backtester = EnhancedPerformanceMatrixBacktester(
+                tickers=[ticker],
+                lookback_period=252,  # 4H: use ~42 days of bars so percentile ranks fill
+                rsi_length=14,
+                ma_length=14,
+                max_horizon=21
+            )
+
+            try:
+                data_for_current = fetch_4h_data(ticker, lookback_days=365)
+                if data_for_current.empty:
+                    raise ValueError("empty 4H data")
+            except Exception as e:
+                print(f"  4H data fetch failed for {ticker}: {e}. Falling back to daily data.")
+                data_source = "daily_fallback"
+                data_for_current = backtester.fetch_data(ticker)
+                if data_for_current.empty:
+                    print(f"  Fallback daily data also empty for {ticker}, skipping")
+                    continue
+
+            indicator = calculate_rsi_ma_4h(data_for_current) if data_source == "4h" else backtester.calculate_rsi_ma_indicator(data_for_current)
+            percentile_ranks = backtester.calculate_percentile_ranks(indicator)
+            valid_percentiles = percentile_ranks.dropna()
+
+            if valid_percentiles.empty:
+                print(f"  Insufficient {data_source} percentile data for {ticker}, skipping")
+                continue
+
+            current_percentile = float(valid_percentiles.iloc[-1])
+            current_price = float(data_for_current['Close'].iloc[-1])
+            current_date = data_for_current.index[-1].strftime("%Y-%m-%d %H:%M")
+
+            percentile_cohort, zone_label = get_percentile_cohort(current_percentile)
+            in_entry_zone = percentile_cohort in ["extreme_low", "low"]
+            regime = "mean_reversion" if metadata.is_mean_reverter else "momentum"
+
+            # Prefer pre-computed 4H bin stats; fall back to derived stats from raw data
+            cohort_stats = get_4h_cohort_stats_from_bins(ticker)
+            if not cohort_stats and data_source == "4h":
+                cohort_stats = compute_4h_cohort_stats_from_data(backtester, data_for_current, percentile_ranks)
+            if not cohort_stats and data_source == "daily_fallback":
+                # Use daily cohort cache so we still render data if 4H fetch failed
+                cohort_stats = daily_cohort_cache.get(ticker, {})
+
+            cohort_performance = cohort_stats.get(f'cohort_{percentile_cohort}') if cohort_stats else None
+            if not cohort_performance and cohort_stats:
+                cohort_performance = cohort_stats.get('cohort_all')
+
+            if cohort_performance:
+                expected_win_rate = cohort_performance.get('win_rate', 0.0)
+                expected_return = cohort_performance.get('avg_return', 0.0)
+                expected_holding_days = cohort_performance.get('avg_holding_days', FOUR_H_DEFAULT_HOLDING_DAYS)
+                expected_return_per_day = expected_return / expected_holding_days if expected_holding_days > 0 else 0
+
+                volatility_multiplier = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(metadata.volatility_level, 1.5)
+                risk_adjusted_expectancy = expected_return / volatility_multiplier
+
+                live_expectancy = {
+                    "expected_win_rate": expected_win_rate,
+                    "expected_return_pct": expected_return,
+                    "expected_holding_days": expected_holding_days,
+                    "expected_return_per_day_pct": expected_return_per_day,
+                    "risk_adjusted_expectancy_pct": risk_adjusted_expectancy,
+                    "sample_size": cohort_performance.get('count', 0)
+                }
+            else:
+                live_expectancy = {
+                    "expected_win_rate": 0.0,
+                    "expected_return_pct": 0.0,
+                    "expected_holding_days": FOUR_H_DEFAULT_HOLDING_DAYS,
+                    "expected_return_per_day_pct": 0.0,
+                    "risk_adjusted_expectancy_pct": 0.0,
+                    "sample_size": 0
+                }
+
+            current_states.append({
+                "ticker": ticker,
+                "name": metadata.name,
+                "current_date": current_date,
+                "current_price": current_price,
+                "current_percentile": current_percentile,
+                "percentile_cohort": percentile_cohort,
+                "zone_label": zone_label,
+                "in_entry_zone": in_entry_zone,
+                "regime": regime,
+                "is_mean_reverter": metadata.is_mean_reverter,
+                "is_momentum": metadata.is_momentum,
+                "volatility_level": metadata.volatility_level,
+                "live_expectancy": live_expectancy,
+                "data_source": data_source
+            })
+
+        except Exception as e:
+            print(f"  Error getting 4H state for {ticker}: {e}")
+            continue
+
+    current_states.sort(key=lambda x: x['current_percentile'])
+    print(f"✓ 4H market state ready: {len(current_states)} tickers processed")
+
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timeframe": "4h",
         "market_state": current_states,
         "summary": {
             "total_tickers": len(current_states),

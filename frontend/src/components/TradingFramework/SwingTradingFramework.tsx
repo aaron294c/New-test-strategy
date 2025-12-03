@@ -21,6 +21,8 @@ import {
   Paper,
   Typography,
   Chip,
+  Tabs,
+  Tab,
   Alert,
   Card,
   CardContent,
@@ -227,6 +229,7 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
   const [allocations, setAllocations] = useState<AllocationDecision[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+  const [timeframe, setTimeframe] = useState<'daily' | '4hour'>('daily');
 
   const TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'TSLA', 'NFLX', 'AMZN'];
 
@@ -742,7 +745,19 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
   return (
     <Container maxWidth="xl" sx={{ mt: 2 }}>
       {/* Live Market State - All Buy Opportunities (Stocks + Indices) */}
-      <CurrentMarketState />
+      <Paper elevation={2} sx={{ mb: 2, p: 1, bgcolor: 'background.paper' }}>
+        <Tabs
+          value={timeframe}
+          onChange={(_, value) => setTimeframe(value as 'daily' | '4hour')}
+          textColor="primary"
+          indicatorColor="primary"
+          variant="fullWidth"
+        >
+          <Tab value="daily" label="Daily Analysis" />
+          <Tab value="4hour" label="4-Hour Analysis" />
+        </Tabs>
+      </Paper>
+      <CurrentMarketState timeframe={timeframe} />
 
       {/* Framework Header */}
       <Alert severity="info" icon={<Assessment />} sx={{ mb: 3 }}>
