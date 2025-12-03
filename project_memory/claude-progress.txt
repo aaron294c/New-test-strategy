@@ -382,3 +382,85 @@ Changes:
 - current-state-4h now pulls daily cohort cache if both 4H bins and 4H fetch fail, so frontend always receives cohort data and rows render (backend/swing_framework_api.py)
 Testing:
 - Not run. Restart backend, curl /api/swing-framework/current-state-4h, ensure market_state has rows, then refresh frontend 4H tab.
+
+Date: 2025-12-03 (later)
+Agent: Coding Agent
+Activity: Implemented backend duration-in-low-percentile analysis + API surface
+Changes:
+- Added swing_duration_analysis module to compute per-trade time-in-low-zone, escape timing, time-to-first-profit, and winner/loser comparisons with heuristics for ticker bounce profile (backend/swing_duration_analysis.py)
+- Exposed GET /api/swing-duration/{ticker}?threshold=5.0 to return duration metrics with defensive error handling (backend/api.py)
+Testing:
+- Not run (yfinance fetch requires network). To verify: start backend, curl http://localhost:8000/api/swing-duration/NVDA?threshold=5.0 and inspect winners/losers/per_threshold fields; run pytest if needed once sample data available.
+Next Actions:
+- Validate endpoint output for multiple tickers and thresholds, tune thresholds_to_track if needed, and wire frontend SwingDurationPanel to display duration metrics.
+
+Date: 2025-12-03 (later)
+Agent: Coding Agent
+Activity: Added Swing Duration UI and integrated toggle
+Changes:
+- Created SwingDurationPanel to fetch /api/swing-duration/{ticker}, show winner/loser duration metrics, per-threshold patience table, and bounce profile (frontend/src/components/TradingFramework/SwingDurationPanel.tsx)
+- Added view toggle in SwingTradingFramework with Duration Analysis tab wiring the panel and reusing selected ticker (frontend/src/components/TradingFramework/SwingTradingFramework.tsx)
+Testing:
+- Not run (backend data fetch requires yfinance). To validate: start backend, curl /api/swing-duration/NVDA?threshold=5.0, then run frontend dev server and open Duration Analysis tab; adjust threshold slider and ticker select to confirm data renders.
+Next Actions:
+- Verify endpoint responses across tickers, refine UI formatting if any fields are null, and add a focused Jest test for SwingDurationPanel once mock data available.
+
+Date: 2025-12-03 (later)
+Agent: Coding Agent
+Activity: Fixed CORS config for duration endpoint
+Changes:
+- Made allowed origins configurable via ALLOWED_ORIGINS env and disabled credentials when wildcard is used to ensure Access-Control-Allow-Origin is set (backend/api.py)
+Testing:
+- Not run. Restart backend with `ALLOWED_ORIGINS=https://<frontend-host>` (or leave default '*' for dev without credentials) and re-hit the duration endpoint from the frontend.
+Next Actions:
+- Restart backend and confirm requests from the frontend host succeed without CORS errors.
+
+Date: 2025-12-03 (later)
+Agent: Coding Agent
+Activity: Expanded CORS for Codespaces
+Changes:
+- Updated CORS to accept wildcard with regex for *.app.github.dev and disabled credentials to ensure Access-Control-Allow-Origin is emitted in Codespaces (backend/api.py)
+Testing:
+- Not run. Restart backend and retry from the Codespaces frontend URL.
+Next Actions:
+- Confirm CORS now passes from https://friendly-space-...-3000.app.github.dev to the backend.
+
+Date: 2025-12-03 (later)
+Agent: Coding Agent
+Activity: Added sample-data fallback toggle for duration endpoint
+Changes:
+- Duration analysis now retries with sample data when live fetch returns empty and supports use_sample_data query param to force the fallback (backend/swing_duration_analysis.py, backend/api.py)
+Testing:
+- Not run. Restart backend; in dev without network, call /api/swing-duration/NVDA?threshold=5&use_sample_data=true to bypass yfinance and unblock UI.
+Next Actions:
+- Restart backend, retest duration endpoint from the frontend, and switch use_sample_data on if live data is blocked.
+
+Date: 2025-12-03 (later)
+Agent: Coding Agent
+Activity: Fixed JSON serialization for duration endpoint
+Changes:
+- Sanitized duration raw event payload to convert numpy types/bools to native Python for FastAPI response encoding (backend/swing_duration_analysis.py)
+Testing:
+- Not run. After backend restart, retry /api/swing-duration/{ticker}?threshold=5 (add use_sample_data=true if needed).
+Next Actions:
+- Verify endpoint now returns 200 and CORS headers, then reload Duration Analysis tab.
+
+Date: 2025-12-03 (later)
+Agent: Coding Agent
+Activity: Clarified data source handling for duration endpoint
+Changes:
+- Removed implicit sample fallback; duration analysis now uses live data by default and only falls back when use_sample_data=true, and exposes metadata.data_source to show whether live or sample data was used (backend/swing_duration_analysis.py)
+Testing:
+- Not run. After backend restart, call /api/swing-duration/{ticker}?threshold=5 (add use_sample_data=true only if you want sample data) and inspect metadata.data_source.
+Next Actions:
+- Confirm responses show data_source=live when using real data and sample only when explicitly requested.
+
+Date: 2025-12-03 (later)
+Agent: Coding Agent
+Activity: Fixed per-threshold stats lookup and key normalization
+Changes:
+- Normalized per-threshold keys to avoid “5.0”/“5” mismatches and adjusted frontend lookup so per-threshold patience table populates (backend/swing_duration_analysis.py, frontend/src/components/TradingFramework/SwingDurationPanel.tsx)
+Testing:
+- Not run. After backend restart, refresh Duration Analysis tab; per-threshold rows should now show sample counts and values.
+Next Actions:
+- Re-verify GOOGL/AMZN tables and confirm non-null per-threshold metrics with live data.

@@ -54,6 +54,7 @@ import {
   ExpectancyMetrics,
 } from '../../utils/expectancyCalculations';
 import { CurrentMarketState } from './CurrentMarketState';
+import { SwingDurationPanelV2 } from './SwingDurationPanelV2';
 
 const API_BASE_URL = '';
 
@@ -230,6 +231,7 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
   const [error, setError] = useState<string | null>(null);
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<'daily' | '4hour'>('daily');
+  const [viewMode, setViewMode] = useState<'framework' | 'duration'>('framework');
 
   const TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'TSLA', 'NFLX', 'AMZN'];
 
@@ -742,8 +744,46 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
     );
   }
 
+  if (viewMode === 'duration') {
+    return (
+      <Container maxWidth="xl" sx={{ mt: 2 }}>
+        <Paper elevation={2} sx={{ mb: 2, p: 1, bgcolor: 'background.paper' }}>
+          <Tabs
+            value={viewMode}
+            onChange={(_, value) => setViewMode(value as 'framework' | 'duration')}
+            textColor="primary"
+            indicatorColor="primary"
+            variant="fullWidth"
+          >
+            <Tab value="framework" label="Swing Framework" />
+            <Tab value="duration" label="Duration Analysis" />
+          </Tabs>
+        </Paper>
+
+        <SwingDurationPanelV2
+          tickers={TICKERS}
+          selectedTicker={selectedTicker || TICKERS[0]}
+          onTickerChange={setSelectedTicker}
+        />
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="xl" sx={{ mt: 2 }}>
+      <Paper elevation={2} sx={{ mb: 2, p: 1, bgcolor: 'background.paper' }}>
+        <Tabs
+          value={viewMode}
+          onChange={(_, value) => setViewMode(value as 'framework' | 'duration')}
+          textColor="primary"
+          indicatorColor="primary"
+          variant="fullWidth"
+        >
+          <Tab value="framework" label="Swing Framework" />
+          <Tab value="duration" label="Duration Analysis" />
+        </Tabs>
+      </Paper>
+
       {/* Live Market State - All Buy Opportunities (Stocks + Indices) */}
       <Paper elevation={2} sx={{ mb: 2, p: 1, bgcolor: 'background.paper' }}>
         <Tabs

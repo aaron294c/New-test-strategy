@@ -12,6 +12,7 @@ Endpoints:
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+import os
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
 import json
@@ -30,6 +31,7 @@ from convergence_analyzer import analyze_convergence_for_ticker
 from position_manager import get_position_management
 from enhanced_mtf_analyzer import run_enhanced_analysis
 from percentile_forward_mapping import run_percentile_forward_analysis
+from swing_duration_analysis_v2 import analyze_swing_duration_v2
 from stock_statistics import (
     STOCK_METADATA,
     NVDA_4H_DATA, NVDA_DAILY_DATA,
@@ -57,11 +59,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware for React frontend
+# CORS middleware for React frontend (allow all in dev, configurable via ALLOWED_ORIGINS)
+raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
+allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
+
+# If wildcard or app.github.dev, rely on regex to catch Codespaces subdomains
+allow_all_regex = r"https://.*\.app\.github\.dev"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URL
-    allow_credentials=True,
+    allow_origins=["*"] if allowed_origins == ["*"] else allowed_origins,
+    allow_origin_regex=allow_all_regex,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -793,6 +801,30 @@ async def get_multi_timeframe_analysis(ticker: str):
     except Exception as e:
         import traceback
         print(f"Error in /api/multi-timeframe for {ticker}:")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/swing-duration/{ticker}")
+async def get_swing_duration_analysis(ticker: str, threshold: float = 5.0, use_sample_data: bool = False):
+    """
+    Get duration-in-low-percentile analysis for SWING signals (V2 - Clean Implementation).
+
+    Returns comprehensive duration metrics with actionable insights.
+    Uses LIVE data by default for real-time trading decisions.
+    """
+    ticker = ticker.upper()
+    try:
+        result = analyze_swing_duration_v2(
+            ticker,
+            entry_threshold=threshold,
+            use_sample_data=use_sample_data,
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        import traceback
+        print(f"Error in /api/swing-duration for {ticker}:")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
