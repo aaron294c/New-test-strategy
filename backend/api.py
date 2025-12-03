@@ -32,6 +32,7 @@ from position_manager import get_position_management
 from enhanced_mtf_analyzer import run_enhanced_analysis
 from percentile_forward_mapping import run_percentile_forward_analysis
 from swing_duration_analysis_v2 import analyze_swing_duration_v2
+from swing_duration_intraday import analyze_swing_duration_intraday
 from stock_statistics import (
     STOCK_METADATA,
     NVDA_4H_DATA, NVDA_DAILY_DATA,
@@ -805,7 +806,12 @@ async def get_multi_timeframe_analysis(ticker: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/swing-duration/{ticker}")
-async def get_swing_duration_analysis(ticker: str, threshold: float = 5.0, use_sample_data: bool = False):
+async def get_swing_duration_analysis(
+    ticker: str,
+    threshold: float = 5.0,
+    use_sample_data: bool = False,
+    timeframe: str = "daily"
+):
     """
     Get duration-in-low-percentile analysis for SWING signals (V2 - Clean Implementation).
 
@@ -814,12 +820,53 @@ async def get_swing_duration_analysis(ticker: str, threshold: float = 5.0, use_s
     """
     ticker = ticker.upper()
     try:
-        result = analyze_swing_duration_v2(
-            ticker,
-            entry_threshold=threshold,
-            use_sample_data=use_sample_data,
-        )
-        return result
+        mode = (timeframe or "daily").lower()
+
+        if mode in {"intraday", "intraday_4h", "4h", "hourly", "hours"}:
+            try:
+                result = analyze_swing_duration_intraday(
+                    ticker,
+                    entry_threshold=threshold,
+                    use_sample_data=use_sample_data,
+                )
+                result["duration_unit"] = result.get("duration_unit", "hours")
+                result["duration_granularity"] = result.get("duration_granularity", "intraday")
+                return result
+            except ValueError as err:
+                # Retry with synthetic intraday data before falling back to daily
+                try:
+                    result = analyze_swing_duration_intraday(
+                        ticker,
+                        entry_threshold=threshold,
+                        use_sample_data=True,
+                    )
+                    result["duration_unit"] = result.get("duration_unit", "hours")
+                    result["duration_granularity"] = "intraday_sample"
+                    result["fallback_reason"] = str(err)
+                    result["data_source"] = f"intraday_sample_{result.get('data_source', 'sample')}"
+                    return result
+                except ValueError as err2:
+                    # Network/caching issues are common in Codespaces; fall back to daily so the UI stays usable
+                    fallback = analyze_swing_duration_v2(
+                        ticker,
+                        entry_threshold=threshold,
+                        use_sample_data=True,
+                    )
+                    fallback["duration_unit"] = fallback.get("duration_unit", "days")
+                    fallback["duration_granularity"] = "daily_fallback"
+                    fallback["fallback_reason"] = f"{err} / {err2}"
+                    fallback["data_source"] = f"intraday_fallback_{fallback.get('data_source', 'sample')}"
+                    return fallback
+        else:
+            result = analyze_swing_duration_v2(
+                ticker,
+                entry_threshold=threshold,
+                use_sample_data=use_sample_data,
+            )
+            # Annotate unit so the UI can label correctly
+            result["duration_unit"] = result.get("duration_unit", "days")
+            result["duration_granularity"] = result.get("duration_granularity", "daily")
+            return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
