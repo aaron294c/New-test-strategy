@@ -36,6 +36,7 @@ import {
 import axios from 'axios';
 
 const API_BASE_URL = '';
+type Timeframe = 'daily' | '4hour';
 
 interface LiveExpectancy {
   expected_win_rate: number;
@@ -76,23 +77,36 @@ interface MarketStateResponse {
 type SortField = 'ticker' | 'percentile' | 'win_rate' | 'return' | 'risk_adj_expectancy' | 'hold_days';
 type SortOrder = 'asc' | 'desc';
 
-export const CurrentMarketState: React.FC = () => {
-  const [marketData, setMarketData] = useState<MarketStateResponse | null>(null);
+interface CurrentMarketStateProps {
+  timeframe?: Timeframe;
+}
+
+export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timeframe = 'daily' }) => {
+  const [dailyData, setDailyData] = useState<MarketStateResponse | null>(null);
+  const [fourHourData, setFourHourData] = useState<MarketStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('percentile');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  const fetchCurrentState = async () => {
-    setLoading(true);
+  const fetchCurrentState = async (target: Timeframe, refresh: boolean = false) => {
+    if (!refresh) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
-      const response = await axios.get<MarketStateResponse>(
-        `${API_BASE_URL}/api/swing-framework/current-state`
-      );
-      setMarketData(response.data);
-      console.log('✅ Current market state loaded:', response.data.summary);
+      const endpoint =
+        target === '4hour'
+          ? `${API_BASE_URL}/api/swing-framework/current-state-4h`
+          : `${API_BASE_URL}/api/swing-framework/current-state`;
+      const response = await axios.get<MarketStateResponse>(endpoint);
+      if (target === '4hour') {
+        setFourHourData(response.data);
+      } else {
+        setDailyData(response.data);
+      }
+      console.log(`✅ ${target === '4hour' ? '4H' : 'Daily'} current market state loaded:`, response.data.summary);
     } catch (err: any) {
       console.error('❌ Error fetching current state:', err);
       setError(err.message || 'Failed to fetch current market state');
@@ -102,12 +116,21 @@ export const CurrentMarketState: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchCurrentState();
+    const hasData = timeframe === '4hour' ? fourHourData : dailyData;
+
+    if (!hasData) {
+      fetchCurrentState(timeframe);
+    } else {
+      setLoading(false);
+      setError(null);
+    }
 
     // Refresh every 5 minutes
-    const interval = setInterval(fetchCurrentState, 5 * 60 * 1000);
+    const interval = setInterval(() => fetchCurrentState(timeframe, true), 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [timeframe]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const marketData = timeframe === '4hour' ? fourHourData : dailyData;
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -234,11 +257,26 @@ export const CurrentMarketState: React.FC = () => {
     <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
         <Typography variant="h5" fontWeight="bold">
-          🎯 Live Market State - Current Buy Opportunities (Stocks + Indices)
+          🎯 Live Market State - {timeframe === '4hour' ? '4-Hour' : 'Daily'} Buy Opportunities (Stocks + Indices)
         </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Updated: {new Date(marketData.timestamp).toLocaleString()}
-        </Typography>
+        <Box display="flex" alignItems="center" gap={1}>
+          <Tooltip
+            title={
+              timeframe === '4hour'
+                ? 'Using 4-hour RSI-MA percentiles and intraday bin statistics'
+                : 'Using daily RSI-MA percentiles and daily bin statistics'
+            }
+          >
+            <Chip
+              label={timeframe === '4hour' ? '4-Hour timeframe' : 'Daily timeframe'}
+              color={timeframe === '4hour' ? 'secondary' : 'primary'}
+              size="small"
+            />
+          </Tooltip>
+          <Typography variant="caption" color="text.secondary">
+            Updated: {new Date(marketData.timestamp).toLocaleString()}
+          </Typography>
+        </Box>
       </Box>
 
       <Box display="flex" gap={2} mb={3}>
@@ -456,7 +494,7 @@ export const CurrentMarketState: React.FC = () => {
         <Alert severity="info" icon={<Info />}>
           <Typography variant="body2">
             <strong>Live Expectancy</strong> shows expected performance based on historical
-            cohort statistics for the current percentile range. Risk-adjusted expectancy
+            cohort statistics for the current percentile range ({timeframe === '4hour' ? '4H bars' : 'daily bars'}). Risk-adjusted expectancy
             accounts for volatility level ({' '}
             <Tooltip title="Low volatility stocks get full value, medium = 1.5x divisor, high = 2.0x">
               <span style={{ textDecoration: 'underline', cursor: 'help' }}>volatility adjustment</span>
