@@ -29,22 +29,54 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import TimelineIcon from '@mui/icons-material/Timeline';
+import RuleIcon from '@mui/icons-material/Rule';
 
 import { backtestApi } from './api/client';
 import PerformanceMatrixHeatmap from './components/PerformanceMatrixHeatmap';
+import EnhancedPerformanceMatrix from './components/EnhancedPerformanceMatrix';
 import ReturnDistributionChart from './components/ReturnDistributionChart';
 import OptimalExitPanel from './components/OptimalExitPanel';
 import RSIPercentileChart from './components/RSIPercentileChart';
+import StrategyRulesPanel from './components/StrategyRulesPanel';
+import ExitStrategyComparison from './components/ExitStrategyComparison';
+import TradeSimulationViewer from './components/TradeSimulationViewer';
+import LiveTradingSignals from './components/LiveTradingSignals';
+import MultiTimeframeDivergence from './components/MultiTimeframeDivergence';
+import PositionManagement from './components/PositionManagement';
+import EnhancedDivergenceLifecycle from './components/EnhancedDivergenceLifecycle';
+import PercentileForwardMapper from './components/PercentileForwardMapper';
+import MultiTimeframeGuide from './components/MultiTimeframeGuide';
+import SwingTradingFramework from './components/TradingFramework/SwingTradingFramework';
+import { GammaScannerTab } from './components/GammaScanner';
+import { RiskDistanceTab } from './components/RiskDistance';
+import LowerExtensionPage from './pages/LowerExtensionPage';
 
-// Create theme
+// Create theme with dark mode support
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: 'dark',
     primary: {
-      main: '#1976d2',
+      main: '#2962FF',
     },
     secondary: {
       main: '#4caf50',
+    },
+    background: {
+      default: '#131722',
+      paper: '#1E222D',
+    },
+    text: {
+      primary: '#D1D4DC',
+      secondary: '#787B86',
+    },
+  },
+  components: {
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: 'none',
+        },
+      },
     },
   },
 });
@@ -59,7 +91,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'QQQ', 'SPY'];
+const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'QQQ', 'SPY', 'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO', 'LLY', 'TSM', 'ORCL', 'OXY'];
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -110,7 +142,7 @@ function Dashboard() {
     setSelectedThreshold(event.target.value);
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
 
@@ -213,15 +245,76 @@ function Dashboard() {
         {!isLoading && !error && thresholdData && (
           <>
             <Paper elevation={3} sx={{ mb: 3 }}>
-              <Tabs value={activeTab} onChange={handleTabChange}>
+              <Tabs value={activeTab} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
+                <Tab icon={<TrendingUpIcon />} label="📚 TRADING GUIDE" />
+                <Tab icon={<AssessmentIcon />} label="🎯 SWING FRAMEWORK" />
+                <Tab icon={<TrendingUpIcon />} label="🔴 LIVE SIGNALS" />
+                <Tab icon={<ShowChartIcon />} label="💼 POSITION MANAGEMENT" />
+                <Tab icon={<TimelineIcon />} label="🎯 Multi-Timeframe Divergence" />
+                <Tab icon={<TimelineIcon />} label="🌡️ ENHANCED LIFECYCLE" />
+                <Tab icon={<ShowChartIcon />} label="📊 PERCENTILE FORWARD MAPPING" />
                 <Tab icon={<TimelineIcon />} label="RSI Indicator" />
                 <Tab icon={<AssessmentIcon />} label="Performance Matrix" />
                 <Tab icon={<ShowChartIcon />} label="Return Analysis" />
+                <Tab icon={<RuleIcon />} label="Strategy & Rules" />
                 <Tab icon={<TrendingUpIcon />} label="Optimal Exit" />
+                <Tab icon={<TrendingUpIcon />} label="Exit Strategies" />
+                <Tab icon={<ShowChartIcon />} label="Trade Simulation" />
+                <Tab icon={<AssessmentIcon />} label="🔰 GAMMA WALL SCANNER" />
+                <Tab icon={<ShowChartIcon />} label="📏 RISK DISTANCE" />
+                <Tab icon={<TrendingUpIcon />} label="📐 LOWER EXTENSION" />
               </Tabs>
             </Paper>
 
             <TabPanel value={activeTab} index={0}>
+              <MultiTimeframeGuide />
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={1}>
+              <SwingTradingFramework ticker={selectedTicker} />
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={2}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <LiveTradingSignals ticker={selectedTicker} />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={3}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <PositionManagement ticker={selectedTicker} />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={4}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <MultiTimeframeDivergence ticker={selectedTicker} />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={5}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <EnhancedDivergenceLifecycle ticker={selectedTicker} />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={6}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <PercentileForwardMapper ticker={selectedTicker} />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={7}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <RSIPercentileChart
@@ -233,19 +326,28 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={1}>
+            <TabPanel value={activeTab} index={8}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <PerformanceMatrixHeatmap
                     matrix={thresholdData.performance_matrix}
-                    title={`${selectedTicker} Performance Matrix (Entry ≤${selectedThreshold}%)`}
+                    title={`${selectedTicker} Performance Heatmap (Entry ≤${selectedThreshold}%)`}
+                    maxDay={21}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <EnhancedPerformanceMatrix
+                    matrix={thresholdData.performance_matrix}
+                    winRates={thresholdData.win_rates}
+                    returnDistributions={thresholdData.return_distributions}
+                    title={`${selectedTicker} Complete Performance Matrix (Entry ≤${selectedThreshold}%)`}
                     maxDay={21}
                   />
                 </Grid>
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={2}>
+            <TabPanel value={activeTab} index={9}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <ReturnDistributionChart
@@ -258,7 +360,21 @@ function Dashboard() {
               </Grid>
             </TabPanel>
 
-            <TabPanel value={activeTab} index={3}>
+            <TabPanel value={activeTab} index={10}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <StrategyRulesPanel
+                    percentileMovements={thresholdData.percentile_movements}
+                    trendAnalysis={thresholdData.trend_analysis}
+                    tradeRules={thresholdData.trade_management_rules || []}
+                    ticker={selectedTicker}
+                    threshold={selectedThreshold}
+                  />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={11}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <OptimalExitPanel
@@ -270,6 +386,39 @@ function Dashboard() {
                   />
                 </Grid>
               </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={12}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <ExitStrategyComparison
+                    ticker={selectedTicker}
+                    threshold={selectedThreshold}
+                  />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={13}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <TradeSimulationViewer
+                    ticker={selectedTicker}
+                  />
+                </Grid>
+              </Grid>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={14}>
+              <GammaScannerTab />
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={15}>
+              <RiskDistanceTab />
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={16}>
+              <LowerExtensionPage />
             </TabPanel>
           </>
         )}
