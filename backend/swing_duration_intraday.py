@@ -103,7 +103,7 @@ class IntradayTradeOutcome:
 
 def fetch_intraday_data(
     ticker: str,
-    period: str = "60d",
+    period: str = "730d",
     interval: str = "4h",
     use_sample_data: bool = False,
 ) -> pd.DataFrame:
@@ -112,7 +112,7 @@ def fetch_intraday_data(
 
     Args:
         ticker: Stock symbol
-        period: Historical period (max 60d for 4h intervals)
+        period: Historical period (max 730d for 4h intervals)
         interval: Bar interval (1h, 2h, 4h)
 
     Returns:
@@ -187,28 +187,68 @@ def calculate_ma(data: pd.DataFrame, period: int = 50) -> pd.Series:
     return data['Close'].rolling(window=period).mean()
 
 
-def calculate_rsi_ma_divergence(rsi: pd.Series, ma: pd.Series, close: pd.Series) -> pd.Series:
+def calculate_rsi_ma_indicator(close: pd.Series, rsi_length: int = 14, ma_length: int = 14) -> pd.Series:
     """
-    Calculate RSI-MA divergence indicator.
+    Calculate RSI-MA indicator matching TradingView implementation.
 
-    Positive when price < MA and RSI is oversold (buy signal).
+    Pipeline:
+    1. Calculate log returns from Close price
+    2. Calculate change of returns (diff) - second derivative
+    3. Apply RSI (14-period) using Wilder's method
+    4. Apply EMA (14-period) to RSI → RSI-MA
+
+    Returns RSI-MA values typically around 50. Low values (<48) indicate buy signals.
     """
-    price_below_ma = close < ma
-    rsi_oversold = rsi < 50
+    import numpy as np
 
-    # Simple divergence: price below MA + low RSI
-    divergence = price_below_ma.astype(int) * (50 - rsi)
-    return divergence
+    # Step 1: Calculate log returns
+    log_returns = np.log(close / close.shift(1)).fillna(0)
+
+    # Step 2: Calculate change of returns (second derivative)
+    delta = log_returns.diff()
+
+    # Step 3: Apply RSI to delta
+    gains = delta.where(delta > 0, 0)
+    losses = -delta.where(delta < 0, 0)
+
+    # Wilder's smoothing (RMA)
+    avg_gains = gains.ewm(alpha=1/rsi_length, adjust=False).mean()
+    avg_losses = losses.ewm(alpha=1/rsi_length, adjust=False).mean()
+
+    rs = avg_gains / avg_losses
+    rsi = 100 - (100 / (1 + rs))
+    rsi = rsi.fillna(50)
+
+    # Step 4: Apply EMA to RSI → RSI-MA
+    rsi_ma = rsi.ewm(span=ma_length, adjust=False).mean()
+
+    return rsi_ma
 
 
-def calculate_percentile_ranks(series: pd.Series, window: int = 500) -> pd.Series:
-    """Calculate rolling percentile ranks."""
+def calculate_percentile_ranks(series: pd.Series, window: int = 410) -> pd.Series:
+    """
+    Calculate rolling percentile ranks.
+
+    CORRECTED: Changed to 410 bars to match the SAME TIME PERIOD as daily.
+
+    Window=410 bars for 4H data equals 252 trading days lookback:
+    - Daily: 252 bars = 252 trading days ≈ 1 year
+    - 4H: 410 bars = 252 trading days × 1.625 candles/day ≈ 1 year
+
+    This ensures the percentile calculation uses the same historical lookback PERIOD
+    as the daily timeframe, making percentile values comparable across timeframes.
+
+    Calculation: 252 trading days × 1.625 candles/day (6.5h ÷ 4h) = 409.5 ≈ 410 bars
+    """
     def percentile_rank(x):
         if len(x) < 2:
             return np.nan
         return (x < x.iloc[-1]).sum() / len(x) * 100
 
-    return series.rolling(window=window, min_periods=50).apply(percentile_rank, raw=False)
+    # CRITICAL: min_periods MUST equal window to ensure consistent lookback period
+    # Setting min_periods < window would calculate percentiles with insufficient data,
+    # breaking the alignment with daily timeframe (252 days = 410 bars for 4H)
+    return series.rolling(window=window, min_periods=window).apply(percentile_rank, raw=False)
 
 
 def _infer_interval_hours(index: pd.Index, default: float = BAR_INTERVAL_HOURS) -> float:
@@ -369,7 +409,7 @@ def _calculate_hours_to_first_profit(progression: Dict[int, Dict]) -> Optional[i
 def analyze_swing_duration_intraday(
     ticker: str,
     entry_threshold: float = 5.0,
-    period: str = "60d",
+    period: str = "730d",
     interval: str = "4h",
     use_sample_data: bool = False,
 ) -> Dict:
@@ -379,7 +419,7 @@ def analyze_swing_duration_intraday(
     Args:
         ticker: Stock symbol
         entry_threshold: Entry percentile threshold
-        period: Historical period for analysis
+        period: Historical period for analysis (default 730d = max for 4H data)
         interval: Bar interval (4h recommended)
 
     Returns:
@@ -388,11 +428,23 @@ def analyze_swing_duration_intraday(
     # Fetch intraday data
     data = fetch_intraday_data(ticker, period=period, interval=interval, use_sample_data=use_sample_data)
 
-    # Calculate indicators
-    rsi = calculate_rsi(data)
-    ma = calculate_ma(data)
-    divergence = calculate_rsi_ma_divergence(rsi, ma, data['Close'])
-    percentile_ranks = calculate_percentile_ranks(divergence)
+    # Extract Close as Series (yfinance may return DataFrame for single ticker)
+    close_series = data['Close']
+    if isinstance(close_series, pd.DataFrame):
+        close_series = close_series.squeeze()  # Convert DataFrame to Series
+
+    # Calculate RSI-MA indicator (proper calculation matching TradingView)
+    rsi_ma = calculate_rsi_ma_indicator(close_series)
+
+    # Ensure rsi_ma is a Series (not DataFrame)
+    if isinstance(rsi_ma, pd.DataFrame):
+        rsi_ma = rsi_ma.squeeze()
+
+    percentile_ranks = calculate_percentile_ranks(rsi_ma)
+
+    # Ensure percentile_ranks is a Series (not DataFrame)
+    if isinstance(percentile_ranks, pd.DataFrame):
+        percentile_ranks = percentile_ranks.squeeze()
 
     # Track multiple thresholds
     thresholds_to_track = sorted({5.0, 10.0, 15.0, float(entry_threshold)})
@@ -412,10 +464,15 @@ def analyze_swing_duration_intraday(
     intraday_horizon_hours_rounded = math.ceil(intraday_horizon_hours / interval_hours_inferred) * interval_hours_inferred
     min_hours_for_partial_outcome = int(math.ceil(5 * bars_per_day_effective * interval_hours_inferred))  # Require ~5 trading days for partial
 
+    # Extract prices as Series (ensure consistent data types)
+    prices_series = data['Close']
+    if isinstance(prices_series, pd.DataFrame):
+        prices_series = prices_series.squeeze()
+
     # Find entry events up to the widest threshold so higher thresholds get data
     entry_events = find_intraday_entry_events(
         percentile_ranks,
-        data['Close'],
+        prices_series,
         threshold=max_threshold,
         max_horizon_hours=intraday_horizon_hours,
         interval_hours=interval_hours_inferred,

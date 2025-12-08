@@ -390,6 +390,37 @@ export const SwingDurationPanelV2: React.FC<SwingDurationPanelV2Props> = ({
             ))}
           </Box>
 
+          {/* WARNING: Low Escape Rate Detection for Percentile-Non-Responsive Tickers */}
+          {durationUnit === 'hours' &&
+           data.winners.threshold_5pct.escape_rate !== null &&
+           data.winners.threshold_5pct.escape_rate < 0.5 && (
+            <Alert severity="warning" sx={{ mb: 3 }}>
+              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                ⚠️ WARNING: Percentile-Non-Responsive Ticker at 4H Resolution
+              </Typography>
+              <Typography variant="body2">
+                This ticker shows <strong>{formatPercent(data.winners.threshold_5pct.escape_rate)}</strong> escape rate,
+                meaning <strong>{formatPercent(1 - (data.winners.threshold_5pct.escape_rate || 0))}</strong> of winners NEVER escape
+                the &lt;5% percentile zone at 4H resolution within the tracking window.
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1, fontWeight: 'bold' }}>
+                🎯 CRITICAL: The 4H percentile strategy does NOT work for this ticker!
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                <strong>Why:</strong> Percentile stays in low zone (&lt;5%) even when price recovers and shows positive returns.
+                This causes the percentile-based exit signals to fail - you'd wait 12-24 days for an escape that never comes.
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                <strong>Recommendation:</strong> Use <strong>DAILY timeframe</strong> for percentile monitoring instead of 4H.
+                At daily resolution, this ticker's percentile typically escapes within 1-2 days.
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                ❌ <strong>Do NOT use for this ticker:</strong> 4H sniper entry timing, 4H bailout timers, 4H percentile escape signals<br />
+                ✅ <strong>Use instead:</strong> Daily percentile monitoring + price targets (e.g., +3%, +5%) + time stops (e.g., hold 2 days max)
+              </Typography>
+            </Alert>
+          )}
+
           <Divider sx={{ my: 3 }} />
 
           {/* Key Metrics Overview */}
@@ -682,6 +713,22 @@ export const SwingDurationPanelV2: React.FC<SwingDurationPanelV2Props> = ({
           <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
             ⏰ Bailout Timer & Risk Management
           </Typography>
+
+          {/* Conditional warning for non-responsive tickers */}
+          {durationUnit === 'hours' &&
+           data.winners.threshold_5pct.escape_rate !== null &&
+           data.winners.threshold_5pct.escape_rate < 0.5 && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              <Typography variant="body2" fontWeight="bold">
+                ⚠️ WARNING: 4H Bailout timers do NOT apply to this ticker!
+              </Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                For percentile-non-responsive tickers, the bailout timers shown below would EXIT WINNERS prematurely.
+                Use Daily timeframe data instead for this ticker's bailout guidance.
+              </Typography>
+            </Alert>
+          )}
+
           <Grid container spacing={2} sx={{ mb: 3 }}>
             <Grid item xs={12} md={6}>
               <Card variant="outlined" sx={{ bgcolor: 'success.light', p: 2 }}>
@@ -825,8 +872,10 @@ export const SwingDurationPanelV2: React.FC<SwingDurationPanelV2Props> = ({
             </Typography>
           </Alert>
 
-          {/* NEW: Sniper Entry Analysis (4H vs Daily) */}
-          {durationUnit === 'hours' && (
+          {/* NEW: Sniper Entry Analysis (4H vs Daily) - Only show for percentile-responsive tickers */}
+          {durationUnit === 'hours' &&
+           data.winners.threshold_5pct.escape_rate !== null &&
+           data.winners.threshold_5pct.escape_rate >= 0.5 && (
             <Card sx={{ mt: 3, bgcolor: 'info.light', p: 2 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>

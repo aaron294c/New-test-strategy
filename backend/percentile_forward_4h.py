@@ -109,13 +109,19 @@ def calculate_rsi_ma_4h(data: pd.DataFrame, rsi_length: int = 14, ma_length: int
     return rsi_ma
 
 
-def calculate_percentile_ranks_4h(rsi_ma: pd.Series, lookback_window: int = 252) -> pd.Series:
+def calculate_percentile_ranks_4h(rsi_ma: pd.Series, lookback_window: int = 410) -> pd.Series:
     """
     Calculate rolling percentile ranks for RSI-MA on 4H data.
 
     Args:
         rsi_ma: RSI-MA time series
-        lookback_window: Number of 4H bars to use for percentile calculation (default 252 ~= 42 days)
+        lookback_window: Number of 4H bars to use for percentile calculation (default 410 = 252 trading days)
+
+    Note:
+        - Daily percentile uses 252 bars = 252 trading days ≈ 1 year
+        - 4H percentile uses 410 bars = 252 trading days ≈ 1 year
+        - NYSE hours: 6.5 hours/day (9:30 AM - 4:00 PM)
+        - Calculation: 252 trading days × 1.625 candles/day (6.5h ÷ 4h) = 409.5 ≈ 410 bars
 
     Returns:
         Series of percentile ranks (0-100)
@@ -161,7 +167,7 @@ def run_percentile_forward_analysis_4h(ticker: str, lookback_days: int = 365) ->
 
     # 3. Calculate percentile ranks
     print("Calculating percentile ranks...")
-    percentiles_4h = calculate_percentile_ranks_4h(rsi_ma_4h, lookback_window=252)
+    percentiles_4h = calculate_percentile_ranks_4h(rsi_ma_4h, lookback_window=410)
     print(f"  ✓ Percentiles calculated")
 
     # 4. Initialize mapper with 4H horizons
@@ -173,7 +179,7 @@ def run_percentile_forward_analysis_4h(ticker: str, lookback_days: int = 365) ->
         rsi_ma=rsi_ma_4h,
         percentile_ranks=percentiles_4h,
         prices=data_4h['Close'],
-        lookback_window=252  # 252 4H bars ~= 42 days (reduced for 4H data availability)
+        lookback_window=410  # 410 4H bars = 252 trading days (matches daily timeframe period)
     )
 
     print(f"  ✓ Dataset: {len(df)} observations")
