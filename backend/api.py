@@ -133,7 +133,7 @@ CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # Default tickers
-DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY", "GLD", "SLV"]
+DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY", "GLD", "SLV", "BRK-B"]
 
 # ============================================================================
 # Request/Response Models
@@ -141,7 +141,7 @@ DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY"
 
 class BacktestRequest(BaseModel):
     tickers: List[str] = Field(default=DEFAULT_TICKERS, description="List of ticker symbols")
-    lookback_period: int = Field(default=500, ge=100, le=1000)
+    lookback_period: int = Field(default=252, ge=100, le=1000)
     rsi_length: int = Field(default=14, ge=5, le=50)
     ma_length: int = Field(default=14, ge=5, le=50)  # TradingView setting
     max_horizon: int = Field(default=21, ge=7, le=30)
@@ -288,7 +288,7 @@ async def get_backtest_results(ticker: str, force_refresh: bool = False):
     try:
         backtester = EnhancedPerformanceMatrixBacktester(
             tickers=[ticker],
-            lookback_period=500,
+            lookback_period=252,
             rsi_length=14,
             ma_length=14,
             max_horizon=21
@@ -385,7 +385,7 @@ async def run_monte_carlo_simulation(ticker: str, request: MonteCarloRequest):
         # Get historical data for the ticker
         backtester = EnhancedPerformanceMatrixBacktester(
             tickers=[ticker],
-            lookback_period=500,
+            lookback_period=252,
             rsi_length=14,
             ma_length=14,
             max_horizon=21
@@ -450,7 +450,7 @@ async def get_rsi_percentile_chart(ticker: str, days: int = None):
         # Create backtester instance to access the new method
         backtester = EnhancedPerformanceMatrixBacktester(
             tickers=[ticker],
-            lookback_period=500,
+            lookback_period=252,
             rsi_length=14,
             ma_length=14,
             max_horizon=21
@@ -555,7 +555,7 @@ async def run_advanced_backtest_endpoint(request: AdvancedBacktestRequest):
         # Get historical data and entry events
         backtester = EnhancedPerformanceMatrixBacktester(
             tickers=[ticker],
-            lookback_period=500,
+            lookback_period=252,
             rsi_length=14,
             ma_length=14,
             max_horizon=request.max_hold_days
@@ -627,7 +627,7 @@ async def simulate_trade_with_management(
         # Get historical data
         backtester = EnhancedPerformanceMatrixBacktester(
             tickers=[ticker],
-            lookback_period=500,
+            lookback_period=252,
             rsi_length=14,
             ma_length=14,
             max_horizon=days_to_simulate
@@ -692,7 +692,7 @@ async def get_available_dates(ticker: str):
     try:
         backtester = EnhancedPerformanceMatrixBacktester(
             tickers=[ticker],
-            lookback_period=500,
+            lookback_period=252,
             rsi_length=14,
             ma_length=14,
             max_horizon=21

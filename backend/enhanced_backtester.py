@@ -65,15 +65,19 @@ class RiskMetrics:
 class EnhancedPerformanceMatrixBacktester:
     def __init__(self,
                  tickers: List[str],
-                 lookback_period: int = 500,
+                 lookback_period: int = 252,
                  rsi_length: int = 14,
                  ma_length: int = 14,  # TradingView setting: 14 for EMA
                  max_horizon: int = 21):
         """Initialize enhanced backtester with configurable horizon.
 
+        UPDATED: Changed lookback_period from 500 to 252 (1 trading year).
+        This aligns with 4H percentile window (410 bars = 252 days).
+
         TradingView Settings:
         - RSI Length: 14 (daily)
         - Source: Close price (percentage change)
+        - Lookback: 252 bars (1 year)
         - MA Type: EMA (Exponential Moving Average)
         - MA Length: 14
         - Stop Loss %: 2.0
@@ -263,16 +267,24 @@ class EnhancedPerformanceMatrixBacktester:
         return rsi_ma
     
     def calculate_percentile_ranks(self, indicator: pd.Series) -> pd.Series:
-        """Calculate rolling percentile ranks (500-period lookback)."""
+        """
+        Calculate rolling percentile ranks with 252-period lookback (1 trading year).
+
+        UPDATED: Changed from 500-period to 252-period to match 4H timeframe.
+        - Daily: 252 bars = 252 days = 1 year
+        - 4H: 410 bars = 252 days = 1 year (via 252 × 1.625 candles/day)
+
+        This ensures percentile calculations use the same time period across timeframes.
+        """
         def rolling_percentile_rank(window):
             if len(window) < self.lookback_period:
                 return np.nan
             current_value = window.iloc[-1]
             below_count = (window.iloc[:-1] < current_value).sum()
             return (below_count / (len(window) - 1)) * 100
-        
+
         return indicator.rolling(
-            window=self.lookback_period, 
+            window=self.lookback_period,
             min_periods=self.lookback_period
         ).apply(rolling_percentile_rank)
     
@@ -1010,7 +1022,7 @@ def main():
     # - Percentile Lookback: 500
     backtester = EnhancedPerformanceMatrixBacktester(
         tickers=TOP_TICKERS,
-        lookback_period=500,
+        lookback_period=252,
         rsi_length=14,
         ma_length=14,  # TradingView setting
         max_horizon=21  # Extended to D21

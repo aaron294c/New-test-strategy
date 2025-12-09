@@ -233,7 +233,7 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
   const [timeframe, setTimeframe] = useState<'daily' | '4hour'>('daily');
   const [viewMode, setViewMode] = useState<'framework' | 'duration'>('framework');
 
-  const TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'TSLA', 'NFLX', 'AMZN'];
+  const TICKERS = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'TSLA', 'NFLX', 'AMZN', 'BRK-B'];
 
   useEffect(() => {
     fetchAllData();

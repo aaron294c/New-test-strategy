@@ -48,6 +48,7 @@ SYMBOLS = [
     'JPM',   # JPMorgan (financial sector)
     'BAC',   # Bank of America (financial sector)
     'DIS',   # Disney (consumer/entertainment)
+    'BRK-B', # Berkshire Hathaway Class B
     # International indices (correct Yahoo symbols)
     '^GDAXI', # DAX Performance Index (has options chain)
     '^FTSE',  # FTSE 100 Index
@@ -559,7 +560,7 @@ def main():
     print()
     
     # Prioritize important symbols for Pine Script (limit to top symbols)
-    priority_symbols = ['^SPX', 'QQQ', 'AAPL', 'NVDA', 'MSFT', 'CVX', 'XOM', 'TSLA', 'META', 'AMZN']
+    priority_symbols = ['^SPX', 'QQQ', 'AAPL', 'NVDA', 'MSFT', 'CVX', 'XOM', 'TSLA', 'META', 'AMZN', 'BRK-B']
     priority_results = []
     other_results = []
     

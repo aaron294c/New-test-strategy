@@ -422,7 +422,7 @@ async def get_swing_framework_data():
     """
 
     # Include both stocks and market indices
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B"]
     results = {}
 
     bin_data_map = {
@@ -780,7 +780,7 @@ async def get_current_market_state():
 
     OPTIMIZED: Uses cached cohort statistics, only fetches current percentiles
     """
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B"]
 
     # Get cached cohort stats (fast - uses cache after first call)
     print("Fetching cohort statistics...")
@@ -940,7 +940,7 @@ async def get_current_market_state_4h():
     Uses pre-computed 4H bin statistics when available and falls back to on-the-fly
     cohort calculations from 4H price data.
     """
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B"]
     current_states = []
 
     print("Fetching 4H current percentiles...")
