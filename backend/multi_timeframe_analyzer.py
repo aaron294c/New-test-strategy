@@ -18,6 +18,15 @@ from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 
+MARKET_HOURS_PER_DAY = 6.5
+FOUR_H_BAR_INTERVAL_HOURS = 4
+# Approx 1.625 4H bars per trading day (6.5 market hours / 4H bar)
+BARS_PER_TRADING_DAY_4H = MARKET_HOURS_PER_DAY / FOUR_H_BAR_INTERVAL_HOURS
+
+# Percentile windows aligned by time period (≈ 1 trading year)
+DAILY_PERCENTILE_WINDOW = 252
+FOUR_H_PERCENTILE_WINDOW = int(round(DAILY_PERCENTILE_WINDOW * BARS_PER_TRADING_DAY_4H))  # 410
+
 
 @dataclass
 class DivergenceEvent:
@@ -70,7 +79,7 @@ class MultiTimeframeAnalyzer:
 
     def __init__(self,
                  ticker: str,
-                 lookback_days: int = 500,
+                 lookback_days: int = 730,
                  rsi_length: int = 14,
                  ma_length: int = 14):
         """
@@ -93,11 +102,24 @@ class MultiTimeframeAnalyzer:
 
         # Calculate RSI-MA for both timeframes
         self.daily_rsi_ma = self._calculate_rsi_ma(self.daily_data)
-        self.hourly_4h_rsi_ma = self._calculate_rsi_ma_from_hourly(self.hourly_4h_data)
 
-        # Calculate percentile ranks
-        self.daily_percentiles = self._calculate_percentile_ranks(self.daily_rsi_ma)
-        self.hourly_4h_percentiles = self._calculate_percentile_ranks(self.hourly_4h_rsi_ma)
+        # 4H RSI-MA calculated on true 4H bars (from hourly resample)
+        self.data_4h, self.rsi_ma_4h = self._calculate_rsi_ma_from_hourly(self.hourly_4h_data)
+
+        # Calculate percentile ranks using comparable lookback periods
+        # Daily: 252 daily bars ≈ 1 trading year
+        self.daily_percentiles = self._calculate_percentile_ranks(
+            self.daily_rsi_ma,
+            window=DAILY_PERCENTILE_WINDOW
+        )
+
+        # 4H: ~410 4H bars ≈ 252 trading days × 1.625 bars/day
+        self.percentiles_4h = self._calculate_percentile_ranks(
+            self.rsi_ma_4h,
+            window=FOUR_H_PERCENTILE_WINDOW
+        )
+        # Align to daily (use last 4H value of day, then forward-fill weekends/holidays)
+        self.hourly_4h_percentiles = self.percentiles_4h.resample('1D').last().ffill()
 
     def _fetch_data(self, interval: str, period: str) -> pd.DataFrame:
         """Fetch OHLCV data."""
@@ -151,10 +173,12 @@ class MultiTimeframeAnalyzer:
 
         return rsi_ma
 
-    def _calculate_rsi_ma_from_hourly(self, hourly_data: pd.DataFrame) -> pd.Series:
+    def _calculate_rsi_ma_from_hourly(self, hourly_data: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
         """
         Calculate 4H RSI-MA by resampling hourly data to 4H bars.
-        Then forward-fill to daily to handle weekends/gaps.
+
+        Note: Percentiles are computed on the 4H bars (not on a daily-resampled series)
+        to keep the lookback period comparable to the daily timeframe.
         """
         # Resample to 4H bars
         data_4h = hourly_data.resample('4h').agg({
@@ -167,22 +191,29 @@ class MultiTimeframeAnalyzer:
 
         # Calculate RSI-MA on 4H data (same method as daily)
         rsi_ma_4h = self._calculate_rsi_ma(data_4h)
-
-        # Resample to daily frequency
-        # Use 'last' to get the last 4H value of each day
-        # Then forward-fill to handle weekends/holidays
-        rsi_ma_daily_aligned = rsi_ma_4h.resample('1D').last().ffill()
-
-        return rsi_ma_daily_aligned
+        return data_4h, rsi_ma_4h
 
     def _calculate_percentile_ranks(self, indicator: pd.Series,
                                    window: int = 252) -> pd.Series:
-        """Calculate rolling percentile ranks."""
-        percentile_ranks = indicator.rolling(window=window).apply(
-            lambda x: pd.Series(x).rank(pct=True).iloc[-1] * 100,
-            raw=False
-        )
-        return percentile_ranks
+        """
+        Calculate rolling percentile ranks (0-100).
+
+        Uses a strict "percent of prior values below current" definition, matching
+        the project's RSI-MA percentile logic used elsewhere (framework/duration).
+        """
+
+        def rolling_percentile_rank(window_series: pd.Series) -> float:
+            if len(window_series) < window:
+                return np.nan
+            current_value = window_series.iloc[-1]
+            below_count = (window_series.iloc[:-1] < current_value).sum()
+            denom = max(len(window_series) - 1, 1)
+            return float(below_count / denom * 100.0)
+
+        return indicator.rolling(
+            window=window,
+            min_periods=window
+        ).apply(rolling_percentile_rank, raw=False)
 
     def calculate_divergence_series(self) -> pd.DataFrame:
         """
@@ -399,57 +430,225 @@ class MultiTimeframeAnalyzer:
 
         return stats
 
-    def find_optimal_thresholds(self, events: List[DivergenceEvent]) -> Dict[str, float]:
+    def find_optimal_thresholds(self, divergence_series: pd.DataFrame) -> Dict[str, float]:
         """
-        Find optimal divergence thresholds that maximize edge.
+        Compute per-ticker dislocation thresholds from historical divergence gaps.
 
-        Tests various thresholds and finds which produces best risk-adjusted returns.
+        We treat a "dislocation" as the percentile gap between daily and 4H:
+          gap = abs(daily_percentile - 4h_percentile)
+
+        For practical usage, the 85th percentile (P85) is a good "significant"
+        dislocation threshold and P95 is "extreme". We compute these overall and
+        by divergence direction (positive vs negative).
+
+        Notes:
+        - This intentionally does NOT optimize on returns (Sharpe), because the
+          4-category framework ("4h_overextended", "bullish_convergence",
+          "daily_overextended", "bearish_convergence") is the primary signal
+          interpretation and we want stable, distribution-based thresholds.
         """
-        thresholds_to_test = [10, 15, 20, 25, 30, 35, 40, 45, 50]
+        if divergence_series is None or divergence_series.empty or "divergence_pct" not in divergence_series:
+            return {
+                "bearish_divergence_threshold": 25,
+                "bullish_divergence_threshold": 25,
+                "bearish_sharpe": None,
+                "bullish_sharpe": None,
+                "dislocation_abs_p75": None,
+                "dislocation_abs_p85": None,
+                "dislocation_abs_p95": None,
+                "dislocation_positive_p85": None,
+                "dislocation_negative_p85": None,
+                "dislocation_stats": {},
+                "dislocation_sample": {
+                    "n_days": 0,
+                    "start_date": None,
+                    "end_date": None,
+                    "lookback_days_hourly": self.lookback_days,
+                    "percentile_windows": {
+                        "daily": DAILY_PERCENTILE_WINDOW,
+                        "four_h": FOUR_H_PERCENTILE_WINDOW,
+                    },
+                },
+            }
 
-        best_bearish_threshold = None
-        best_bearish_sharpe = -999
+        divergence_values = divergence_series["divergence_pct"].dropna().to_numpy(dtype=float)
+        if divergence_values.size == 0:
+            return {
+                "bearish_divergence_threshold": 25,
+                "bullish_divergence_threshold": 25,
+                "bearish_sharpe": None,
+                "bullish_sharpe": None,
+                "dislocation_abs_p75": None,
+                "dislocation_abs_p85": None,
+                "dislocation_abs_p95": None,
+                "dislocation_positive_p85": None,
+                "dislocation_negative_p85": None,
+                "dislocation_stats": {},
+                "dislocation_sample": {
+                    "n_days": 0,
+                    "start_date": None,
+                    "end_date": None,
+                    "lookback_days_hourly": self.lookback_days,
+                    "percentile_windows": {
+                        "daily": DAILY_PERCENTILE_WINDOW,
+                        "four_h": FOUR_H_PERCENTILE_WINDOW,
+                    },
+                },
+            }
 
-        best_bullish_threshold = None
-        best_bullish_sharpe = -999
+        abs_gap = np.abs(divergence_values)
 
-        for threshold in thresholds_to_test:
-            # Test bearish divergence threshold
-            bearish_filtered = [e for e in events
-                              if e.divergence_type == 'bearish_divergence'
-                              and abs(e.divergence_pct) >= threshold]
+        pos_gap = np.abs(divergence_values[divergence_values > 0])
+        neg_gap = np.abs(divergence_values[divergence_values < 0])
 
-            if len(bearish_filtered) >= 20:  # Need enough samples
-                returns_d7 = [e.forward_returns.get('D7', 0) for e in bearish_filtered]
-                # For bearish, we want negative returns (so negate them for Sharpe)
-                neg_returns = [-r for r in returns_d7]
-                sharpe = np.mean(neg_returns) / (np.std(neg_returns) + 1e-6)
+        def q(arr: np.ndarray, pct: float) -> Optional[float]:
+            if arr.size < 30:
+                return None
+            return float(np.percentile(arr, pct))
 
-                if sharpe > best_bearish_sharpe:
-                    best_bearish_sharpe = sharpe
-                    best_bearish_threshold = threshold
+        abs_p75 = q(abs_gap, 75)
+        abs_p85 = q(abs_gap, 85)
+        abs_p95 = q(abs_gap, 95)
 
-            # Test bullish divergence threshold
-            bullish_filtered = [e for e in events
-                              if e.divergence_type == 'bullish_divergence'
-                              and abs(e.divergence_pct) >= threshold]
+        pos_p85 = q(pos_gap, 85)
+        neg_p85 = q(neg_gap, 85)
 
-            if len(bullish_filtered) >= 20:
-                returns_d7 = [e.forward_returns.get('D7', 0) for e in bullish_filtered]
-                sharpe = np.mean(returns_d7) / (np.std(returns_d7) + 1e-6)
+        # Backwards-compatible keys expected by the existing frontend:
+        # - "bearish_divergence_threshold" historically meant "positive divergence"
+        # - "bullish_divergence_threshold" historically meant "negative divergence"
+        # Map those to the direction-specific P85 dislocation levels.
+        start_date = None
+        end_date = None
+        try:
+            idx = divergence_series.index
+            if len(idx) > 0:
+                start_date = pd.Timestamp(idx.min()).strftime("%Y-%m-%d")
+                end_date = pd.Timestamp(idx.max()).strftime("%Y-%m-%d")
+        except Exception:
+            start_date = None
+            end_date = None
 
-                if sharpe > best_bullish_sharpe:
-                    best_bullish_sharpe = sharpe
-                    best_bullish_threshold = threshold
-
-        return {
-            'bearish_divergence_threshold': best_bearish_threshold or 25,
-            'bullish_divergence_threshold': best_bullish_threshold or 25,
-            'bearish_sharpe': best_bearish_sharpe,
-            'bullish_sharpe': best_bullish_sharpe
+        thresholds = {
+            "bearish_divergence_threshold": int(round(pos_p85)) if pos_p85 is not None else 25,
+            "bullish_divergence_threshold": int(round(neg_p85)) if neg_p85 is not None else 25,
+            "bearish_sharpe": None,
+            "bullish_sharpe": None,
+            "dislocation_abs_p75": abs_p75,
+            "dislocation_abs_p85": abs_p85,
+            "dislocation_abs_p95": abs_p95,
+            "dislocation_positive_p85": pos_p85,
+            "dislocation_negative_p85": neg_p85,
+            "dislocation_sample": {
+                "n_days": int(divergence_values.size),
+                "start_date": start_date,
+                "end_date": end_date,
+                "lookback_days_hourly": int(self.lookback_days),
+                "percentile_windows": {
+                    "daily": DAILY_PERCENTILE_WINDOW,
+                    "four_h": FOUR_H_PERCENTILE_WINDOW,
+                },
+            },
         }
 
-    def generate_current_recommendation(self) -> Dict:
+        # Compare outcomes for horizons D1/D3/D7 between "high-gap" vs "low-gap" samples.
+        # Uses daily close-to-close forward returns to match the swing framework’s D1/D3/D7 horizons.
+        try:
+            from scipy.stats import mannwhitneyu  # type: ignore
+        except Exception:
+            mannwhitneyu = None
+
+        def _forward_returns(price: pd.Series, horizon_days: int) -> pd.Series:
+            return (price.shift(-horizon_days) / price - 1.0) * 100.0
+
+        def _stats_for_mask(mask_high: pd.Series, *, base_mask: Optional[pd.Series] = None) -> Dict:
+            price = divergence_series.get("price")
+            if price is None:
+                return {}
+
+            out: Dict[str, Dict] = {}
+            for horizon in (1, 3, 7):
+                fr = _forward_returns(price, horizon).dropna()
+                high_mask = mask_high.reindex(fr.index, fill_value=False)
+                if base_mask is not None:
+                    base = base_mask.reindex(fr.index, fill_value=False)
+                    high = fr[base & high_mask]
+                    low = fr[base & ~high_mask]
+                else:
+                    high = fr[high_mask]
+                    low = fr[~high_mask]
+
+                horizon_key = f"D{horizon}"
+                if len(high) < 20 or len(low) < 20:
+                    out[horizon_key] = {
+                        "n_high": int(len(high)),
+                        "n_low": int(len(low)),
+                        "mean_high": float(high.mean()) if len(high) else None,
+                        "mean_low": float(low.mean()) if len(low) else None,
+                        "median_high": float(high.median()) if len(high) else None,
+                        "median_low": float(low.median()) if len(low) else None,
+                        "win_rate_high": float((high > 0).mean() * 100) if len(high) else None,
+                        "win_rate_low": float((low > 0).mean() * 100) if len(low) else None,
+                        "delta_mean": float(high.mean() - low.mean()) if len(high) and len(low) else None,
+                        "delta_median": float(high.median() - low.median()) if len(high) and len(low) else None,
+                        "delta_win_rate": float((high > 0).mean() * 100 - (low > 0).mean() * 100) if len(high) and len(low) else None,
+                        "p_value_mwu": None,
+                    }
+                    continue
+
+                p_value = None
+                if mannwhitneyu is not None:
+                    try:
+                        p_value = float(mannwhitneyu(high, low, alternative="two-sided").pvalue)
+                    except Exception:
+                        p_value = None
+
+                out[horizon_key] = {
+                    "n_high": int(len(high)),
+                    "n_low": int(len(low)),
+                    "mean_high": float(high.mean()),
+                    "mean_low": float(low.mean()),
+                    "median_high": float(high.median()),
+                    "median_low": float(low.median()),
+                    "win_rate_high": float((high > 0).mean() * 100),
+                    "win_rate_low": float((low > 0).mean() * 100),
+                    "delta_mean": float(high.mean() - low.mean()),
+                    "delta_median": float(high.median() - low.median()),
+                    "delta_win_rate": float((high > 0).mean() * 100 - (low > 0).mean() * 100),
+                    "p_value_mwu": p_value,
+                }
+            return out
+
+        gap_abs = divergence_series["divergence_pct"].abs()
+        pos_mask = divergence_series["divergence_pct"] > 0
+        neg_mask = divergence_series["divergence_pct"] < 0
+
+        dislocation_stats: Dict[str, Dict] = {}
+
+        if abs_p85 is not None:
+            dislocation_stats["abs_p85"] = {
+                "threshold": float(abs_p85),
+                "horizons": _stats_for_mask(gap_abs >= abs_p85),
+            }
+        if abs_p95 is not None:
+            dislocation_stats["abs_p95"] = {
+                "threshold": float(abs_p95),
+                "horizons": _stats_for_mask(gap_abs >= abs_p95),
+            }
+        if pos_p85 is not None:
+            dislocation_stats["positive_p85"] = {
+                "threshold": float(pos_p85),
+                "horizons": _stats_for_mask(gap_abs >= pos_p85, base_mask=pos_mask),
+            }
+        if neg_p85 is not None:
+            dislocation_stats["negative_p85"] = {
+                "threshold": float(neg_p85),
+                "horizons": _stats_for_mask(gap_abs >= neg_p85, base_mask=neg_mask),
+            }
+
+        thresholds["dislocation_stats"] = dislocation_stats
+        return thresholds
+
+    def generate_current_recommendation(self, dislocation_thresholds: Optional[Dict] = None) -> Dict:
         """
         Generate actionable recommendation based on current divergence state.
 
@@ -464,11 +663,13 @@ class MultiTimeframeAnalyzer:
         current_4h = float(self.hourly_4h_percentiles.iloc[-1])
         current_div = current_daily - current_4h
         current_price = float(self.daily_data['Close'].iloc[-1])
+        current_gap = abs(current_div)
 
         recommendation = {
             'current_daily_percentile': current_daily,
             'current_4h_percentile': current_4h,
             'divergence_pct': current_div,
+            'dislocation_gap': current_gap,
             'current_price': current_price,
             'signal': 'neutral',
             'action': 'wait',
@@ -543,6 +744,30 @@ class MultiTimeframeAnalyzer:
             recommendation['reasoning'].append(f"Daily at {current_daily:.1f}%, 4H at {current_4h:.1f}% (divergence {current_div:+.1f}%)")
             recommendation['reasoning'].append("No clear divergence signal - wait for better setup")
 
+        # Add per-ticker dislocation context (distribution-based thresholds)
+        p85 = None
+        p95 = None
+        if isinstance(dislocation_thresholds, dict):
+            p85 = dislocation_thresholds.get("dislocation_abs_p85")
+            p95 = dislocation_thresholds.get("dislocation_abs_p95")
+
+        recommendation["dislocation_p85"] = p85
+        recommendation["dislocation_p95"] = p95
+
+        dislocation_level = None
+        if isinstance(p85, (int, float)) and isinstance(p95, (int, float)):
+            if current_gap >= p95:
+                dislocation_level = "extreme"
+            elif current_gap >= p85:
+                dislocation_level = "significant"
+            else:
+                dislocation_level = "normal"
+            recommendation["reasoning"].append(
+                f"Dislocation level: {dislocation_level} (gap {current_gap:.1f}% vs P85 {p85:.1f}%, P95 {p95:.1f}%)"
+            )
+
+        recommendation["dislocation_level"] = dislocation_level
+
         return recommendation
 
     def run_complete_analysis(self) -> MultiTimeframeAnalysis:
@@ -554,6 +779,12 @@ class MultiTimeframeAnalyzer:
         """
         print(f"\nRunning multi-timeframe analysis for {self.ticker}...")
 
+        # Compute divergence series once (used for thresholding)
+        divergence_series = self.calculate_divergence_series()
+
+        # Dislocation thresholds (per-ticker)
+        optimal_thresholds = self.find_optimal_thresholds(divergence_series)
+
         # Backtest divergence signals
         events = self.backtest_divergence_signals()
         print(f"Found {len(events)} divergence events")
@@ -561,11 +792,8 @@ class MultiTimeframeAnalyzer:
         # Analyze patterns
         stats = self.analyze_divergence_patterns(events)
 
-        # Find optimal thresholds
-        optimal_thresholds = self.find_optimal_thresholds(events)
-
-        # Generate current recommendation
-        current_rec = self.generate_current_recommendation()
+        # Generate current recommendation (with per-ticker dislocation thresholds)
+        current_rec = self.generate_current_recommendation(optimal_thresholds)
 
         # Get current state
         current_daily = float(self.daily_percentiles.iloc[-1])

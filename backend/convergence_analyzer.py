@@ -5,6 +5,13 @@ Divergence-Convergence Framework Analyzer
 Analyzes time-to-convergence following overextension events between
 daily and 4-hour RSI-MA percentiles.
 
+IMPORTANT:
+This module now uses `MultiTimeframeAnalyzer` (the same logic behind the
+Multi-Timeframe Divergence UI) as its source of truth for:
+- RSI-MA calculation pipeline
+- Daily vs 4H percentile lookback alignment (252 daily bars vs ~410 4H bars)
+- Divergence sign convention (Daily - 4H)
+
 Core Concept:
 - Convergence Event: Both percentiles moving toward alignment (small divergence)
 - Overextension Event: One timeframe deviates significantly from the other
@@ -21,9 +28,9 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass, asdict
-from enhanced_backtester import EnhancedPerformanceMatrixBacktester
-import yfinance as yf
 from datetime import timedelta
+
+from multi_timeframe_analyzer import MultiTimeframeAnalyzer
 
 @dataclass
 class OverextensionEvent:
@@ -100,99 +107,65 @@ class ConvergenceAnalyzer:
         self.overextension_threshold = overextension_threshold
         self.max_window = max_convergence_window_hours
 
-        # Fetch data
-        self.daily_data = self._fetch_daily_data()
-        self.hourly_4h_data = self._fetch_4h_data()
+        # Source-of-truth aligned daily + 4H percentiles (same as multi-timeframe divergence UI)
+        self.mtf = MultiTimeframeAnalyzer(self.ticker)
+        self.daily_percentiles = self.mtf.daily_percentiles
+        self.percentiles_4h = self.mtf.percentiles_4h
+        self.data_4h = self.mtf.data_4h
 
-        # Calculate indicators
-        self.daily_indicator, self.daily_percentiles = self._calculate_daily_indicator()
-        self.hourly_4h_indicator, self.hourly_4h_percentiles = self._calculate_4h_indicator()
+        # Align timeframes on 4H bars (convergence analysis needs intraday resolution)
+        self.aligned_data = self._align_timeframes_on_4h()
 
-        # Align timeframes
-        self.aligned_data = self._align_timeframes()
+    def _daily_percentile_for_timestamp(self, ts: pd.Timestamp) -> Optional[float]:
+        """Get the latest available daily percentile for the timestamp's date."""
+        if self.daily_percentiles is None or self.daily_percentiles.empty:
+            return None
+        key = pd.Timestamp(ts.date())
+        try:
+            if key in self.daily_percentiles.index:
+                value = self.daily_percentiles.loc[key]
+                return float(value) if pd.notna(value) else None
+            # Fallback: last daily value on/preceding this date
+            prior = self.daily_percentiles.loc[:key].dropna()
+            if prior.empty:
+                return None
+            return float(prior.iloc[-1])
+        except Exception:
+            return None
 
-    def _fetch_daily_data(self) -> pd.DataFrame:
-        """Fetch daily OHLCV data."""
-        ticker_obj = yf.Ticker(self.ticker)
-        data = ticker_obj.history(period="2y", interval="1d")
-        return data
-
-    def _fetch_4h_data(self) -> pd.DataFrame:
-        """Fetch 4-hour OHLCV data."""
-        ticker_obj = yf.Ticker(self.ticker)
-        # yfinance 4h data limited to ~60 days
-        data = ticker_obj.history(period="60d", interval="1h")
-
-        # Resample to 4-hour bars
-        ohlc_dict = {
-            'Open': 'first',
-            'High': 'max',
-            'Low': 'min',
-            'Close': 'last',
-            'Volume': 'sum'
-        }
-        data_4h = data.resample('4H').apply(ohlc_dict).dropna()
-
-        return data_4h
-
-    def _calculate_daily_indicator(self) -> Tuple[pd.Series, pd.Series]:
-        """Calculate daily RSI-MA and percentiles."""
-        backtester = EnhancedPerformanceMatrixBacktester(
-            tickers=[self.ticker],
-            lookback_period=500,
-            rsi_length=14,
-            ma_length=14,
-            max_horizon=21
-        )
-
-        indicator = backtester.calculate_rsi_ma_indicator(self.daily_data)
-        percentiles = backtester.calculate_percentile_ranks(indicator)
-
-        return indicator, percentiles
-
-    def _calculate_4h_indicator(self) -> Tuple[pd.Series, pd.Series]:
-        """Calculate 4-hour RSI-MA and percentiles."""
-        backtester = EnhancedPerformanceMatrixBacktester(
-            tickers=[self.ticker],
-            lookback_period=500,  # ~80 days of 4h bars
-            rsi_length=14,
-            ma_length=14,
-            max_horizon=21
-        )
-
-        indicator = backtester.calculate_rsi_ma_indicator(self.hourly_4h_data)
-        percentiles = backtester.calculate_percentile_ranks(indicator)
-
-        return indicator, percentiles
-
-    def _align_timeframes(self) -> pd.DataFrame:
+    def _align_timeframes_on_4h(self) -> pd.DataFrame:
         """
-        Align daily and 4-hour data by matching dates.
-        For each 4H bar, find the corresponding daily percentile.
+        Build an intraday (4H bar) aligned table:
+        - daily_percentile: daily RSI-MA percentile for that date
+        - 4h_percentile: 4H RSI-MA percentile at that bar
+        - divergence_pct: Daily - 4H (matches MultiTimeframeAnalyzer convention)
         """
-        aligned = []
+        aligned: List[Dict] = []
 
-        for idx, row in self.hourly_4h_data.iterrows():
-            date_key = idx.date()
+        if self.percentiles_4h is None or self.percentiles_4h.empty:
+            return pd.DataFrame(aligned)
 
-            # Find closest daily data point
-            daily_idx = pd.Timestamp(date_key)
+        for ts, pct_4h in self.percentiles_4h.dropna().items():
+            daily_pct = self._daily_percentile_for_timestamp(pd.Timestamp(ts))
+            if daily_pct is None or pd.isna(pct_4h):
+                continue
 
-            if daily_idx in self.daily_percentiles.index:
-                daily_pct = self.daily_percentiles.loc[daily_idx]
-                hourly_pct = self.hourly_4h_percentiles.loc[idx]
+            if ts not in self.data_4h.index:
+                continue
 
-                if pd.notna(daily_pct) and pd.notna(hourly_pct):
-                    divergence = hourly_pct - daily_pct
+            price = self.data_4h.loc[ts, "Close"]
+            if pd.isna(price):
+                continue
 
-                    aligned.append({
-                        'datetime': idx,
-                        'date': date_key,
-                        'daily_percentile': daily_pct,
-                        '4h_percentile': hourly_pct,
-                        'divergence_pct': divergence,
-                        'price': row['Close']
-                    })
+            divergence = float(daily_pct - float(pct_4h))
+            aligned.append({
+                "datetime": pd.Timestamp(ts),
+                "date": pd.Timestamp(ts).date(),
+                "daily_percentile": float(daily_pct),
+                "4h_percentile": float(pct_4h),
+                "divergence_pct": divergence,
+                "price": float(price),
+            })
 
         return pd.DataFrame(aligned)
 
@@ -208,7 +181,9 @@ class ConvergenceAnalyzer:
             abs_divergence = abs(row['divergence_pct'])
 
             if abs_divergence >= self.overextension_threshold:
-                direction = '4h_high' if row['divergence_pct'] > 0 else '4h_low'
+                # Divergence convention: Daily - 4H
+                # Negative divergence => 4H above daily ("4h_high")
+                direction = '4h_high' if row['divergence_pct'] < 0 else '4h_low'
 
                 event = OverextensionEvent(
                     date=row['datetime'].strftime('%Y-%m-%d %H:%M'),
@@ -420,7 +395,7 @@ class ConvergenceAnalyzer:
         if len(self.aligned_data) > 0:
             current_row = self.aligned_data.iloc[-1]
             current_divergence = current_row['divergence_pct']
-            current_direction = '4h_high' if current_divergence > 0 else '4h_low'
+            current_direction = '4h_high' if current_divergence < 0 else '4h_low'
 
             is_overextended = abs(current_divergence) >= self.overextension_threshold
 

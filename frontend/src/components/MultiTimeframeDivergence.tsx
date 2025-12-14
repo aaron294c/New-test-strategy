@@ -120,6 +120,92 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
     return 'info';
   };
 
+  const formatPValue = (value: any) => {
+    if (value === null || value === undefined || Number.isNaN(value)) return 'N/A';
+    const n = Number(value);
+    if (!Number.isFinite(n)) return 'N/A';
+    if (n < 0.001) return '<0.001';
+    return n.toFixed(3);
+  };
+
+  const getConfidence = (
+    horizon: 'D1' | 'D3' | 'D7',
+    row: any
+  ): { level: 'High' | 'Medium' | 'Low'; reasons: string[] } => {
+    const reasons: string[] = [];
+
+    const p = typeof row?.p_value_mwu === 'number' ? row.p_value_mwu : null;
+    const nHigh = typeof row?.n_high === 'number' ? row.n_high : 0;
+    const nLow = typeof row?.n_low === 'number' ? row.n_low : 0;
+    const nMin = Math.min(nHigh, nLow);
+
+    const deltaMean = typeof row?.delta_mean === 'number' ? row.delta_mean : null;
+    const deltaMedian = typeof row?.delta_median === 'number' ? row.delta_median : null;
+    const deltaWin = typeof row?.delta_win_rate === 'number' ? row.delta_win_rate : null;
+
+    // 1) p-value tier (evidence strength)
+    let pScore = 0;
+    if (p !== null) {
+      if (p <= 0.05) {
+        pScore = 2;
+        reasons.push('p≤0.05');
+      } else if (p <= 0.10) {
+        pScore = 1;
+        reasons.push('p≤0.10');
+      } else if (p <= 0.15) {
+        pScore = 0.5;
+        reasons.push('p≤0.15');
+      } else {
+        reasons.push('p>0.15');
+      }
+    } else {
+      reasons.push('p=N/A');
+    }
+
+    // 2) sample size (stability)
+    let nScore = 0;
+    if (nMin >= 50) {
+      nScore = 2;
+      reasons.push('n≥50');
+    } else if (nMin >= 30) {
+      nScore = 1;
+      reasons.push('n≥30');
+    } else if (nMin >= 20) {
+      nScore = 0.5;
+      reasons.push('n≥20');
+    } else {
+      reasons.push('n<20');
+    }
+
+    // 3) effect size (practical, not just statistically significant)
+    // Thresholds tuned to your execution: D1/D3 matter more than D7.
+    const meanThreshold = horizon === 'D1' ? 0.20 : horizon === 'D3' ? 0.40 : 0.80;
+    const winThreshold = 5; // % points
+
+    const meanEffect = deltaMean !== null && Math.abs(deltaMean) >= meanThreshold;
+    const medianEffect = deltaMedian !== null && Math.abs(deltaMedian) >= meanThreshold;
+    const winEffect = deltaWin !== null && Math.abs(deltaWin) >= winThreshold;
+
+    let eScore = 0;
+    if (meanEffect || medianEffect || winEffect) {
+      eScore = 1.5;
+      reasons.push(
+        `effect≥${meanThreshold.toFixed(2)}% or win≥${winThreshold}pp`
+      );
+    } else {
+      reasons.push('small effect');
+    }
+
+    // 4) horizon alignment (you exit earlier than D7)
+    const hScore = horizon === 'D7' ? 0 : 1;
+    if (horizon !== 'D7') reasons.push('matches early-exit horizon');
+
+    const total = pScore + nScore + eScore + hScore;
+    if (total >= 5) return { level: 'High', reasons };
+    if (total >= 3) return { level: 'Medium', reasons };
+    return { level: 'Low', reasons };
+  };
+
   // Prepare chart data for divergence over time
   const getDivergenceChartData = () => {
     if (!analysis?.divergence_events) return [];
@@ -484,71 +570,105 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
             <ReferenceLine x={0} stroke="gray" />
             <ReferenceLine y={0} stroke="gray" />
             <Scatter
-              name="Bearish Divergence"
-              data={getDivergenceReturnsData().filter((d: any) => d.type === 'bearish_divergence')}
+              name="Daily Overextended (reduce/hedge)"
+              data={getDivergenceReturnsData().filter((d: any) => d.type === 'daily_overextended')}
               fill="#ff6b6b"
             />
             <Scatter
-              name="Bullish Divergence"
-              data={getDivergenceReturnsData().filter((d: any) => d.type === 'bullish_divergence')}
+              name="4H Overextended (take profits)"
+              data={getDivergenceReturnsData().filter((d: any) => d.type === '4h_overextended')}
+              fill="#ffd43b"
+            />
+            <Scatter
+              name="Bullish Convergence (buy/add)"
+              data={getDivergenceReturnsData().filter((d: any) => d.type === 'bullish_convergence')}
               fill="#51cf66"
+            />
+            <Scatter
+              name="Bearish Convergence (exit/avoid longs)"
+              data={getDivergenceReturnsData().filter((d: any) => d.type === 'bearish_convergence')}
+              fill="#845ef7"
             />
           </ScatterChart>
         </ResponsiveContainer>
 
         <Alert severity="info" sx={{ mt: 2 }}>
-          <strong>Mean Reversion Pattern:</strong> Bearish divergence (positive X) tends to produce negative
-          returns (below Y=0). Bullish divergence (negative X) tends to produce positive returns (above Y=0).
+          <strong>Interpretation:</strong> Large absolute divergence is a “dislocation” (mean reversion risk),
+          while convergence categories are the higher-confidence alignment signals.
         </Alert>
       </TabPanel>
 
       {/* Tab 4: Optimal Thresholds */}
       <TabPanel value={tabValue} index={4}>
         <Typography variant="h6" gutterBottom>
-          Optimal Divergence Thresholds
+          Dislocation Thresholds (Per-Ticker)
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          These thresholds maximize risk-adjusted returns (Sharpe ratio) for each divergence type
+          These thresholds are derived from the ticker’s historical divergence distribution (percentile gaps).
         </Typography>
+
+        {analysis.optimal_thresholds?.dislocation_sample && (
+          <Alert severity="info" sx={{ mb: 3 }}>
+            <strong>Sample used for P85/P95:</strong>{' '}
+            {analysis.optimal_thresholds.dislocation_sample.n_days ?? 'N/A'} daily observations
+            {analysis.optimal_thresholds.dislocation_sample.start_date
+              ? ` (${analysis.optimal_thresholds.dislocation_sample.start_date} → ${analysis.optimal_thresholds.dislocation_sample.end_date})`
+              : ''}{' '}
+            • Lookback request: {analysis.optimal_thresholds.dislocation_sample.lookback_days_hourly ?? 'N/A'} days of 1H history
+            • Percentile windows: Daily {analysis.optimal_thresholds.dislocation_sample.percentile_windows?.daily ?? 'N/A'} / 4H {analysis.optimal_thresholds.dislocation_sample.percentile_windows?.four_h ?? 'N/A'}
+          </Alert>
+        )}
 
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Card sx={{ bgcolor: 'error.light' }}>
+            <Card sx={{ bgcolor: 'warning.light' }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Bearish Divergence
+                  Significant Dislocation (P85)
                 </Typography>
                 <Typography variant="h4" sx={{ my: 2 }}>
-                  {analysis.optimal_thresholds.bearish_divergence_threshold}%
+                  {analysis.optimal_thresholds.dislocation_abs_p85
+                    ? `${analysis.optimal_thresholds.dislocation_abs_p85.toFixed(1)}%`
+                    : 'N/A'}
                 </Typography>
                 <Typography variant="body2">
-                  Sharpe Ratio: {analysis.optimal_thresholds.bearish_sharpe?.toFixed(2) || 'N/A'}
+                  <strong>Direction guides:</strong>{' '}
+                  +{analysis.optimal_thresholds.dislocation_positive_p85
+                    ? analysis.optimal_thresholds.dislocation_positive_p85.toFixed(1)
+                    : 'N/A'}
+                  % (Daily &gt; 4H), −{analysis.optimal_thresholds.dislocation_negative_p85
+                    ? analysis.optimal_thresholds.dislocation_negative_p85.toFixed(1)
+                    : 'N/A'}
+                  % (4H &gt; Daily)
                 </Typography>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="body2">
-                  <strong>Signal:</strong> When Daily is {analysis.optimal_thresholds.bearish_divergence_threshold}%+
-                  above 4H, consider taking profits or shorting (mean reversion expected)
+                  <strong>Use:</strong> when |Daily − 4H| exceeds P85, treat it as a real dislocation
+                  (mean reversion risk) and avoid chasing.
                 </Typography>
               </CardContent>
             </Card>
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <Card sx={{ bgcolor: 'success.light' }}>
+            <Card sx={{ bgcolor: 'error.light' }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
-                  Bullish Divergence
+                  Extreme Dislocation (P95)
                 </Typography>
                 <Typography variant="h4" sx={{ my: 2 }}>
-                  {analysis.optimal_thresholds.bullish_divergence_threshold}%
+                  {analysis.optimal_thresholds.dislocation_abs_p95
+                    ? `${analysis.optimal_thresholds.dislocation_abs_p95.toFixed(1)}%`
+                    : 'N/A'}
                 </Typography>
                 <Typography variant="body2">
-                  Sharpe Ratio: {analysis.optimal_thresholds.bullish_sharpe?.toFixed(2) || 'N/A'}
+                  <strong>Legacy (directional) thresholds:</strong>{' '}
+                  +{analysis.optimal_thresholds.bearish_divergence_threshold}% / −{analysis.optimal_thresholds.bullish_divergence_threshold}%
                 </Typography>
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="body2">
-                  <strong>Signal:</strong> When 4H is {analysis.optimal_thresholds.bullish_divergence_threshold}%+
-                  above Daily, consider buying/re-entering (pullback complete, bounce expected)
+                  <strong>Use:</strong> P95 dislocations are often best for profit-taking (if long) or
+                  patience (wait for convergence) rather than adding risk.
                 </Typography>
               </CardContent>
             </Card>
@@ -560,13 +680,102 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
             How to Use These Thresholds:
           </Typography>
           <ul style={{ margin: 0, paddingLeft: 20 }}>
-            <li>Monitor current divergence % in real-time</li>
-            <li>When divergence exceeds optimal threshold, mean reversion is likely</li>
-            <li>Bearish divergence → Take profits or short</li>
-            <li>Bullish divergence → Buy the pullback or re-enter</li>
-            <li>Convergence (low divergence) → Trend likely to continue</li>
+            <li>Use P85 as your “significant dislocation” line (risk of mean reversion increases)</li>
+            <li>Use P95 as an “extreme” line (often take profits / wait for re-alignment)</li>
+            <li>Combine with category: 4H overextended → take profits; bullish convergence → buy/add</li>
+            <li>Because you often exit before 7D, treat large dislocations as an early-exit trigger</li>
           </ul>
         </Alert>
+
+        {/* Stats: compare outcomes above/below dislocation thresholds */}
+        {analysis.optimal_thresholds?.dislocation_stats && (
+          <Box sx={{ mt: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Outcome Comparison (High Gap vs Low Gap)
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Compares forward returns for days where the divergence gap is above the threshold vs below it.
+              P-values are Mann–Whitney U (non-parametric) when sample sizes permit.
+            </Typography>
+
+            <Alert severity="info" sx={{ mb: 2 }}>
+              <strong>How to read “Confidence”:</strong> this is a trading-oriented label (risk management / filtering),
+              not a claim of certainty. We score confidence using (1) p-value tier (≤0.05 / ≤0.10 / ≤0.15),
+              (2) minimum sample size in both groups, (3) effect size (Δ mean/median and/or win-rate shift),
+              and (4) whether the horizon is aligned to your early-exit style (D1/D3 weighted higher than D7).
+            </Alert>
+
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Threshold</TableCell>
+                    <TableCell>Horizon</TableCell>
+                    <TableCell>Confidence</TableCell>
+                    <TableCell align="right">N (High)</TableCell>
+                    <TableCell align="right">N (Low)</TableCell>
+                    <TableCell align="right">Mean High</TableCell>
+                    <TableCell align="right">Mean Low</TableCell>
+                    <TableCell align="right">Δ Mean</TableCell>
+                    <TableCell align="right">Δ Median</TableCell>
+                    <TableCell align="right">Win High</TableCell>
+                    <TableCell align="right">Win Low</TableCell>
+                    <TableCell align="right">Δ Win</TableCell>
+                    <TableCell align="right">p</TableCell>
+                    <TableCell>Why</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {(['abs_p85', 'abs_p95'] as const)
+                    .filter((k) => analysis.optimal_thresholds.dislocation_stats?.[k])
+                    .flatMap((k) => {
+                      const block = analysis.optimal_thresholds.dislocation_stats[k];
+                      const label = k === 'abs_p85'
+                        ? `|gap| ≥ P85 (${block.threshold?.toFixed?.(1) ?? 'N/A'}%)`
+                        : `|gap| ≥ P95 (${block.threshold?.toFixed?.(1) ?? 'N/A'}%)`;
+                      const horizons = block.horizons || {};
+                      return (['D1', 'D3', 'D7'] as const).map((h) => {
+                        const row = horizons[h];
+                        if (!row) return null;
+                        const confidence = getConfidence(h, row);
+                        const chipColor = confidence.level === 'High'
+                          ? 'success'
+                          : confidence.level === 'Medium'
+                            ? 'warning'
+                            : 'default';
+                        return (
+                          <TableRow key={`${k}-${h}`}>
+                            <TableCell>{label}</TableCell>
+                            <TableCell>{h}</TableCell>
+                            <TableCell>
+                              <Chip
+                                size="small"
+                                label={confidence.level}
+                                color={chipColor as any}
+                                variant="outlined"
+                              />
+                            </TableCell>
+                            <TableCell align="right">{row.n_high ?? '—'}</TableCell>
+                            <TableCell align="right">{row.n_low ?? '—'}</TableCell>
+                            <TableCell align="right">{row.mean_high?.toFixed?.(2) ?? '—'}%</TableCell>
+                            <TableCell align="right">{row.mean_low?.toFixed?.(2) ?? '—'}%</TableCell>
+                            <TableCell align="right">{row.delta_mean?.toFixed?.(2) ?? '—'}%</TableCell>
+                            <TableCell align="right">{row.delta_median?.toFixed?.(2) ?? '—'}%</TableCell>
+                            <TableCell align="right">{row.win_rate_high?.toFixed?.(1) ?? '—'}%</TableCell>
+                            <TableCell align="right">{row.win_rate_low?.toFixed?.(1) ?? '—'}%</TableCell>
+                            <TableCell align="right">{row.delta_win_rate?.toFixed?.(1) ?? '—'}pp</TableCell>
+                            <TableCell align="right">{formatPValue(row.p_value_mwu)}</TableCell>
+                            <TableCell>{confidence.reasons.join(', ')}</TableCell>
+                          </TableRow>
+                        );
+                      });
+                    })
+                    .filter(Boolean)}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
+        )}
       </TabPanel>
     </Paper>
   );

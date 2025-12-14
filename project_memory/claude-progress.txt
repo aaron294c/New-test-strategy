@@ -258,6 +258,59 @@ Docker:
   Containers: backend (Python), frontend (React)
   Ports: 8000 (backend), 3000 (frontend)
 
+=============================================================================
+CODING AGENT UPDATE
+=============================================================================
+Date: 2025-12-14
+Feature: F034 Multiple Timeframe Support
+Branch: codemacine/dev
+
+Summary
+-------
+- Aligned multi-timeframe divergence calculations with the Swing Framework/Duration “source of truth” by computing 4H percentiles on true 4H bars using an aligned lookback window (~410 4H bars ≈ 252 trading days).
+- Kept the `/api/multi-timeframe/{ticker}` response schema stable for the existing `frontend/src/components/MultiTimeframeDivergence.tsx` consumer.
+- Added per-ticker “significant / extreme dislocation” thresholds (P85/P95 of |Daily−4H| gap) and surfaced them in both the API payload and the Multi-Timeframe Divergence UI.
+- Added an offline regression test that monkeypatches yfinance to ensure alignment + thresholding works without network access.
+ - Updated `/api/convergence-analysis/{ticker}` to use the same aligned MultiTimeframeAnalyzer series (same RSI-MA + percentile lookbacks + divergence sign), so the “Convergence Prediction” panel is consistent with the framework/duration logic.
+
+Files Edited
+------------
+- backend/multi_timeframe_analyzer.py
+- backend/convergence_analyzer.py
+- tests/unit/test_multi_timeframe_alignment.py
+- tests/unit/test_convergence_analysis_alignment.py
+- frontend/src/components/MultiTimeframeDivergence.tsx
+- project_memory/feature_list.json (set F034 passes=true)
+- project_memory/claude-progress.txt
+
+Testing
+-------
+- Ran: pytest -q tests/unit/test_multi_timeframe_alignment.py (PASS)
+- Ran: pytest -q tests/unit/test_convergence_analysis_alignment.py (PASS)
+- Attempted: npm -C frontend run build (FAIL: pre-existing TypeScript errors across other components; not caused by the multi-timeframe changes)
+
+Recommended Next Action
+-----------------------
+- Resolve outstanding frontend TypeScript errors (many are unused imports/vars and missing types); then re-run `npm -C frontend run build` to restore a green build.
+
+Additional Notes (Dislocation Stats)
+-----------------------------------
+- Multi-timeframe now computes dislocation outcome comparisons for D1/D3/D7 using daily close-to-close forward returns:
+  - Compares days with |Daily−4H| ≥ P85/P95 vs the remaining days.
+  - Provides Mann–Whitney U p-values when sample sizes are sufficient.
+- UI now adds a trading-oriented **Confidence** label per horizon using:
+  - Evidence tier: p≤0.05 (strong), p≤0.10 (moderate), p≤0.15 (weak)
+  - Sample size: minimum of (high/low) group sizes (n≥50/30/20)
+  - Effect size: meaningful Δ mean/median and/or win-rate shift (thresholds by horizon; D1/D3 emphasized)
+  - Horizon alignment: D1/D3 weighted higher than D7 to match early-exit execution
+- UI now shows the exact sample size used to calibrate P85/P95:
+  - Number of daily observations used (after percentile warm-up and daily/4H alignment)
+  - Start/end date range of that sample
+  - Lookback request for 1H history and the percentile windows (Daily/4H)
+- Early results (sample run, 730d lookback; overlap limited by 1H/4H history):
+  - P85 |gap| clustered around ~23–29% across the listed tickers (ticker-specific).
+  - Extreme dislocations (P95) are not universally bearish; e.g., AAPL showed positive D7 delta at P95 with p≈0.048, while META showed negative D3/D7 deltas with p≈0.032/0.047.
+
 AI COORDINATION SYSTEMS
 ========================
 
