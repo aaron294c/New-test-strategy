@@ -29,5 +29,13 @@ echo "✓ Starting API server on http://localhost:8000"
 echo "✓ API Documentation: http://localhost:8000/docs"
 echo ""
 
-# Start the backend
-python api.py
+# Start the backend (FastAPI via uvicorn)
+HOST="${HOST:-0.0.0.0}"
+PORT="${PORT:-8000}"
+RELOAD="${RELOAD:-1}"
+
+if [ "$RELOAD" = "1" ]; then
+  uvicorn api:app --host "$HOST" --port "$PORT" --reload
+else
+  uvicorn api:app --host "$HOST" --port "$PORT"
+fi

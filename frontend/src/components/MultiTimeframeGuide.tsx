@@ -145,8 +145,18 @@ const PERCENTILE_BINS = [
   '0-5', '5-15', '15-25', '25-50', '50-75', '75-85', '85-95', '95-100'
 ];
 
-const MultiTimeframeGuide: React.FC = () => {
-  const [selectedStock, setSelectedStock] = useState<string>('NVDA');
+const STOCK_TABS = [
+  'NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO', 'LLY', 'TSM', 'ORCL', 'OXY'
+];
+
+interface MultiTimeframeGuideProps {
+  ticker?: string;
+}
+
+const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => {
+  const [selectedStock, setSelectedStock] = useState<string>(() => (
+    ticker && STOCK_TABS.includes(ticker) ? ticker : 'NVDA'
+  ));
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const [stockMetadata, setStockMetadata] = useState<StockMetadata | null>(null);
   const [fourHBins, setFourHBins] = useState<BinStatistic[]>([]);
@@ -156,6 +166,13 @@ const MultiTimeframeGuide: React.FC = () => {
   const [recommendation, setRecommendation] = useState<TradingRecommendation | null>(null);
   const [tradeManagement, setTradeManagement] = useState<TradeManagementRules | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+
+  // Keep Trading Guide selection in sync with global ticker selector (when supported)
+  useEffect(() => {
+    if (!ticker || !STOCK_TABS.includes(ticker)) return;
+    if (ticker === selectedStock) return;
+    setSelectedStock(ticker);
+  }, [ticker, selectedStock]);
 
   // Load stock metadata
   useEffect(() => {
@@ -822,29 +839,14 @@ const MultiTimeframeGuide: React.FC = () => {
       {/* Stock Selector */}
       <Box sx={{ mb: 3 }}>
         <Tabs
-          value={['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO', 'LLY', 'TSM', 'ORCL', 'OXY'].indexOf(selectedStock)}
-          onChange={(_, newValue) =>
-            setSelectedStock(['NVDA', 'MSFT', 'GOOGL', 'AAPL', 'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO', 'LLY', 'TSM', 'ORCL', 'OXY'][newValue])
-          }
+          value={Math.max(0, STOCK_TABS.indexOf(selectedStock))}
+          onChange={(_, newValue) => setSelectedStock(STOCK_TABS[newValue] ?? selectedStock)}
           variant="scrollable"
           scrollButtons="auto"
         >
-          <Tab label="NVDA" />
-          <Tab label="MSFT" />
-          <Tab label="GOOGL" />
-          <Tab label="AAPL" />
-          <Tab label="GLD" />
-          <Tab label="SLV" />
-          <Tab label="TSLA" />
-          <Tab label="NFLX" />
-          <Tab label="BRK-B" />
-          <Tab label="WMT" />
-          <Tab label="UNH" />
-          <Tab label="AVGO" />
-          <Tab label="LLY" />
-          <Tab label="TSM" />
-          <Tab label="ORCL" />
-          <Tab label="OXY" />
+          {STOCK_TABS.map((symbol) => (
+            <Tab key={symbol} label={symbol} />
+          ))}
         </Tabs>
       </Box>
 

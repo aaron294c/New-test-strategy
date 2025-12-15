@@ -3,7 +3,7 @@
  * RSI-MA Performance Analytics Dashboard
  */
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   AppBar,
   Box,
@@ -32,24 +32,33 @@ import TimelineIcon from '@mui/icons-material/Timeline';
 import RuleIcon from '@mui/icons-material/Rule';
 
 import { backtestApi } from './api/client';
-import PerformanceMatrixHeatmap from './components/PerformanceMatrixHeatmap';
-import EnhancedPerformanceMatrix from './components/EnhancedPerformanceMatrix';
-import ReturnDistributionChart from './components/ReturnDistributionChart';
-import OptimalExitPanel from './components/OptimalExitPanel';
-import RSIPercentileChart from './components/RSIPercentileChart';
-import StrategyRulesPanel from './components/StrategyRulesPanel';
-import ExitStrategyComparison from './components/ExitStrategyComparison';
-import TradeSimulationViewer from './components/TradeSimulationViewer';
-import LiveTradingSignals from './components/LiveTradingSignals';
-import MultiTimeframeDivergence from './components/MultiTimeframeDivergence';
-import PositionManagement from './components/PositionManagement';
-import EnhancedDivergenceLifecycle from './components/EnhancedDivergenceLifecycle';
-import PercentileForwardMapper from './components/PercentileForwardMapper';
-import MultiTimeframeGuide from './components/MultiTimeframeGuide';
-import SwingTradingFramework from './components/TradingFramework/SwingTradingFramework';
-import { GammaScannerTab } from './components/GammaScanner';
-import { RiskDistanceTab } from './components/RiskDistance';
-import LowerExtensionPage from './pages/LowerExtensionPage';
+
+// Tab-level code-splitting: most tabs pull in heavy charting libs (plotly/d3/etc).
+// Lazy-loading keeps the initial bundle small and improves time-to-interactive.
+const MultiTimeframeGuide = React.lazy(() => import('./components/MultiTimeframeGuide'));
+const SwingTradingFramework = React.lazy(() => import('./components/TradingFramework/SwingTradingFramework'));
+const LiveTradingSignals = React.lazy(() => import('./components/LiveTradingSignals'));
+const PositionManagement = React.lazy(() => import('./components/PositionManagement'));
+const MultiTimeframeDivergence = React.lazy(() => import('./components/MultiTimeframeDivergence'));
+const EnhancedDivergenceLifecycle = React.lazy(() => import('./components/EnhancedDivergenceLifecycle'));
+const PercentileForwardMapper = React.lazy(() => import('./components/PercentileForwardMapper'));
+const RSIPercentileChart = React.lazy(() => import('./components/RSIPercentileChart'));
+const PerformanceMatrixHeatmap = React.lazy(() => import('./components/PerformanceMatrixHeatmap'));
+const EnhancedPerformanceMatrix = React.lazy(() => import('./components/EnhancedPerformanceMatrix'));
+const ReturnDistributionChart = React.lazy(() => import('./components/ReturnDistributionChart'));
+const StrategyRulesPanel = React.lazy(() => import('./components/StrategyRulesPanel'));
+const OptimalExitPanel = React.lazy(() => import('./components/OptimalExitPanel'));
+const ExitStrategyComparison = React.lazy(() => import('./components/ExitStrategyComparison'));
+const TradeSimulationViewer = React.lazy(() => import('./components/TradeSimulationViewer'));
+const GammaScannerTab = React.lazy(() =>
+  import('./components/GammaScanner').then((m) => ({ default: m.GammaScannerTab }))
+);
+const RiskDistanceTab = React.lazy(() =>
+  import('./components/RiskDistance').then((m) => ({ default: m.RiskDistanceTab }))
+);
+const LowerExtensionPage = React.lazy(() => import('./pages/LowerExtensionPage'));
+const IndexConstructionToolPage = React.lazy(() => import('./pages/IndexConstructionToolPage'));
+const WeightedFourierTransformPage = React.lazy(() => import('./pages/WeightedFourierTransformPage'));
 
 // Create theme with dark mode support
 const theme = createTheme({
@@ -120,16 +129,28 @@ function Dashboard() {
   const [selectedThreshold, setSelectedThreshold] = useState<number>(5);
   const [activeTab, setActiveTab] = useState(0);
 
+  const suspenseFallback = useMemo(
+    () => (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <CircularProgress size={44} />
+      </Box>
+    ),
+    []
+  );
+
   // Fetch backtest data
   const { data: backtestData, isLoading, error, refetch } = useQuery({
     queryKey: ['backtest', selectedTicker],
     queryFn: () => backtestApi.getBacktestResults(selectedTicker),
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch RSI chart data
+  // Fetch RSI chart data only when the RSI tab is opened (avoids eager plotly payloads).
   const { data: rsiChartData, isLoading: isLoadingRSIChart } = useQuery({
-    queryKey: ['rsiChart', selectedTicker],
+    queryKey: ['rsiChart', selectedTicker, 252],
     queryFn: () => backtestApi.getRSIChartData(selectedTicker, 252),
+    enabled: activeTab === 7,
+    staleTime: 5 * 60 * 1000,
   });
 
   const thresholdData = backtestData?.thresholds?.[selectedThreshold.toFixed(1)];
@@ -263,21 +284,29 @@ function Dashboard() {
                 <Tab icon={<AssessmentIcon />} label="🔰 GAMMA WALL SCANNER" />
                 <Tab icon={<ShowChartIcon />} label="📏 RISK DISTANCE" />
                 <Tab icon={<TrendingUpIcon />} label="📐 LOWER EXTENSION" />
+                <Tab icon={<ShowChartIcon />} label="🧱 INDEX CONSTRUCTION (ICT)" />
+                <Tab icon={<TimelineIcon />} label="🌊 WFT SPECTRAL GATING" />
               </Tabs>
             </Paper>
 
             <TabPanel value={activeTab} index={0}>
-              <MultiTimeframeGuide />
+              <React.Suspense fallback={suspenseFallback}>
+                <MultiTimeframeGuide ticker={selectedTicker} />
+              </React.Suspense>
             </TabPanel>
 
             <TabPanel value={activeTab} index={1}>
-              <SwingTradingFramework ticker={selectedTicker} />
+              <React.Suspense fallback={suspenseFallback}>
+                <SwingTradingFramework ticker={selectedTicker} />
+              </React.Suspense>
             </TabPanel>
 
             <TabPanel value={activeTab} index={2}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <LiveTradingSignals ticker={selectedTicker} />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <LiveTradingSignals ticker={selectedTicker} />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -285,7 +314,9 @@ function Dashboard() {
             <TabPanel value={activeTab} index={3}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <PositionManagement ticker={selectedTicker} />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <PositionManagement ticker={selectedTicker} />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -293,7 +324,9 @@ function Dashboard() {
             <TabPanel value={activeTab} index={4}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <MultiTimeframeDivergence ticker={selectedTicker} />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <MultiTimeframeDivergence ticker={selectedTicker} />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -301,7 +334,9 @@ function Dashboard() {
             <TabPanel value={activeTab} index={5}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <EnhancedDivergenceLifecycle ticker={selectedTicker} />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <EnhancedDivergenceLifecycle ticker={selectedTicker} />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -309,7 +344,9 @@ function Dashboard() {
             <TabPanel value={activeTab} index={6}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <PercentileForwardMapper ticker={selectedTicker} />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <PercentileForwardMapper ticker={selectedTicker} />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -317,11 +354,13 @@ function Dashboard() {
             <TabPanel value={activeTab} index={7}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <RSIPercentileChart
-                    data={rsiChartData || null}
-                    ticker={selectedTicker}
-                    isLoading={isLoadingRSIChart}
-                  />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <RSIPercentileChart
+                      data={rsiChartData || null}
+                      ticker={selectedTicker}
+                      isLoading={isLoadingRSIChart}
+                    />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -329,20 +368,24 @@ function Dashboard() {
             <TabPanel value={activeTab} index={8}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <PerformanceMatrixHeatmap
-                    matrix={thresholdData.performance_matrix}
-                    title={`${selectedTicker} Performance Heatmap (Entry ≤${selectedThreshold}%)`}
-                    maxDay={21}
-                  />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <PerformanceMatrixHeatmap
+                      matrix={thresholdData.performance_matrix}
+                      title={`${selectedTicker} Performance Heatmap (Entry ≤${selectedThreshold}%)`}
+                      maxDay={21}
+                    />
+                  </React.Suspense>
                 </Grid>
                 <Grid item xs={12}>
-                  <EnhancedPerformanceMatrix
-                    matrix={thresholdData.performance_matrix}
-                    winRates={thresholdData.win_rates}
-                    returnDistributions={thresholdData.return_distributions}
-                    title={`${selectedTicker} Complete Performance Matrix (Entry ≤${selectedThreshold}%)`}
-                    maxDay={21}
-                  />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <EnhancedPerformanceMatrix
+                      matrix={thresholdData.performance_matrix}
+                      winRates={thresholdData.win_rates}
+                      returnDistributions={thresholdData.return_distributions}
+                      title={`${selectedTicker} Complete Performance Matrix (Entry ≤${selectedThreshold}%)`}
+                      maxDay={21}
+                    />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -350,12 +393,14 @@ function Dashboard() {
             <TabPanel value={activeTab} index={9}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <ReturnDistributionChart
-                    returnDistributions={thresholdData.return_distributions}
-                    benchmark={backtestData.benchmark}
-                    title={`${selectedTicker} Return Distribution (Entry ≤${selectedThreshold}%)`}
-                    maxDay={21}
-                  />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <ReturnDistributionChart
+                      returnDistributions={thresholdData.return_distributions}
+                      benchmark={backtestData.benchmark}
+                      title={`${selectedTicker} Return Distribution (Entry ≤${selectedThreshold}%)`}
+                      maxDay={21}
+                    />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -363,13 +408,15 @@ function Dashboard() {
             <TabPanel value={activeTab} index={10}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <StrategyRulesPanel
-                    percentileMovements={thresholdData.percentile_movements}
-                    trendAnalysis={thresholdData.trend_analysis}
-                    tradeRules={thresholdData.trade_management_rules || []}
-                    ticker={selectedTicker}
-                    threshold={selectedThreshold}
-                  />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <StrategyRulesPanel
+                      percentileMovements={thresholdData.percentile_movements}
+                      trendAnalysis={thresholdData.trend_analysis}
+                      tradeRules={thresholdData.trade_management_rules || []}
+                      ticker={selectedTicker}
+                      threshold={selectedThreshold}
+                    />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -377,13 +424,15 @@ function Dashboard() {
             <TabPanel value={activeTab} index={11}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <OptimalExitPanel
-                    optimalExit={thresholdData.optimal_exit_strategy}
-                    riskMetrics={thresholdData.risk_metrics}
-                    trendAnalysis={thresholdData.trend_analysis}
-                    ticker={selectedTicker}
-                    threshold={selectedThreshold}
-                  />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <OptimalExitPanel
+                      optimalExit={thresholdData.optimal_exit_strategy}
+                      riskMetrics={thresholdData.risk_metrics}
+                      trendAnalysis={thresholdData.trend_analysis}
+                      ticker={selectedTicker}
+                      threshold={selectedThreshold}
+                    />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -391,10 +440,12 @@ function Dashboard() {
             <TabPanel value={activeTab} index={12}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <ExitStrategyComparison
-                    ticker={selectedTicker}
-                    threshold={selectedThreshold}
-                  />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <ExitStrategyComparison
+                      ticker={selectedTicker}
+                      threshold={selectedThreshold}
+                    />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
@@ -402,23 +453,43 @@ function Dashboard() {
             <TabPanel value={activeTab} index={13}>
               <Grid container spacing={3}>
                 <Grid item xs={12}>
-                  <TradeSimulationViewer
-                    ticker={selectedTicker}
-                  />
+                  <React.Suspense fallback={suspenseFallback}>
+                    <TradeSimulationViewer
+                      ticker={selectedTicker}
+                    />
+                  </React.Suspense>
                 </Grid>
               </Grid>
             </TabPanel>
 
             <TabPanel value={activeTab} index={14}>
-              <GammaScannerTab />
+              <React.Suspense fallback={suspenseFallback}>
+                <GammaScannerTab />
+              </React.Suspense>
             </TabPanel>
 
             <TabPanel value={activeTab} index={15}>
-              <RiskDistanceTab />
+              <React.Suspense fallback={suspenseFallback}>
+                <RiskDistanceTab />
+              </React.Suspense>
             </TabPanel>
 
             <TabPanel value={activeTab} index={16}>
-              <LowerExtensionPage />
+              <React.Suspense fallback={suspenseFallback}>
+                <LowerExtensionPage />
+              </React.Suspense>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={17}>
+              <React.Suspense fallback={suspenseFallback}>
+                <IndexConstructionToolPage />
+              </React.Suspense>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={18}>
+              <React.Suspense fallback={suspenseFallback}>
+                <WeightedFourierTransformPage ticker={selectedTicker} />
+              </React.Suspense>
             </TabPanel>
           </>
         )}

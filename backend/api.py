@@ -12,6 +12,7 @@ Endpoints:
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 import os
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
@@ -20,6 +21,7 @@ import os
 from datetime import datetime
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 from enhanced_backtester import EnhancedPerformanceMatrixBacktester
 from monte_carlo_simulator import MonteCarloSimulator, run_monte_carlo_for_ticker
@@ -75,6 +77,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Compress large JSON responses (matrices/series) to reduce transfer + parse time.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
+
 # Import and add Swing Framework router (REAL historical trade data)
 try:
     from swing_framework_api import router as swing_framework_router
@@ -129,11 +134,17 @@ except Exception as e:
     print(f"⚠️  Could not load indicator APIs: {e}")
 
 # Cache directory for results
-CACHE_DIR = "cache"
+# - Local dev: keep using `./cache`
+# - Serverless (e.g. Vercel): use a writable temp directory
+default_cache_dir = Path("cache")
+if os.getenv("VERCEL"):
+    default_cache_dir = Path(os.getenv("TMPDIR", "/tmp")) / "rsi_ma_cache"
+
+CACHE_DIR = os.getenv("CACHE_DIR", str(default_cache_dir))
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # Default tickers
-DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY", "GLD", "SLV", "BRK-B"]
+DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY", "GLD", "SLV", "BRK-B", "AVGO"]
 
 # ============================================================================
 # Request/Response Models

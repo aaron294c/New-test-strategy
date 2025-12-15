@@ -18,7 +18,8 @@ from stock_statistics import (
     GOOGL_4H_DATA, GOOGL_DAILY_DATA,
     AAPL_4H_DATA, AAPL_DAILY_DATA,
     TSLA_4H_DATA, TSLA_DAILY_DATA,
-    NFLX_4H_DATA, NFLX_DAILY_DATA
+    NFLX_4H_DATA, NFLX_DAILY_DATA,
+    AVGO_4H_DATA, AVGO_DAILY_DATA
 )
 from percentile_forward_4h import fetch_4h_data, calculate_rsi_ma_4h
 
@@ -62,6 +63,7 @@ FOUR_H_BIN_MAP: Dict[str, Dict] = {
     "AAPL": AAPL_4H_DATA,
     "TSLA": TSLA_4H_DATA,
     "NFLX": NFLX_4H_DATA,
+    "AVGO": AVGO_4H_DATA,
 }
 
 FOUR_H_DEFAULT_HOLDING_DAYS = 4.0  # Approximate 4H holding horizon (in days) for expectancy display
@@ -422,7 +424,7 @@ async def get_swing_framework_data():
     """
 
     # Include both stocks and market indices
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO"]
     results = {}
 
     bin_data_map = {
@@ -432,6 +434,7 @@ async def get_swing_framework_data():
         "AAPL": (AAPL_4H_DATA, AAPL_DAILY_DATA),
         "TSLA": (TSLA_4H_DATA, TSLA_DAILY_DATA),
         "NFLX": (NFLX_4H_DATA, NFLX_DAILY_DATA),
+        "AVGO": (AVGO_4H_DATA, AVGO_DAILY_DATA),
         # Indices and stocks without pre-computed bin data - will use real-time calculation
         "SPY": (None, None),
         "QQQ": (None, None),
@@ -780,7 +783,7 @@ async def get_current_market_state():
 
     OPTIMIZED: Uses cached cohort statistics, only fetches current percentiles
     """
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO"]
 
     # Get cached cohort stats (fast - uses cache after first call)
     print("Fetching cohort statistics...")
@@ -940,7 +943,7 @@ async def get_current_market_state_4h():
     Uses pre-computed 4H bin statistics when available and falls back to on-the-fly
     cohort calculations from 4H price data.
     """
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO"]
     current_states = []
 
     print("Fetching 4H current percentiles...")
