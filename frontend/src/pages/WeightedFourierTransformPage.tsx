@@ -355,7 +355,12 @@ function WFTChart(props: {
   const freqSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const dcSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const reconSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const priceLinesRef = useRef<ReturnType<ISeriesApi<'Line'>['createPriceLine']>[]>([]);
+  const priceLinesRef = useRef<
+    Array<{
+      series: ISeriesApi<'Line'>;
+      line: ReturnType<ISeriesApi<'Line'>['createPriceLine']>;
+    }>
+  >([]);
 
   const rankColor = useMemo(() => {
     if (!percentiles || !Number.isFinite(percentiles.currentRank)) return '#9C27B0';
@@ -435,8 +440,14 @@ function WFTChart(props: {
     dcSeriesRef.current.setData(dcLine);
     reconSeriesRef.current.setData(reconWindow);
 
-    // Clear existing percentile price lines
-    for (const pl of priceLinesRef.current) pl.remove();
+    // Clear existing percentile price lines (lightweight-charts removes via series.removePriceLine)
+    for (const { series, line } of priceLinesRef.current) {
+      try {
+        series.removePriceLine(line);
+      } catch {
+        // ignore (e.g. if series already disposed)
+      }
+    }
     priceLinesRef.current = [];
 
     if (showPercentileLines && percentiles && Number.isFinite(percentiles.p50)) {
@@ -457,7 +468,7 @@ function WFTChart(props: {
           lineStyle: style,
           axisLabelVisible: true,
         };
-        priceLinesRef.current.push(targetSeries.createPriceLine(opts));
+        priceLinesRef.current.push({ series: targetSeries, line: targetSeries.createPriceLine(opts) });
       };
 
       addLine(percentiles.p5, '5%', 'rgba(0,200,83,0.55)', 1, LineStyle.Dashed);
@@ -780,4 +791,3 @@ export default function WeightedFourierTransformPage(props: { ticker: string }) 
     </Box>
   );
 }
-

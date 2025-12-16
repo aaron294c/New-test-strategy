@@ -42,7 +42,7 @@ const PositionManagement = React.lazy(() => import('./components/PositionManagem
 const MultiTimeframeDivergence = React.lazy(() => import('./components/MultiTimeframeDivergence'));
 const EnhancedDivergenceLifecycle = React.lazy(() => import('./components/EnhancedDivergenceLifecycle'));
 const PercentileForwardMapper = React.lazy(() => import('./components/PercentileForwardMapper'));
-const RSIPercentileChart = React.lazy(() => import('./components/RSIPercentileChart'));
+const RSIIndicatorPage = React.lazy(() => import('./pages/RSIIndicatorPage'));
 const PerformanceMatrixHeatmap = React.lazy(() => import('./components/PerformanceMatrixHeatmap'));
 const EnhancedPerformanceMatrix = React.lazy(() => import('./components/EnhancedPerformanceMatrix'));
 const ReturnDistributionChart = React.lazy(() => import('./components/ReturnDistributionChart'));
@@ -100,7 +100,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'QQQ', 'SPY', 'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO', 'LLY', 'TSM', 'ORCL', 'OXY'];
+const DEFAULT_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'QQQ', 'SPY', 'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO', 'LLY', 'TSM', 'ORCL', 'OXY', 'CNX1'];
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -146,7 +146,7 @@ function Dashboard() {
   });
 
   // Fetch RSI chart data only when the RSI tab is opened (avoids eager plotly payloads).
-  const { data: rsiChartData, isLoading: isLoadingRSIChart } = useQuery({
+  const { data: rsiChartData, isLoading: isLoadingRSIChart, refetch: refetchRSIChart } = useQuery({
     queryKey: ['rsiChart', selectedTicker, 252],
     queryFn: () => backtestApi.getRSIChartData(selectedTicker, 252),
     enabled: activeTab === 7,
@@ -355,10 +355,11 @@ function Dashboard() {
               <Grid container spacing={3}>
                 <Grid item xs={12}>
                   <React.Suspense fallback={suspenseFallback}>
-                    <RSIPercentileChart
+                    <RSIIndicatorPage
                       data={rsiChartData || null}
                       ticker={selectedTicker}
                       isLoading={isLoadingRSIChart}
+                      onRefresh={() => refetchRSIChart()}
                     />
                   </React.Suspense>
                 </Grid>

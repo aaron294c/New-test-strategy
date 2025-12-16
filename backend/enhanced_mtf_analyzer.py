@@ -18,6 +18,8 @@ from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from scipy import stats
 
+from ticker_utils import resolve_yahoo_symbol
+
 
 @dataclass
 class IntradayCheckpoint:
@@ -258,7 +260,7 @@ class EnhancedMultiTimeframeAnalyzer:
 
     def _fetch_data(self, interval: str, period: str) -> pd.DataFrame:
         """Fetch OHLCV data."""
-        ticker_obj = yf.Ticker(self.ticker)
+        ticker_obj = yf.Ticker(resolve_yahoo_symbol(self.ticker))
         data = ticker_obj.history(interval=interval, period=period)
         if data.empty:
             raise ValueError(f"Could not fetch {interval} data for {self.ticker}")

@@ -21,6 +21,8 @@ from dataclasses import dataclass, asdict
 from scipy.stats import mannwhitneyu, pearsonr
 import json
 
+from ticker_utils import resolve_yahoo_symbol
+
 warnings.filterwarnings('ignore')
 
 @dataclass
@@ -122,8 +124,10 @@ class EnhancedPerformanceMatrixBacktester:
         try:
             time.sleep(0.5)  # Rate limiting
 
+            yahoo_ticker = resolve_yahoo_symbol(ticker)
+
             # Let yfinance handle the session (uses curl_cffi if available)
-            stock = yf.Ticker(ticker)
+            stock = yf.Ticker(yahoo_ticker)
             data = stock.history(period=period, auto_adjust=True, prepost=True)
             
             if data.empty:
@@ -156,7 +160,8 @@ class EnhancedPerformanceMatrixBacktester:
             print(f"Error fetching data for {ticker}: {e}")
             try:
                 # Try download method (yfinance handles session)
-                data = yf.download(ticker, period="2y", progress=False)
+                yahoo_ticker = resolve_yahoo_symbol(ticker)
+                data = yf.download(yahoo_ticker, period="2y", progress=False)
                 if not data.empty:
                     print(f"Success with yf.download for {ticker}: {len(data)} points")
                     return data

@@ -18,6 +18,8 @@ from typing import Dict
 from datetime import datetime, timedelta
 from dataclasses import asdict
 
+from ticker_utils import resolve_yahoo_symbol
+
 # Import the existing mapper (we'll reuse it with different horizons)
 from percentile_forward_mapping import (
     PercentileForwardMapper,
@@ -51,7 +53,7 @@ def fetch_4h_data(ticker: str, lookback_days: int = 365) -> pd.DataFrame:
     start_date = end_date - timedelta(days=lookback_days)
 
     # Fetch 1-hour data first (yfinance doesn't have native 4h)
-    ticker_obj = yf.Ticker(ticker)
+    ticker_obj = yf.Ticker(resolve_yahoo_symbol(ticker))
     data_1h = ticker_obj.history(start=start_date, end=end_date, interval='1h')
 
     if data_1h.empty:

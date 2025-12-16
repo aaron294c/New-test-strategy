@@ -21,6 +21,8 @@ import yfinance as yf
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from ticker_utils import resolve_yahoo_symbol
+
 BAR_INTERVAL_HOURS = 4  # Default 4H bars for intraday progression
 MARKET_HOURS_PER_DAY = 6.5  # US market hours (9:30 AM - 4:00 PM)
 BARS_PER_TRADING_DAY = MARKET_HOURS_PER_DAY / BAR_INTERVAL_HOURS  # ~1.625 bars/day
@@ -154,7 +156,7 @@ def fetch_intraday_data(
     fallback_reason = None
     try:
         cache_dir = Path("/tmp/yfinance_cache")
-        data = _download_with_cache_guard(ticker, cache_dir=cache_dir)
+        data = _download_with_cache_guard(resolve_yahoo_symbol(ticker), cache_dir=cache_dir)
         if data.empty:
             raise ValueError(f"No intraday data for {ticker}")
         data.attrs["data_source"] = "live_intraday"

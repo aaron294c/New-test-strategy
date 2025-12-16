@@ -19,6 +19,8 @@ import numpy as np
 import yfinance as yf
 from datetime import datetime, timedelta
 
+from ticker_utils import resolve_yahoo_symbol
+
 
 @dataclass
 class DivergenceEvent:
@@ -90,7 +92,7 @@ class PositionManager:
 
     def _fetch_data(self, interval: str, period: str) -> pd.DataFrame:
         """Fetch OHLCV data - EXACT same as multi_timeframe_analyzer."""
-        ticker_obj = yf.Ticker(self.ticker)
+        ticker_obj = yf.Ticker(resolve_yahoo_symbol(self.ticker))
         data = ticker_obj.history(interval=interval, period=period)
 
         if data.empty:

@@ -17,6 +17,8 @@ import logging
 import requests
 import json
 
+from ticker_utils import resolve_yahoo_symbol
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
@@ -89,6 +91,8 @@ def get_current_price(symbol: str) -> Optional[PriceData]:
         yahoo_sym = clean_sym
         if clean_sym in ['SPX', 'NDX', 'VIX', 'DJI', 'RUT']:
             yahoo_sym = f'^{clean_sym}'
+        else:
+            yahoo_sym = resolve_yahoo_symbol(yahoo_sym)
 
         # Use QQQ as proxy for NDX if symbol is QQQ(NDX)
         if 'NDX' in symbol and 'QQQ' in symbol:
