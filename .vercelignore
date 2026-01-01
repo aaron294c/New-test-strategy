@@ -2,14 +2,14 @@
 backend/
 backend/**/*
 
-# Ignore Python files
+# Ignore Python files (but not in frontend)
 *.py
 *.pyc
 __pycache__/
 requirements.txt
 
-# Ignore API directory if exists
-api/
+# Ignore root-level API directory only (Python backend)
+/api/
 
 # Ignore other non-frontend directories
 .git/
@@ -23,5 +23,6 @@ tests/
 # Ignore Claude Flow
 claude-flow/
 
-# Keep only frontend
+# Keep frontend and all its contents (including frontend/src/api)
 !frontend/
+!frontend/**
