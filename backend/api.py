@@ -70,9 +70,17 @@ allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
 allow_all_regex = r"https://.*\.app\.github\.dev"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if allowed_origins == ["*"] else allowed_origins,
-    allow_origin_regex=allow_all_regex,
-    allow_credentials=False,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "https://*.vercel.app",  # Allow all Vercel preview URLs
+        "https://new-test-strategy.vercel.app",  # Your specific Vercel domain
+        "https://new-test-strategy-*.vercel.app",  # Preview deployments
+        "*",  # Fallback - allow all (remove in production if needed)
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -1911,14 +1919,6 @@ async def get_recommendation(request: TradingRecommendationRequest):
 
     # Determine action
     if daily_stats.is_significant and fourh_stats.is_significant:
-        if daily_stats.mean > 0 and fourh_stats.mean > 0:
-            action = "ENTER"
-        elif daily_stats.mean < 0 or fourh_stats.mean < 0:
-            action = "AVOID"
-        else:
-            action = "WAIT"
-    elif daily_stats.is_significant and daily_stats.mean > 0:
-        action = "WAIT_FOR_4H_DIP"
     else:
         action = "NO_TRADE"
 
