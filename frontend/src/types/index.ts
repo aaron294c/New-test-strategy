@@ -93,6 +93,12 @@ export interface OptimalExitStrategy {
   }>;
 }
 
+export interface TradeManagementRule {
+  type: 'Exit Timing' | 'Trend Following' | 'Early Exit Signal' | 'Reversion Protection';
+  rule: string;
+  confidence: 'High' | 'Medium' | 'Low';
+}
+
 export interface ThresholdData {
   events: number;
   performance_matrix: PerformanceMatrix;
@@ -101,6 +107,7 @@ export interface ThresholdData {
   return_distributions: { [day: number]: ReturnDistribution };
   percentile_movements: PercentileMovements;
   trend_analysis: TrendAnalysis;
+  trade_management_rules: TradeManagementRule[];
   optimal_exit_strategy: OptimalExitStrategy;
 }
 
@@ -182,6 +189,26 @@ export interface ComparisonData {
     win_rates: { [day: number]: number };
     benchmark: MarketBenchmark;
   };
+}
+
+// RSI Percentile Chart Data
+export interface RSIChartData {
+  dates: string[];
+  rsi: number[];
+  rsi_ma: number[];
+  percentile_rank: number[];
+  percentile_thresholds: {
+    p5: number;
+    p15: number;
+    p25: number;
+    p50: number;
+    p75: number;
+    p85: number;
+    p95: number;
+  };
+  current_rsi: number;
+  current_rsi_ma: number;
+  current_percentile: number;
 }
 
 // Dashboard state types

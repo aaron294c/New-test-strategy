@@ -118,12 +118,12 @@ const ReturnDistributionChart: React.FC<ReturnDistributionChartProps> = ({
         font: { size: 16 },
       },
       xaxis: {
-        title: 'Holding Period',
+        title: { text: 'Holding Period' },
         tickmode: 'linear',
         dtick: 1,
       },
       yaxis: {
-        title: 'Cumulative Return (%)',
+        title: { text: 'Cumulative Return (%)' },
         zeroline: true,
         zerolinewidth: 2,
         zerolinecolor: '#999',

@@ -34,8 +34,8 @@ const OptimalExitPanel: React.FC<OptimalExitPanelProps> = ({
   optimalExit,
   riskMetrics,
   trendAnalysis,
-  ticker,
-  threshold,
+  ticker: _ticker,
+  threshold: _threshold,
 }) => {
   const getConfidenceColor = (confidence: string) => {
     const colors: Record<string, 'success' | 'primary' | 'warning' | 'error'> = {

@@ -8,7 +8,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { Box, Paper, Typography, Tooltip, Chip } from '@mui/material';
+import { Box, Paper, Typography, Chip } from '@mui/material';
 import Plot from 'react-plotly.js';
 import type { PerformanceMatrix, PerformanceCell } from '@/types';
 
@@ -25,7 +25,7 @@ const PerformanceMatrixHeatmap: React.FC<PerformanceMatrixHeatmapProps> = ({
   title = 'Performance Matrix Heatmap',
   maxDay = 21,
   showConfidence = true,
-  onCellClick,
+  onCellClick: _onCellClick,
 }) => {
   const { data, layout } = useMemo(() => {
     // Extract percentile ranges (Y-axis)
@@ -106,13 +106,13 @@ const PerformanceMatrixHeatmap: React.FC<PerformanceMatrixHeatmapProps> = ({
         font: { size: 16 },
       },
       xaxis: {
-        title: 'Holding Period (Days)',
+        title: { text: 'Holding Period (Days)' },
         side: 'bottom',
         tickmode: 'linear',
         dtick: 1,
       },
       yaxis: {
-        title: 'RSI-MA Percentile Range',
+        title: { text: 'RSI-MA Percentile Range' },
         tickmode: 'linear',
       },
       height: 600,

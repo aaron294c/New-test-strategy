@@ -1,0 +1,26 @@
+{
+  "name": "trading-framework-tests",
+  "version": "1.0.0",
+  "description": "Comprehensive test suite for TypeScript trading framework",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest --testPathPattern='(core|regime-detection|percentile-logic|risk-expectancy|composite-scoring|capital-allocation)'",
+    "test:integration": "jest --testPathPattern='integration'",
+    "test:verbose": "jest --verbose",
+    "test:silent": "jest --silent"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.5.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node"
+  }
+}

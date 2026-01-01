@@ -9,9 +9,14 @@ import type {
   ComparisonData,
   PerformanceMatrix,
   OptimalExitStrategy,
+  RSIChartData,
 } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Default to same-origin so:
+// - in dev: Vite proxies `/api` to the backend (see `vite.config.ts`)
+// - in prod: you can deploy frontend+backend under the same domain
+// If your backend is on a different host, set `VITE_API_URL`.
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -85,6 +90,16 @@ export const backtestApi = {
   }> => {
     const response = await apiClient.get(`/api/optimal-exit/${ticker}/${threshold}`);
     return response.data;
+  },
+
+  /**
+   * Get RSI percentile chart data
+   */
+  getRSIChartData: async (ticker: string, days: number = 252): Promise<RSIChartData> => {
+    const response = await apiClient.get(`/api/rsi-chart/${ticker}`, {
+      params: { days },
+    });
+    return response.data.chart_data;
   },
 };
 

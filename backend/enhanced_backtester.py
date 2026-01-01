@@ -21,6 +21,8 @@ from dataclasses import dataclass, asdict
 from scipy.stats import mannwhitneyu, pearsonr
 import json
 
+from ticker_utils import resolve_yahoo_symbol
+
 warnings.filterwarnings('ignore')
 
 @dataclass
@@ -63,13 +65,27 @@ class RiskMetrics:
         return asdict(self)
 
 class EnhancedPerformanceMatrixBacktester:
-    def __init__(self, 
+    def __init__(self,
                  tickers: List[str],
-                 lookback_period: int = 500,
+                 lookback_period: int = 252,
                  rsi_length: int = 14,
-                 ma_length: int = 14,
+                 ma_length: int = 14,  # TradingView setting: 14 for EMA
                  max_horizon: int = 21):
-        """Initialize enhanced backtester with configurable horizon."""
+        """Initialize enhanced backtester with configurable horizon.
+
+        UPDATED: Changed lookback_period from 500 to 252 (1 trading year).
+        This aligns with 4H percentile window (410 bars = 252 days).
+
+        TradingView Settings:
+        - RSI Length: 14 (daily)
+        - Source: Close price (percentage change)
+        - Lookback: 252 bars (1 year)
+        - MA Type: EMA (Exponential Moving Average)
+        - MA Length: 14
+        - Stop Loss %: 2.0
+        - BB StdDev: 2.0
+        - Percentile Lookback: 500
+        """
         self.tickers = tickers
         self.lookback_period = lookback_period
         self.rsi_length = rsi_length
@@ -91,25 +107,56 @@ class EnhancedPerformanceMatrixBacktester:
         self.results = {}
         self.performance_matrices = {}
     
-    def fetch_data(self, ticker: str, period: str = "5y") -> pd.DataFrame:
+    def fetch_data(self, ticker: str, period: str = "5y", use_sample_data: bool = False) -> pd.DataFrame:
         """Fetch ticker data with robust error handling."""
+        
+        # If Yahoo Finance is blocked, use sample data
+        if use_sample_data:
+            try:
+                from sample_data_generator import generate_sample_stock_data
+                period_days = {'1y': 252, '2y': 504, '5y': 1260}
+                days = period_days.get(period, 252)
+                print(f"⚠️  Using SAMPLE data for {ticker} (Yahoo Finance blocked)")
+                return generate_sample_stock_data(ticker, days)
+            except Exception as e:
+                print(f"Error generating sample data: {e}")
+        
         try:
             time.sleep(0.5)  # Rate limiting
-            
-            stock = yf.Ticker(ticker)
-            data = stock.history(period=period, auto_adjust=True, prepost=True)
+
+            yahoo_ticker = resolve_yahoo_symbol(ticker)
+
+            # Let yfinance handle the session (uses curl_cffi if available)
+            stock = yf.Ticker(yahoo_ticker)
+            try:
+                data = stock.history(period=period, auto_adjust=True, prepost=True)
+            except Exception as e:
+                print(f"yf.Ticker history failed for {ticker}: {e}")
+                data = pd.DataFrame()
             
             if data.empty:
-                print(f"Retrying {ticker} with different parameters...")
-                data = stock.history(period="2y", auto_adjust=True)
+                print(f"Retrying {ticker} with yf.download...")
+                try:
+                    data = yf.download(yahoo_ticker, period=period, progress=False, auto_adjust=True)
+                except Exception as e:
+                    print(f"yf.download failed for {ticker}: {e}")
                 
             if data.empty:
-                print(f"Second retry for {ticker}...")
-                data = stock.history(period="1y")
+                print(f"Second retry for {ticker} with shorter period...")
+                try:
+                    data = yf.download(yahoo_ticker, period="1y", progress=False, auto_adjust=True)
+                except Exception as e:
+                    print(f"yf.download retry failed for {ticker}: {e}")
             
             if data.empty:
                 print(f"Failed to fetch data for {ticker}")
-                return pd.DataFrame()
+                print(f"⚠️  Yahoo Finance blocked - Using sample data for {ticker}")
+                try:
+                    from sample_data_generator import generate_sample_stock_data
+                    return generate_sample_stock_data(ticker, days=1260)
+                except Exception as e:
+                    print(f"Error generating sample data: {e}")
+                    return pd.DataFrame()
                 
             data = data.dropna()
             
@@ -122,43 +169,137 @@ class EnhancedPerformanceMatrixBacktester:
         except Exception as e:
             print(f"Error fetching data for {ticker}: {e}")
             try:
-                data = yf.download(ticker, period="2y", progress=False)
+                # Try download method (yfinance handles session)
+                yahoo_ticker = resolve_yahoo_symbol(ticker)
+                data = yf.download(yahoo_ticker, period="2y", progress=False)
                 if not data.empty:
                     print(f"Success with yf.download for {ticker}: {len(data)} points")
                     return data
+            except Exception as e2:
+                print(f"Final error for {ticker}: {e2}")
+            
+            # Last resort: try sample data
+            print(f"⚠️  ALL METHODS FAILED - Using sample data for {ticker}")
+            try:
+                from sample_data_generator import generate_sample_stock_data
+                return generate_sample_stock_data(ticker, days=1260)
             except:
                 pass
+            
             return pd.DataFrame()
     
-    def calculate_rsi_ma_indicator(self, prices: pd.Series) -> pd.Series:
-        """Calculate RSI-MA indicator (14-period RSI with 14-period EMA)."""
-        daily_returns = prices.pct_change().fillna(0)
-        
-        delta = daily_returns.diff()
+    def calculate_mean_price(self, data: pd.DataFrame, robust: bool = False) -> pd.Series:
+        """
+        Calculate mean price from OHLC data matching TradingView 'Mean Price' indicator.
+
+        This uses a weighted mean that adapts to bar direction:
+        - Bullish bars (close > open): Weight more toward highs
+        - Bearish bars (close < open): Weight more toward lows
+        - Doji bars (close == open): Use high-close vs low-close distance
+
+        Formula from TradingView indicator 'Mean Price':
+        bar_nt = (op*1 + hi*2 + lo*2 + cl*3 + hl2*2 + hl2*2) / 12
+        bar_up = (op*1 + hi*4 + lo*2 + cl*5 + hl2*3 + hl2*3) / 18
+        bar_dn = (op*1 + hi*2 + lo*4 + cl*5 + hl2*3 + hl2*3) / 18
+        """
+        op = data['Open']
+        hi = data['High']
+        lo = data['Low']
+        cl = data['Close']
+        hl2 = (hi + lo) / 2
+
+        # Calculate three bar types
+        bar_nt = (op * 1 + hi * 2 + lo * 2 + cl * 3 + hl2 * 2 + hl2 * 2) / 12
+        bar_up = (op * 1 + hi * 4 + lo * 2 + cl * 5 + hl2 * 3 + hl2 * 3) / 18
+        bar_dn = (op * 1 + hi * 2 + lo * 4 + cl * 5 + hl2 * 3 + hl2 * 3) / 18
+
+        if robust:
+            return bar_nt
+
+        # Calculate distances
+        hc = np.abs(hi - cl)
+        lc = np.abs(lo - cl)
+
+        # Select appropriate mean price based on bar direction
+        mean_price = pd.Series(index=data.index, dtype=float)
+
+        for i in range(len(data)):
+            if cl.iloc[i] > op.iloc[i]:
+                # Bullish bar
+                mean_price.iloc[i] = bar_up.iloc[i]
+            elif cl.iloc[i] < op.iloc[i]:
+                # Bearish bar
+                mean_price.iloc[i] = bar_dn.iloc[i]
+            else:  # Doji
+                if hc.iloc[i] < lc.iloc[i]:
+                    mean_price.iloc[i] = bar_up.iloc[i]
+                elif hc.iloc[i] > lc.iloc[i]:
+                    mean_price.iloc[i] = bar_dn.iloc[i]
+                else:
+                    mean_price.iloc[i] = bar_nt.iloc[i]
+
+        return mean_price
+
+    def calculate_rsi_ma_indicator(self, data: pd.DataFrame) -> pd.Series:
+        """
+        Calculate RSI-MA indicator matching TradingView implementation.
+
+        Pipeline:
+        1. Calculate log returns from Close price
+        2. Calculate change of returns (diff)
+        3. Apply RSI (14-period) using Wilder's method
+        4. Apply EMA (14-period) to RSI
+
+        Settings:
+        - Source: Change of log returns (second derivative of price)
+        - RSI Length: 14
+        - MA Type: EMA
+        - MA Length: 14
+        """
+        close_price = data['Close']
+
+        # Step 1: Calculate log returns
+        log_returns = np.log(close_price / close_price.shift(1)).fillna(0)
+
+        # Step 2: Calculate change of returns (second derivative)
+        delta = log_returns.diff()
+
+        # Step 3: Apply RSI to delta
         gains = delta.where(delta > 0, 0)
         losses = -delta.where(delta < 0, 0)
-        
+
+        # Wilder's smoothing (RMA)
         avg_gains = gains.ewm(alpha=1/self.rsi_length, adjust=False).mean()
         avg_losses = losses.ewm(alpha=1/self.rsi_length, adjust=False).mean()
-        
+
         rs = avg_gains / avg_losses
         rsi = 100 - (100 / (1 + rs))
         rsi = rsi.fillna(50)
-        
+
+        # Step 4: Apply EMA to RSI
         rsi_ma = rsi.ewm(span=self.ma_length, adjust=False).mean()
+
         return rsi_ma
     
     def calculate_percentile_ranks(self, indicator: pd.Series) -> pd.Series:
-        """Calculate rolling percentile ranks (500-period lookback)."""
+        """
+        Calculate rolling percentile ranks with 252-period lookback (1 trading year).
+
+        UPDATED: Changed from 500-period to 252-period to match 4H timeframe.
+        - Daily: 252 bars = 252 days = 1 year
+        - 4H: 410 bars = 252 days = 1 year (via 252 × 1.625 candles/day)
+
+        This ensures percentile calculations use the same time period across timeframes.
+        """
         def rolling_percentile_rank(window):
             if len(window) < self.lookback_period:
                 return np.nan
             current_value = window.iloc[-1]
             below_count = (window.iloc[:-1] < current_value).sum()
             return (below_count / (len(window) - 1)) * 100
-        
+
         return indicator.rolling(
-            window=self.lookback_period, 
+            window=self.lookback_period,
             min_periods=self.lookback_period
         ).apply(rolling_percentile_rank)
     
@@ -534,40 +675,40 @@ class EnhancedPerformanceMatrixBacktester:
     def analyze_return_trend_significance(self, events: List[Dict]) -> Dict:
         """Analyze statistical significance of return trends."""
         returns_by_day = {day: [] for day in self.horizons}
-        
+
         for event in events:
             for day in self.horizons:
                 if day in event['progression']:
                     returns_by_day[day].append(event['progression'][day]['cumulative_return_pct'])
-        
+
         days = []
         median_returns = []
-        
+
         for day in self.horizons:
             if returns_by_day[day]:
                 days.append(day)
                 median_returns.append(np.median(returns_by_day[day]))
-        
+
         trend_analysis = {}
-        
+
         if len(days) >= 3:
             correlation, p_value = pearsonr(days, median_returns)
-            
+
             peak_day = days[np.argmax(median_returns)]
             peak_return = max(median_returns)
-            
+
             # Split into early/middle/late periods for D21
             early_cutoff = self.max_horizon // 3
             late_cutoff = 2 * self.max_horizon // 3
-            
+
             early_returns = []
             late_returns = []
-            
+
             for day in range(1, early_cutoff + 1):
                 early_returns.extend(returns_by_day.get(day, []))
             for day in range(late_cutoff + 1, self.max_horizon + 1):
                 late_returns.extend(returns_by_day.get(day, []))
-            
+
             if early_returns and late_returns:
                 try:
                     statistic, mw_p_value = mannwhitneyu(late_returns, early_returns, alternative='greater')
@@ -578,7 +719,7 @@ class EnhancedPerformanceMatrixBacktester:
             else:
                 mw_p_value = 1.0
                 significance = "Insufficient Data"
-            
+
             trend_analysis = {
                 'trend_correlation': correlation,
                 'trend_p_value': p_value,
@@ -588,11 +729,78 @@ class EnhancedPerformanceMatrixBacktester:
                 'peak_return': peak_return,
                 'early_vs_late_p_value': mw_p_value,
                 'early_vs_late_significance': significance,
-                'returns_by_day': {day: np.median(returns_by_day[day]) if returns_by_day[day] else 0 
+                'returns_by_day': {day: np.median(returns_by_day[day]) if returns_by_day[day] else 0
                                   for day in self.horizons}
             }
-        
+
         return trend_analysis
+
+    def generate_trade_management_rules(self, threshold: float, win_rates: Dict,
+                                      percentile_movements: Dict, trend_analysis: Dict) -> List[Dict]:
+        """Generate specific trade management rules based on observed patterns."""
+
+        rules = []
+
+        # Find peak win rate day
+        if win_rates:
+            peak_day = max(win_rates.keys(), key=lambda d: win_rates[d])
+            peak_win_rate = win_rates[peak_day]
+
+            # Find return peak from trend analysis
+            returns_by_day = trend_analysis.get('returns_by_day', {})
+            if returns_by_day:
+                peak_return_day = max(returns_by_day.keys(), key=lambda d: returns_by_day[d])
+                peak_return_value = returns_by_day[peak_return_day]
+
+                # Check if returns decline after peak
+                declining_after_peak = False
+                if peak_return_day < self.max_horizon:
+                    next_day_return = returns_by_day.get(peak_return_day + 1, 0)
+                    declining_after_peak = next_day_return < peak_return_value
+
+                # Rule 1: Optimal exit timing based on return peak
+                if declining_after_peak:
+                    rules.append({
+                        'type': 'Exit Timing',
+                        'rule': f"Target exit at D{peak_return_day} (return peak {peak_return_value:+.2f}% before decline)",
+                        'confidence': 'High' if peak_win_rate > 70 else 'Medium'
+                    })
+                else:
+                    rules.append({
+                        'type': 'Exit Timing',
+                        'rule': f"Target exit around D{peak_return_day} (return peak {peak_return_value:+.2f}%)",
+                        'confidence': 'High' if peak_win_rate > 70 else 'Medium'
+                    })
+
+        # Rule 2: Trend-based management
+        if trend_analysis.get('trend_direction') == 'Upward' and trend_analysis.get('trend_p_value', 1) < 0.05:
+            rules.append({
+                'type': 'Trend Following',
+                'rule': f"Strong upward trend detected (r={trend_analysis['trend_correlation']:.2f}, p={trend_analysis['trend_p_value']:.3f}) - hold through peak",
+                'confidence': 'High'
+            })
+
+        # Rule 3: Early warning system
+        if 1 in percentile_movements.get('percentile_by_day', {}):
+            d1_data = percentile_movements['percentile_by_day'][1]
+            if d1_data['strong_upward_rate'] > 40:
+                rules.append({
+                    'type': 'Early Exit Signal',
+                    'rule': f"If percentile jumps >10 points by D1, consider 25% profit taking ({d1_data['strong_upward_rate']:.0f}% show strong early moves)",
+                    'confidence': 'Medium'
+                })
+
+        # Rule 4: Reversion protection
+        if 'reversion_analysis' in percentile_movements:
+            rev = percentile_movements['reversion_analysis']
+            if rev['reversion_from_peak'] > 5:
+                rules.append({
+                    'type': 'Reversion Protection',
+                    'rule': f"Start trailing stop at {rev['median_peak_percentile']:.0f}% percentile (typical peak before {rev['reversion_from_peak']:.0f}pt decline)",
+                    'confidence': 'High'
+                })
+
+        return rules
     
     def analyze_ticker(self, ticker: str) -> Dict:
         """Analyze single ticker with full D1-D21 analysis."""
@@ -603,8 +811,8 @@ class EnhancedPerformanceMatrixBacktester:
         data = self.fetch_data(ticker)
         if data.empty:
             return {}
-        
-        indicator = self.calculate_rsi_ma_indicator(data['Close'])
+
+        indicator = self.calculate_rsi_ma_indicator(data)
         percentile_ranks = self.calculate_percentile_ranks(indicator)
         
         benchmark = self.calculate_enhanced_market_benchmark(data['Close'], ticker)
@@ -632,6 +840,8 @@ class EnhancedPerformanceMatrixBacktester:
             return_distributions = self.calculate_return_distribution(events)
             percentile_movements = self.analyze_percentile_movements(events)
             trend_analysis = self.analyze_return_trend_significance(events)
+            trade_rules = self.generate_trade_management_rules(threshold, win_rates,
+                                                             percentile_movements, trend_analysis)
             optimal_exit_strategy = self.calculate_optimal_exit_strategy(
                 threshold, return_distributions, performance_matrix)
             
@@ -650,6 +860,7 @@ class EnhancedPerformanceMatrixBacktester:
                 'return_distributions': return_distributions,
                 'percentile_movements': percentile_movements,
                 'trend_analysis': trend_analysis,
+                'trade_management_rules': trade_rules,
                 'optimal_exit_strategy': optimal_exit_strategy
             }
             
@@ -669,6 +880,75 @@ class EnhancedPerformanceMatrixBacktester:
         }
         
         return ticker_results
+    
+    def get_rsi_percentile_timeseries(self, ticker: str, days: int = 252) -> Dict:
+        """
+        Get RSI, RSI-MA, and percentile data for chart visualization.
+        Returns last N days of data for plotting.
+
+        Uses the calculation method:
+        1. Log returns from Close price
+        2. Change of returns (diff)
+        3. RSI (14) on change of returns
+        4. EMA (14) smoothing of RSI
+        """
+        if ticker not in self.results:
+            return {}
+
+        data = self.results[ticker]['data']
+
+        close_price = data['Close']
+
+        # Step 1: Calculate log returns
+        log_returns = np.log(close_price / close_price.shift(1)).fillna(0)
+
+        # Step 2: Calculate change of returns (second derivative)
+        delta = log_returns.diff()
+
+        # Step 3: Apply RSI to delta
+        gains = delta.where(delta > 0, 0)
+        losses = -delta.where(delta < 0, 0)
+
+        avg_gains = gains.ewm(alpha=1/self.rsi_length, adjust=False).mean()
+        avg_losses = losses.ewm(alpha=1/self.rsi_length, adjust=False).mean()
+
+        rs = avg_gains / avg_losses
+        rsi = 100 - (100 / (1 + rs))
+        rsi = rsi.fillna(50)
+
+        # Step 4: Apply EMA to RSI
+        rsi_ma = rsi.ewm(span=self.ma_length, adjust=False).mean()
+
+        # Calculate percentile ranks
+        percentile_ranks = self.calculate_percentile_ranks(rsi_ma)
+
+        # Get last N days
+        last_days = min(days, len(data))
+        dates = data.index[-last_days:].strftime('%Y-%m-%d').tolist()
+
+        # Calculate percentile thresholds from full historical data
+        valid_rsi_ma = rsi_ma.dropna()
+        percentiles = {
+            'p5': float(np.percentile(valid_rsi_ma, 5)),
+            'p15': float(np.percentile(valid_rsi_ma, 15)),
+            'p25': float(np.percentile(valid_rsi_ma, 25)),
+            'p50': float(np.percentile(valid_rsi_ma, 50)),
+            'p75': float(np.percentile(valid_rsi_ma, 75)),
+            'p85': float(np.percentile(valid_rsi_ma, 85)),
+            'p95': float(np.percentile(valid_rsi_ma, 95))
+        }
+
+        # Build time series data
+        return {
+            'dates': dates,
+            'rsi': rsi.iloc[-last_days:].fillna(50).tolist(),
+            'rsi_ma': rsi_ma.iloc[-last_days:].fillna(50).tolist(),
+            'percentile_rank': percentile_ranks.iloc[-last_days:].fillna(50).tolist(),
+            'percentile_thresholds': percentiles,
+            'current_rsi': float(rsi.iloc[-1]),
+            'current_rsi_ma': float(rsi_ma.iloc[-1]),
+            'current_percentile': float(percentile_ranks.iloc[-1]) if not pd.isna(percentile_ranks.iloc[-1]) else 50.0
+        }
     
     def run_analysis(self) -> Dict:
         """Run full analysis across all tickers."""
@@ -745,16 +1025,21 @@ class EnhancedPerformanceMatrixBacktester:
 
 def main():
     """Main execution function."""
-    
+
     # Default top tickers
     TOP_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY"]
-    
+
     # Create backtester with D1-D21 horizon
+    # Using TradingView settings:
+    # - RSI Length: 14
+    # - MA Type: EMA (Exponential Moving Average)
+    # - MA Length: 14
+    # - Percentile Lookback: 500
     backtester = EnhancedPerformanceMatrixBacktester(
         tickers=TOP_TICKERS,
-        lookback_period=500,
+        lookback_period=252,
         rsi_length=14,
-        ma_length=14,
+        ma_length=14,  # TradingView setting
         max_horizon=21  # Extended to D21
     )
     
