@@ -1,0 +1,27 @@
+# Ignore backend directory - deployed separately on Render
+backend/
+backend/**/*
+
+# Ignore Python files
+*.py
+*.pyc
+__pycache__/
+requirements.txt
+
+# Ignore API directory if exists
+api/
+
+# Ignore other non-frontend directories
+.git/
+.github/
+docs/
+scripts/
+tests/
+.pytest_cache/
+.coverage
+
+# Ignore Claude Flow
+claude-flow/
+
+# Keep only frontend
+!frontend/
