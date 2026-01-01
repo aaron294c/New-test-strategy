@@ -62,18 +62,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware for React frontend (allow all in dev, configurable via ALLOWED_ORIGINS)
-raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
-allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
-
-# If wildcard or app.github.dev, rely on regex to catch Codespaces subdomains
-allow_all_regex = r"https://.*\.app\.github\.dev"
+# CORS middleware for React frontend
+# Allow both frontend domains
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://rsi-ma-frontend.onrender.com",
+        "https://new-test-strategy.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "*"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Compress large JSON responses (matrices/series) to reduce transfer + parse time.
