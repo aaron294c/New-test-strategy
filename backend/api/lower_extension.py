@@ -9,6 +9,7 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+from ticker_utils import resolve_yahoo_symbol
 
 router = APIRouter(prefix="/api/lower-extension", tags=["Lower Extension"])
 
@@ -20,11 +21,22 @@ def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30
     Returns lower extension bands based on moving average deviation.
     """
     try:
-        # Fetch data
+        # Resolve symbol
+        symbol = resolve_yahoo_symbol(ticker)
+
+        # Fetch data with timeout
         end_date = datetime.now()
         start_date = end_date - timedelta(days=lookback_days + length)
 
-        data = yf.download(ticker, start=start_date, end=end_date, progress=False)
+        try:
+            data = yf.download(
+                symbol, start=start_date, end=end_date, progress=False, timeout=10
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Data fetch timeout for {ticker}. Try again or use cached results.",
+            )
 
         if data.empty:
             raise ValueError(f"No data available for {ticker}")
@@ -56,8 +68,10 @@ def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30
             ),
             "timestamp": datetime.now().isoformat(),
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Calculation error: {str(e)}")
 
 
 @router.get("/metrics/{ticker}")
@@ -70,14 +84,25 @@ async def get_lower_extension_metrics(
 
 @router.get("/candles/{ticker}")
 async def get_lower_extension_candles(
-    ticker: str, days: int = 365
+    ticker: str, days: int = 60  # Changed from 365 to 60 for faster loading
 ):
     """Get historical OHLC candle data with MBAD bands."""
     try:
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days)
+        # Resolve symbol
+        symbol = resolve_yahoo_symbol(ticker.upper())
 
-        data = yf.download(ticker, start=start_date, end=end_date, progress=False)
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days + 30)  # Extra for MA calculation
+
+        try:
+            data = yf.download(
+                symbol, start=start_date, end=end_date, progress=False, timeout=15
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Data fetch timeout for {ticker}. Service may be rate-limited.",
+            )
 
         if data.empty:
             raise HTTPException(status_code=404, detail=f"No data for {ticker}")
@@ -87,9 +112,11 @@ async def get_lower_extension_candles(
         ma = close.rolling(window=30).mean()
         std = close.rolling(window=30).std()
 
-        # Prepare response
+        # Prepare response (limit to requested days)
+        data_trimmed = data.tail(days)
+
         candles = []
-        for idx, row in data.iterrows():
+        for idx, row in data_trimmed.iterrows():
             candles.append(
                 {
                     "date": idx.strftime("%Y-%m-%d"),
@@ -114,5 +141,7 @@ async def get_lower_extension_candles(
             "count": len(candles),
             "timestamp": datetime.now().isoformat(),
         }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
