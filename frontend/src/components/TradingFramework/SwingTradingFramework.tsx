@@ -58,7 +58,7 @@ import { EnhancedMarketState } from './EnhancedMarketState';
 import { SwingDurationPanelV2 } from './SwingDurationPanelV2';
 import { MacroRiskDashboard } from '../MacroRisk/MacroRiskDashboard';
 
-const API_BASE_URL = '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // Inline helper function (previously from tradeSimulator.ts)
 interface SimBinStatistic {

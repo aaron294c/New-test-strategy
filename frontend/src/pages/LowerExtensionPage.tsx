@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { LowerExtensionPanel } from '../components/LowerExtensionPanel';
 import { IndicatorData } from '../utils/lowerExtensionCalculations';
 
-// Use relative path to leverage Vite proxy (configured in vite.config.ts)
-// This allows the frontend to work in Codespaces and other environments
-const API_BASE_URL = '';
+// Use environment variable for API base URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 interface CandleData {
   time: string;

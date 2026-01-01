@@ -35,8 +35,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import InfoIcon from '@mui/icons-material/Info';
 import axios from 'axios';
 
-// Use empty string to make requests relative (will use Vite proxy in dev, same origin in prod)
-const API_BASE_URL = '';
+// Use environment variable for API base URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 interface BinStatistic {
   bin_range: string;
