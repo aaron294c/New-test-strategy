@@ -69,10 +69,12 @@ app.add_middleware(
     allow_origins=[
         "https://rsi-ma-frontend.onrender.com",
         "https://new-test-strategy.vercel.app",
+        "https://new-test-strategy.onrender.com",
         "http://localhost:3000",
         "http://localhost:5173",
-        "*"
-    ],
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+    ],  # REMOVED "*" wildcard - doesn't work with allow_credentials=True
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -582,8 +584,6 @@ async def get_leaps_backtest(years: int = 5):
             'regimes': Performance by VIX regime (LOW, MODERATE, HIGH)
             'overall': Overall performance metrics
             'current_vix': Current VIX level
-            'current_regime': Current VIX regime
-            'recommendations': Actionable trading recommendations
             'timestamp': Analysis timestamp
         }
     """
