@@ -9,45 +9,34 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import sys
+from pathlib import Path
+
+# Add parent directory to path to import ticker_utils
+sys.path.insert(0, str(Path(__file__).parent.parent))
 from ticker_utils import resolve_yahoo_symbol
 
 router = APIRouter(prefix="/api/lower-extension", tags=["Lower Extension"])
 
 
 def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30):
-    """
-    Calculate MBAD (Moving Baseline Adaptive Detection) levels.
-
-    Returns lower extension bands based on moving average deviation.
-    """
+    """Calculate MBAD (Moving Baseline Adaptive Detection) levels."""
     try:
-        # Resolve symbol
         symbol = resolve_yahoo_symbol(ticker)
-
-        # Fetch data with timeout
         end_date = datetime.now()
         start_date = end_date - timedelta(days=lookback_days + length)
 
-        try:
-            data = yf.download(
-                symbol, start=start_date, end=end_date, progress=False, timeout=10
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Data fetch timeout for {ticker}. Try again or use cached results.",
-            )
+        data = yf.download(
+            symbol, start=start_date, end=end_date, progress=False, timeout=10
+        )
 
         if data.empty:
             raise ValueError(f"No data available for {ticker}")
 
         close = data["Close"]
-
-        # Calculate moving average baseline
         ma = close.rolling(window=length).mean()
         std = close.rolling(window=length).std()
 
-        # MBAD levels (adaptive standard deviation bands)
         lower_1 = ma - (std * 1.0)
         lower_2 = ma - (std * 2.0)
         lower_3 = ma - (std * 3.0)
@@ -68,10 +57,8 @@ def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30
             ),
             "timestamp": datetime.now().isoformat(),
         }
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Calculation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 
 @router.get("/metrics/{ticker}")
@@ -88,26 +75,17 @@ async def get_lower_extension_candles(
 ):
     """Get historical OHLC candle data with MBAD bands."""
     try:
-        # Resolve symbol
         symbol = resolve_yahoo_symbol(ticker.upper())
-
         end_date = datetime.now()
         start_date = end_date - timedelta(days=days + 30)  # Extra for MA calculation
 
-        try:
-            data = yf.download(
-                symbol, start=start_date, end=end_date, progress=False, timeout=15
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Data fetch timeout for {ticker}. Service may be rate-limited.",
-            )
+        data = yf.download(
+            symbol, start=start_date, end=end_date, progress=False, timeout=15
+        )
 
         if data.empty:
             raise HTTPException(status_code=404, detail=f"No data for {ticker}")
 
-        # Calculate MBAD bands
         close = data["Close"]
         ma = close.rolling(window=30).mean()
         std = close.rolling(window=30).std()
