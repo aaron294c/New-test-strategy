@@ -140,6 +140,22 @@ try:
 except Exception as e:
     print(f"[WARN] Could not load indicator APIs: {e}")
 
+# Import and add Multi-Timeframe router
+try:
+    from multi_timeframe_api import router as mtf_router
+    app.include_router(mtf_router)
+    print("[OK] Multi-Timeframe API registered (/stock, /bins, /trade-management)")
+except Exception as e:
+    print(f"[WARN] Could not load Multi-Timeframe API: {e}")
+
+# Import and add Snapshot API router
+try:
+    from snapshot_api_endpoints import router as snapshot_router
+    app.include_router(snapshot_router)
+    print("[OK] Snapshot API registered (/api/snapshot/*)")
+except Exception as e:
+    print(f"[WARN] Could not load Snapshot API: {e}")
+
 # Cache directory for results
 # - Local dev: keep using `./cache`
 # - Serverless (e.g. Vercel): use a writable temp directory
