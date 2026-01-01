@@ -54,7 +54,9 @@ import {
   ExpectancyMetrics,
 } from '../../utils/expectancyCalculations';
 import { CurrentMarketState } from './CurrentMarketState';
+import { EnhancedMarketState } from './EnhancedMarketState';
 import { SwingDurationPanelV2 } from './SwingDurationPanelV2';
+import { MacroRiskDashboard } from '../MacroRisk/MacroRiskDashboard';
 
 const API_BASE_URL = '';
 
@@ -233,7 +235,7 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
   const [timeframe, setTimeframe] = useState<'daily' | '4hour'>('daily');
   const [viewMode, setViewMode] = useState<'framework' | 'duration'>('framework');
 
-  const TICKERS = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'TSLA', 'NFLX', 'AMZN', 'BRK-B', 'AVGO'];
+  const TICKERS = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'TSLA', 'NFLX', 'AMZN', 'BRK-B', 'AVGO', 'CNX1', 'VIX', 'IGLS'];
 
   useEffect(() => {
     fetchAllData();
@@ -798,6 +800,14 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
         </Tabs>
       </Paper>
       <CurrentMarketState timeframe={timeframe} />
+
+      {/* Enhanced Market State - Multi-Timeframe Divergence with P85/P95 Thresholds */}
+      <EnhancedMarketState showDivergenceDetails={true} />
+
+      {/* Macro Risk Dashboard - Yield Curve, Breadth, MMFI */}
+      <Box sx={{ mb: 3 }}>
+        <MacroRiskDashboard />
+      </Box>
 
       {/* Framework Header */}
       <Alert severity="info" icon={<Assessment />} sx={{ mb: 3 }}>

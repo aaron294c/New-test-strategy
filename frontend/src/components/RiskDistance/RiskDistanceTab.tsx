@@ -37,12 +37,23 @@ export const RiskDistanceTab: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch('/api/gamma-data');
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const fetchJson = async (url: string) => {
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+      };
+
+      let data;
+      try {
+        data = await fetchJson(`/api/gamma-data?t=${Date.now()}`);
+      } catch (primaryErr) {
+        console.warn('Primary gamma-data fetch failed, falling back to example:', primaryErr);
+        data = await fetchJson('/api/gamma-data/example');
+        setError('Live gamma data unavailable; showing example data.');
       }
 
-      const data = await response.json();
       const parser = new GammaDataParser();
       const parsedSymbols: ParsedSymbolData[] = [];
 
@@ -77,7 +88,7 @@ export const RiskDistanceTab: React.FC = () => {
       await Promise.all(
         parsedSymbols.map(async (s) => {
           try {
-            const response = await fetch(`/api/lower-extension/metrics/${s.symbol}?length=30&lookback_days=30`);
+            const response = await fetch(`/api/lower-extension/metrics/${s.symbol}?length=30&lookback_days=30&t=${Date.now()}`);
             if (response.ok) {
               const data = await response.json();
               if (data.lower_ext) {
@@ -97,7 +108,7 @@ export const RiskDistanceTab: React.FC = () => {
       await Promise.all(
         parsedSymbols.map(async (s) => {
           try {
-            const response = await fetch(`/api/nadaraya-watson/metrics/${s.symbol}?length=200&bandwidth=8.0&atr_period=50&atr_mult=2.0`);
+            const response = await fetch(`/api/nadaraya-watson/metrics/${s.symbol}?length=200&bandwidth=8.0&atr_period=50&atr_mult=2.0&t=${Date.now()}`);
             if (response.ok) {
               const data = await response.json();
               if (data.lower_band) {
