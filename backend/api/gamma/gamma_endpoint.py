@@ -13,7 +13,8 @@ from typing import Dict, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-router = APIRouter()
+# FIXED: Remove /api prefix - it will be added by main app
+router = APIRouter(prefix="/gamma-data", tags=["Gamma Scanner"])
 
 # Path to the gamma scanner Python script
 SCRIPT_DIR = Path(__file__).parent.parent.parent
@@ -150,7 +151,7 @@ def run_gamma_scanner_script() -> str:
         )
 
 
-@router.get("/api/gamma-data", response_model=GammaDataResponse)
+@router.get("", response_model=GammaDataResponse)  # Changed from "/api/gamma-data"
 async def get_gamma_data(force_refresh: bool = False):
     """
     Get gamma wall scanner data
@@ -189,7 +190,7 @@ async def get_gamma_data(force_refresh: bool = False):
         return _build_example_response()
 
 
-@router.get("/api/gamma-data/health")
+@router.get("/health")  # Changed from "/api/gamma-data/health"
 async def gamma_endpoint_health():
     """Health check for gamma data endpoint"""
     script_exists = GAMMA_SCRIPT_PATH.exists()
@@ -202,7 +203,7 @@ async def gamma_endpoint_health():
     }
 
 
-@router.get("/api/gamma-data/example")
+@router.get("/example")  # Changed from "/api/gamma-data/example"
 async def get_example_data():
     """
     Get example gamma data for testing

@@ -111,7 +111,7 @@ try:
 
     # Import directly from gamma_endpoint module
     from gamma_endpoint import router as gamma_router
-    app.include_router(gamma_router)
+    app.include_router(gamma_router, prefix="/api")  # Add /api prefix here
     print("[OK] Gamma Wall Scanner API registered")
 except Exception as e:
     print(f"[WARN] Could not load Gamma Scanner API: {e}")
