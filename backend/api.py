@@ -152,17 +152,6 @@ try:
 except Exception as e:
     print(f"[WARN] Could not load Nadaraya-Watson API: {e}")
 
-# Add Gamma Data endpoint fallback
-@app.get("/api/gamma-data")
-@app.get("/api/gamma-data/example")
-async def get_gamma_data_fallback():
-    """Fallback for gamma data when live feed unavailable"""
-    return {
-        "error": "Gamma scanner not available",
-        "message": "Live options data feed required",
-        "timestamp": datetime.now().isoformat()
-    }
-
 # Import and add Multi-Timeframe router
 try:
     from multi_timeframe_api import router as mtf_router
@@ -1645,19 +1634,6 @@ async def get_percentile_forward_mapping(ticker: str, force_refresh: bool = Fals
         print(f"Error in /api/percentile-forward for {ticker}:")
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
-
-def clean_nan_values(obj):
-    """Recursively replace NaN and inf values with None for JSON serialization."""
-    import math
-    if isinstance(obj, dict):
-        return {k: clean_nan_values(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [clean_nan_values(item) for item in obj]
-    elif isinstance(obj, float):
-        if math.isnan(obj) or math.isinf(obj):
-            return None
-        return obj
-    return obj
 
 @app.get("/api/percentile-forward-4h/{ticker}")
 async def get_percentile_forward_mapping_4h(ticker: str, force_refresh: bool = False):
