@@ -1919,6 +1919,14 @@ async def get_recommendation(request: TradingRecommendationRequest):
 
     # Determine action
     if daily_stats.is_significant and fourh_stats.is_significant:
+        if daily_stats.mean > 0 and fourh_stats.mean > 0:
+            action = "ENTER"
+        elif daily_stats.mean < 0 or fourh_stats.mean < 0:
+            action = "AVOID"
+        else:
+            action = "WAIT"
+    elif daily_stats.is_significant and daily_stats.mean > 0:
+        action = "WAIT_FOR_4H_DIP"
     else:
         action = "NO_TRADE"
 
@@ -2340,24 +2348,3 @@ async def get_nadaraya_watson_metrics(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# ============================================================================
-# Startup Event
-# ============================================================================
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize on startup."""
-    print("\n" + "="*60)
-    print("RSI-MA Performance Analytics API")
-    print("Multi-Timeframe Trading Guide Enabled")
-    print("="*60)
-    print(f"Cache directory: {os.path.abspath(CACHE_DIR)}")
-    print(f"Default tickers: {', '.join(DEFAULT_TICKERS)}")
-    print(f"Trading Guide stocks: NVDA, MSFT, GOOGL, AAPL, GLD, SLV, TSLA, NFLX, BRK-B, WMT, UNH, AVGO, LLY, TSM, ORCL, OXY")
-    print("="*60 + "\n")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
