@@ -128,15 +128,25 @@ class EnhancedPerformanceMatrixBacktester:
 
             # Let yfinance handle the session (uses curl_cffi if available)
             stock = yf.Ticker(yahoo_ticker)
-            data = stock.history(period=period, auto_adjust=True, prepost=True)
+            try:
+                data = stock.history(period=period, auto_adjust=True, prepost=True)
+            except Exception as e:
+                print(f"yf.Ticker history failed for {ticker}: {e}")
+                data = pd.DataFrame()
             
             if data.empty:
-                print(f"Retrying {ticker} with different parameters...")
-                data = stock.history(period="2y", auto_adjust=True)
+                print(f"Retrying {ticker} with yf.download...")
+                try:
+                    data = yf.download(yahoo_ticker, period=period, progress=False, auto_adjust=True)
+                except Exception as e:
+                    print(f"yf.download failed for {ticker}: {e}")
                 
             if data.empty:
-                print(f"Second retry for {ticker}...")
-                data = stock.history(period="1y")
+                print(f"Second retry for {ticker} with shorter period...")
+                try:
+                    data = yf.download(yahoo_ticker, period="1y", progress=False, auto_adjust=True)
+                except Exception as e:
+                    print(f"yf.download retry failed for {ticker}: {e}")
             
             if data.empty:
                 print(f"Failed to fetch data for {ticker}")

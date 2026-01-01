@@ -84,9 +84,17 @@ app.add_middleware(GZipMiddleware, minimum_size=1024)
 try:
     from swing_framework_api import router as swing_framework_router
     app.include_router(swing_framework_router)
-    print("✓ Swing Framework API registered (REAL trade data)")
+    print("[OK] Swing Framework API registered (REAL trade data)")
 except Exception as e:
-    print(f"⚠️  Could not load Swing Framework API: {e}")
+    print(f"[WARN] Could not load Swing Framework API: {e}")
+
+# Import and add Macro Risk Metrics router
+try:
+    from macro_risk_metrics import router as macro_risk_router
+    app.include_router(macro_risk_router)
+    print("[OK] Macro Risk Metrics API registered (Yield Curve, Breadth, MMFI)")
+except Exception as e:
+    print(f"[WARN] Could not load Macro Risk Metrics API: {e}")
 
 # Import and add Gamma Scanner router
 try:
@@ -100,9 +108,9 @@ try:
     # Import directly from gamma_endpoint module
     from gamma_endpoint import router as gamma_router
     app.include_router(gamma_router)
-    print("✓ Gamma Wall Scanner API registered")
+    print("[OK] Gamma Wall Scanner API registered")
 except Exception as e:
-    print(f"⚠️  Could not load Gamma Scanner API: {e}")
+    print(f"[WARN] Could not load Gamma Scanner API: {e}")
 
 # Import and add Price Fetcher router
 try:
@@ -114,9 +122,9 @@ try:
 
     from price_fetcher import router as price_router
     app.include_router(price_router)
-    print("✓ Price Fetcher API registered")
+    print("[OK] Price Fetcher API registered")
 except Exception as e:
-    print(f"⚠️  Could not load Price Fetcher API: {e}")
+    print(f"[WARN] Could not load Price Fetcher API: {e}")
 
 # Import and add Lower Extension API
 try:
@@ -128,10 +136,10 @@ try:
 
     from lower_extension import calculate_mbad_levels
     from nadaraya_watson import calculate_nadaraya_watson_lower_band
-    print("✓ Lower Extension API module loaded")
-    print("✓ Nadaraya-Watson Envelope API module loaded")
+    print("[OK] Lower Extension API module loaded")
+    print("[OK] Nadaraya-Watson Envelope API module loaded")
 except Exception as e:
-    print(f"⚠️  Could not load indicator APIs: {e}")
+    print(f"[WARN] Could not load indicator APIs: {e}")
 
 # Cache directory for results
 # - Local dev: keep using `./cache`
@@ -233,7 +241,8 @@ async def root():
             "optimal_exit": "/api/optimal-exit/{ticker}/{threshold}",
             "ticker_comparison": "/api/compare",
             "advanced_backtest": "/api/advanced-backtest",
-            "trade_simulation": "/api/trade-simulation/{ticker}"
+            "trade_simulation": "/api/trade-simulation/{ticker}",
+            "leaps_vix_strategy": "/api/leaps/vix-strategy"
         }
     }
 
@@ -241,6 +250,461 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+@app.get("/api/leaps/vix-strategy")
+async def get_leaps_vix_strategy():
+    """
+    Get current VIX level and recommended LEAPS strategy.
+
+    Returns VIX data and strategy recommendations based on current volatility environment:
+    - VIX < 15: ATM LEAPS strategy (cheap vega, maximum leverage)
+    - VIX 15-20: Moderate ITM strategy (balanced approach)
+    - VIX > 20: Deep ITM strategy (vega protection essential)
+
+    Returns:
+        dict: {
+            "vix_current": Current VIX level
+            "vix_percentile": VIX percentile rank (0-100)
+            "strategy": Strategy name (ATM, MODERATE_ITM, DEEP_ITM)
+            "strategy_full": Full strategy description
+            "recommendations": {
+                "delta_range": Recommended delta range
+                "extrinsic_pct_max": Maximum extrinsic value %
+                "strike_depth_pct": Strike depth % ITM range
+                "vega_range": Recommended vega range
+            }
+            "rationale": Strategy explanation
+            "vega_exposure": Vega risk assessment
+            "key_filters": List of key filtering criteria
+            "vix_context": VIX environment context
+            "timestamp": ISO format timestamp
+        }
+    """
+    try:
+        from vix_analyzer import fetch_vix_data, determine_leaps_strategy
+
+        # Fetch current VIX data
+        vix_data = fetch_vix_data()
+
+        # Determine optimal LEAPS strategy
+        strategy = determine_leaps_strategy(
+            vix_data["current"],
+            vix_data["percentile"]
+        )
+
+        return {
+            "vix_current": vix_data["current"],
+            "vix_percentile": vix_data["percentile"],
+            "strategy": strategy["strategy"],
+            "strategy_full": strategy["strategy_full"],
+            "recommendations": {
+                "delta_range": strategy["delta_range"],
+                "extrinsic_pct_max": strategy["extrinsic_pct_max"],
+                "strike_depth_pct": strategy["strike_depth_pct"],
+                "vega_range": strategy["vega_range"]
+            },
+            "rationale": strategy["rationale"],
+            "vega_exposure": strategy["vega_exposure"],
+            "key_filters": strategy["key_filters"],
+            "vix_context": strategy["vix_context"],
+            "timestamp": vix_data["timestamp"],
+            "error": vix_data.get("error")  # Include error if VIX fetch failed
+        }
+
+    except Exception as e:
+        logger.error(f"Error in LEAPS VIX strategy endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch LEAPS strategy: {str(e)}")
+
+@app.get("/api/leaps/opportunities")
+async def get_leaps_opportunities(
+    strategy: Optional[str] = None,
+    min_delta: Optional[float] = None,
+    max_delta: Optional[float] = None,
+    max_extrinsic: Optional[float] = None,
+    min_strike: Optional[float] = None,
+    max_strike: Optional[float] = None,
+    min_vega: Optional[float] = None,
+    max_vega: Optional[float] = None,
+    max_iv_rank: Optional[float] = None,
+    min_iv_percentile: Optional[float] = None,
+    max_iv_percentile: Optional[float] = None,
+    rank_by: Optional[str] = 'quality_score',
+    top_n: int = 10,
+    use_sample: bool = False
+):
+    """
+    Get top LEAPS opportunities based on current VIX strategy or custom filters.
+
+    Query Parameters:
+        strategy: Strategy name (ATM, MODERATE_ITM, DEEP_ITM) - uses preset filters
+        min_delta: Minimum delta (overrides strategy default)
+        max_delta: Maximum delta (overrides strategy default)
+        max_extrinsic: Maximum extrinsic % (overrides strategy default)
+        min_strike: Minimum strike price
+        max_strike: Maximum strike price
+        min_vega: Minimum vega
+        max_vega: Maximum vega
+        max_iv_rank: Maximum IV rank (0-1)
+        min_iv_percentile: Minimum IV percentile (0-100)
+        max_iv_percentile: Maximum IV percentile (0-100)
+        rank_by: Ranking method (quality_score, delta, vega, iv_rank, premium)
+        top_n: Number of top opportunities to return (default 10)
+        use_sample: Force use of sample data (for testing)
+
+    Returns:
+        dict: {
+            'current_price': Current SPY price
+            'strategy_used': Strategy name or 'custom'
+            'filter_criteria': Applied filters
+            'total_options': Total LEAPS options found
+            'filtered_options': Options matching criteria
+            'top_opportunities': List of top N options ranked by specified method
+            'timestamp': Analysis timestamp
+            'data_source': 'live' or 'sample'
+        }
+    """
+    try:
+        from vix_analyzer import fetch_vix_data, determine_leaps_strategy
+        from leaps_analyzer import fetch_spx_options, filter_leaps_by_strategy, _calculate_quality_score, _calculate_opportunity_score
+
+        # Fetch all LEAPS options (only real data unless use_sample=true)
+        all_options = fetch_spx_options(use_sample=use_sample)
+
+        # Determine data source
+        if use_sample:
+            data_source = 'sample'
+        elif len(all_options) == 0:
+            # No data available - return error response
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to fetch live options data. Please try again later."
+            )
+        else:
+            data_source = 'live'
+
+        current_price = all_options[0]['current_price'] if all_options else 0
+
+        # Determine strategy if not provided
+        if not strategy:
+            vix_data = fetch_vix_data()
+            strategy_info = determine_leaps_strategy(vix_data["current"], vix_data["percentile"])
+            strategy = strategy_info["strategy"]
+            if not min_delta:
+                min_delta, max_delta = strategy_info["delta_range"]
+            if not max_extrinsic:
+                max_extrinsic = strategy_info["extrinsic_pct_max"]
+        else:
+            # Use strategy defaults if not overridden
+            if strategy == "ATM":
+                if not min_delta: min_delta, max_delta = 0.45, 0.60
+                if not max_extrinsic: max_extrinsic = 35
+            elif strategy == "MODERATE_ITM":
+                if not min_delta: min_delta, max_delta = 0.75, 0.85
+                if not max_extrinsic: max_extrinsic = 20
+            else:  # DEEP_ITM
+                if not min_delta: min_delta, max_delta = 0.85, 0.98
+                if not max_extrinsic: max_extrinsic = 10
+
+        # Set defaults for optional filters
+        if min_delta is None: min_delta = 0.3
+        if max_delta is None: max_delta = 0.99
+        if max_extrinsic is None: max_extrinsic = 50
+
+        # Apply all filters
+        filtered = []
+        for opt in all_options:
+            # Delta filter
+            if not (min_delta <= opt['delta'] <= max_delta):
+                continue
+
+            # Extrinsic filter
+            if opt['extrinsic_pct'] > max_extrinsic:
+                continue
+
+            # Strike filter
+            if min_strike and opt['strike'] < min_strike:
+                continue
+            if max_strike and opt['strike'] > max_strike:
+                continue
+
+            # Vega filter
+            if min_vega and opt['vega'] < min_vega:
+                continue
+            if max_vega and opt['vega'] > max_vega:
+                continue
+
+            # IV Rank filter
+            if max_iv_rank and opt['iv_rank'] > max_iv_rank:
+                continue
+
+            # IV Percentile filter
+            if min_iv_percentile and opt['iv_percentile'] < min_iv_percentile:
+                continue
+            if max_iv_percentile and opt['iv_percentile'] > max_iv_percentile:
+                continue
+
+            # Relaxed liquidity filters for LEAPS (they naturally have lower volume/OI)
+            # LEAPS are long-dated options with inherently lower liquidity than short-term options
+            is_deep_itm = opt.get('delta', 0) >= 0.80
+
+            if is_deep_itm:
+                # Very relaxed filters for deep ITM (trade like stock)
+                # Require minimal volume OR open interest (not both)
+                if opt['volume'] < 1:
+                    continue
+            else:
+                # Relaxed filters for ATM/moderate ITM LEAPS
+                # Require decent volume (OI can be 0 for newly listed strikes)
+                if opt['volume'] < 5:
+                    continue
+
+            # Bid-ask spread filter (same for all)
+            if opt['bid_ask_spread_pct'] > 10:  # Relaxed from 5% to 10%
+                continue
+
+            # Calculate quality score and opportunity score for this option
+            opt['quality_score'] = _calculate_quality_score(opt, strategy or 'custom')
+            opt['opportunity_score'] = _calculate_opportunity_score(opt)
+
+            # Calculate additional useful metrics
+            premium = opt['premium']
+            delta = opt['delta']
+            vega = opt['vega']
+
+            # Leverage Factor: (Delta × Spot Price) / Premium
+            # Higher = more stock exposure per dollar invested
+            opt['leverage_factor'] = round((delta * current_price) / premium if premium > 0 else 0, 2)
+
+            # Vega Efficiency: Vega / Premium × 100
+            # Lower = less volatility exposure per dollar invested (better for deep ITM)
+            opt['vega_efficiency'] = round((vega / premium * 100) if premium > 0 else 0, 3)
+
+            # Cost Basis: Premium / Delta
+            # Effective cost per share of exposure (lower is better)
+            opt['cost_basis'] = round(premium / delta if delta > 0 else 0, 2)
+
+            # ROI if Stock Moves 10%
+            # Estimated return if underlying moves 10% up
+            opt['roi_10pct_move'] = round((delta * current_price * 0.10) / premium * 100 if premium > 0 else 0, 1)
+
+            # Entry Quality Assessment - tells you WHEN to buy
+            iv_percentile = opt.get('iv_percentile', 50)
+
+            if iv_percentile < 30 and vega < 0.15:
+                opt['entry_quality'] = 'excellent'
+                opt['entry_quality_label'] = 'Excellent Entry'
+                opt['entry_quality_description'] = 'Low IV + Low vega - Ideal buying opportunity!'
+            elif iv_percentile < 30 and vega < 0.30:
+                opt['entry_quality'] = 'good'
+                opt['entry_quality_label'] = 'Good Entry'
+                opt['entry_quality_description'] = 'Low IV but moderate vega - Good buying opportunity'
+            elif iv_percentile < 60 and vega < 0.30:
+                opt['entry_quality'] = 'fair'
+                opt['entry_quality_label'] = 'Fair Entry'
+                opt['entry_quality_description'] = 'Moderate IV and vega - Acceptable entry point'
+            elif iv_percentile < 60 and vega < 0.50:
+                opt['entry_quality'] = 'caution'
+                opt['entry_quality_label'] = 'Caution'
+                opt['entry_quality_description'] = 'Moderate IV but higher vega - Consider waiting'
+            else:
+                opt['entry_quality'] = 'wait'
+                opt['entry_quality_label'] = 'Wait for Better'
+                opt['entry_quality_description'] = 'High IV percentile or high vega - Wait for better conditions'
+
+            filtered.append(opt)
+
+        # Rank/sort by specified method
+        reverse = True  # Most metrics are "higher is better"
+        if rank_by == 'iv_rank':
+            reverse = False  # Lower IV rank is better (cheaper vega)
+        elif rank_by == 'premium':
+            reverse = False  # Lower premium for same characteristics
+
+        if rank_by in ['quality_score', 'opportunity_score', 'delta', 'vega', 'iv_rank', 'premium']:
+            filtered.sort(key=lambda x: x.get(rank_by, 0), reverse=reverse)
+        else:
+            # Default to opportunity score (best volatility value)
+            filtered.sort(key=lambda x: x.get('opportunity_score', 0), reverse=True)
+
+        result = {
+            'current_price': current_price,
+            'strategy_used': strategy or 'custom',
+            'filter_criteria': {
+                'delta_range': [min_delta, max_delta],
+                'extrinsic_max': max_extrinsic,
+                'strike_range': [min_strike, max_strike] if min_strike or max_strike else None,
+                'vega_range': [min_vega, max_vega] if min_vega or max_vega else None,
+                'iv_rank_max': max_iv_rank,
+                'iv_percentile_range': [min_iv_percentile, max_iv_percentile] if min_iv_percentile or max_iv_percentile else None,
+                'rank_by': rank_by
+            },
+            'total_options': len(all_options),
+            'filtered_options': len(filtered),
+            'top_opportunities': filtered[:top_n],
+            'timestamp': datetime.now().isoformat(),
+            'data_source': data_source
+        }
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error in LEAPS opportunities endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch LEAPS opportunities: {str(e)}")
+
+@app.get("/api/leaps/backtest")
+async def get_leaps_backtest(years: int = 5):
+    """
+    Get LEAPS performance backtest across VIX regimes.
+
+    Query Parameters:
+        years: Number of years to backtest (default 5, max 10)
+
+    Returns:
+        dict: {
+            'regimes': Performance by VIX regime (LOW, MODERATE, HIGH)
+            'overall': Overall performance metrics
+            'current_vix': Current VIX level
+            'current_regime': Current VIX regime
+            'recommendations': Actionable trading recommendations
+            'timestamp': Analysis timestamp
+        }
+    """
+    try:
+        from leaps_backtester import backtest_vix_regimes, get_regime_recommendations
+
+        # Limit years to reasonable range
+        years = min(max(years, 1), 10)
+
+        # Run backtest
+        results = backtest_vix_regimes(years=years)
+
+        # Get recommendations
+        recommendations = get_regime_recommendations(results)
+        results['recommendations'] = recommendations
+
+        return results
+
+    except Exception as e:
+        logger.error(f"Error in LEAPS backtest endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to run backtest: {str(e)}")
+
+@app.get("/api/leaps/alerts")
+async def get_leaps_alerts():
+    """
+    Get current LEAPS trading alerts and notifications.
+
+    Returns:
+        dict: {
+            'alerts': List of active alerts
+            'vix_alerts': VIX-specific alerts
+            'opportunity_alerts': High-quality opportunity alerts
+            'regime_change_alert': Alert if VIX regime recently changed
+            'timestamp': Alert generation time
+        }
+    """
+    try:
+        from vix_analyzer import fetch_vix_data, determine_leaps_strategy
+        from leaps_analyzer import fetch_spx_options, filter_leaps_by_strategy
+        from leaps_backtester import backtest_vix_regimes
+
+        # Fetch current data
+        vix_data = fetch_vix_data()
+        strategy = determine_leaps_strategy(vix_data["current"], vix_data["percentile"])
+
+        alerts = []
+        vix_alerts = []
+        opportunity_alerts = []
+        regime_change_alert = None
+
+        # VIX percentile alerts
+        percentile = vix_data["percentile"]
+        vix_level = vix_data["current"]
+
+        if percentile < 10:
+            vix_alerts.append({
+                'severity': 'HIGH',
+                'type': 'VIX_EXTREME_LOW',
+                'title': 'VIX at Extreme Lows',
+                'message': f'VIX at {vix_level:.2f} (P{percentile}) - Historically cheap vega. '
+                          f'Strong buying opportunity for ATM LEAPS.',
+                'action': 'Consider aggressive ATM LEAPS positions'
+            })
+        elif percentile > 90:
+            vix_alerts.append({
+                'severity': 'HIGH',
+                'type': 'VIX_EXTREME_HIGH',
+                'title': 'VIX at Extreme Highs',
+                'message': f'VIX at {vix_level:.2f} (P{percentile}) - Expensive vega environment. '
+                          f'Use Deep ITM protection.',
+                'action': 'Only Deep ITM (delta >0.90) positions recommended'
+            })
+
+        # VIX level thresholds
+        if vix_level < 12:
+            vix_alerts.append({
+                'severity': 'MEDIUM',
+                'type': 'VIX_COMPLACENCY',
+                'title': 'Complacency Alert',
+                'message': f'VIX below 12 signals extreme complacency. Rare buying opportunity.',
+                'action': 'Maximum vega exposure via ATM LEAPS'
+            })
+        elif vix_level > 30:
+            vix_alerts.append({
+                'severity': 'MEDIUM',
+                'type': 'VIX_PANIC',
+                'title': 'Panic Levels',
+                'message': f'VIX above 30 indicates market stress. Extreme caution required.',
+                'action': 'Wait for VIX normalization or use Deep ITM only'
+            })
+
+        # Opportunity alerts (simplified - would check actual options)
+        if strategy["strategy"] == "ATM" and percentile < 30:
+            opportunity_alerts.append({
+                'severity': 'HIGH',
+                'type': 'OPTIMAL_ENTRY',
+                'title': 'Optimal ATM Entry Conditions',
+                'message': 'Low VIX + Low percentile = Ideal conditions for ATM LEAPS',
+                'action': 'Search for ATM LEAPS with delta 0.50-0.55'
+            })
+
+        # Regime change detection (simplified)
+        if 14 < vix_level < 16:
+            regime_change_alert = {
+                'severity': 'MEDIUM',
+                'type': 'REGIME_TRANSITION',
+                'title': 'Potential Regime Transition',
+                'message': 'VIX near 15 threshold - monitor for regime change',
+                'action': 'Be prepared to adjust strategy if VIX crosses 15'
+            }
+        elif 19 < vix_level < 21:
+            regime_change_alert = {
+                'severity': 'MEDIUM',
+                'type': 'REGIME_TRANSITION',
+                'title': 'Potential Regime Transition',
+                'message': 'VIX near 20 threshold - monitor for regime change',
+                'action': 'Be prepared to adjust from Moderate ITM to Deep ITM if VIX rises'
+            }
+
+        # Combine all alerts
+        all_alerts = vix_alerts + opportunity_alerts
+        if regime_change_alert:
+            all_alerts.append(regime_change_alert)
+
+        return {
+            'alerts': all_alerts,
+            'alert_count': len(all_alerts),
+            'vix_alerts': vix_alerts,
+            'opportunity_alerts': opportunity_alerts,
+            'regime_change_alert': regime_change_alert,
+            'current_vix': vix_level,
+            'current_percentile': percentile,
+            'current_strategy': strategy["strategy"],
+            'timestamp': datetime.now().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Error in LEAPS alerts endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate alerts: {str(e)}")
 
 @app.post("/api/backtest/batch")
 async def run_batch_backtest(request: BacktestRequest, background_tasks: BackgroundTasks):

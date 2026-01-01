@@ -537,16 +537,17 @@ def main():
                     display_name = result.get('display_name', symbol)
                     category = result.get('category', '')
                     
-                    print(f"✓ {display_name:12} ({category:6}): ${result['current_price']:>7.2f} | "
+                    # ASCII-only status line to avoid encoding issues on Windows consoles
+                    print(f"[OK] {display_name:12} ({category:6}): ${result['current_price']:>7.2f} | "
                           f"ST: ${st_put:>6.0f}-${st_call:>6.0f} | "
                           f"IV: {st_iv:>3.0f}%/{lt_iv:>3.0f}% | GF: ${gf:>7.0f}")
                 else:
                     failed_symbols.append(symbol)
-                    print(f"✗ {symbol:12}: Failed to process")
+                    print(f"[FAIL] {symbol:12}: Failed to process")
             except Exception as e:
                 failed_symbols.append(symbol)
                 error_msg = str(e)[:40] + "..." if len(str(e)) > 40 else str(e)
-                print(f"✗ {symbol:12}: Error - {error_msg}")
+                print(f"[FAIL] {symbol:12}: Error - {error_msg}")
     
     # Sort results by category for better organization
     results.sort(key=lambda x: (x.get('category', 'ZZZ'), x['symbol']))
@@ -560,7 +561,7 @@ def main():
     print()
     
     # Prioritize important symbols for Pine Script (limit to top symbols)
-    priority_symbols = ['^SPX', 'QQQ', 'AAPL', 'NVDA', 'MSFT', 'CVX', 'XOM', 'TSLA', 'META', 'AMZN', 'BRK-B']
+    priority_symbols = ['^SPX', 'QQQ', 'AAPL', 'NVDA', 'MSFT', 'GOOGL', 'CVX', 'XOM', 'TSLA', 'META', 'AMZN', 'BRK-B']
     priority_results = []
     other_results = []
     

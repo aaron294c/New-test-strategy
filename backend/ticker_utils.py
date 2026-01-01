@@ -9,8 +9,17 @@ from __future__ import annotations
 
 
 _YAHOO_ALIASES: dict[str, str] = {
+    # Indices
+    "SPX": "^SPX",
+    "NDX": "^NDX",
+    "VIX": "^VIX",
+    "RUT": "^RUT",
+    "DJI": "^DJI",
+    "GDAXI": "^GDAXI",
+    "FTSE": "^FTSE",
     # London Stock Exchange (Yahoo suffix: .L)
     "CNX1": "CNX1.L",
+    "IGLS": "IGLS.L",
 }
 
 
