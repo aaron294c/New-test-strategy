@@ -74,7 +74,7 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
-    ],  # REMOVED "*" wildcard - doesn't work with allow_credentials=True
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -134,16 +134,34 @@ except Exception as e:
 try:
     import sys
     from pathlib import Path
-    api_lower_ext_dir = Path(__file__).parent / "api"
-    if str(api_lower_ext_dir) not in sys.path:
-        sys.path.insert(0, str(api_lower_ext_dir))
+    api_dir = Path(__file__).parent / "api"
+    if str(api_dir) not in sys.path:
+        sys.path.insert(0, str(api_dir))
 
-    from lower_extension import calculate_mbad_levels
-    from nadaraya_watson import calculate_nadaraya_watson_lower_band
-    print("[OK] Lower Extension API module loaded")
-    print("[OK] Nadaraya-Watson Envelope API module loaded")
+    from lower_extension import router as lower_extension_router
+    app.include_router(lower_extension_router)
+    print("[OK] Lower Extension API registered (/api/lower-extension/*)")
 except Exception as e:
-    print(f"[WARN] Could not load indicator APIs: {e}")
+    print(f"[WARN] Could not load Lower Extension API: {e}")
+
+# Import and add Nadaraya-Watson API
+try:
+    from nadaraya_watson import router as nw_router
+    app.include_router(nw_router)
+    print("[OK] Nadaraya-Watson API registered (/api/nadaraya-watson/*)")
+except Exception as e:
+    print(f"[WARN] Could not load Nadaraya-Watson API: {e}")
+
+# Add Gamma Data endpoint fallback
+@app.get("/api/gamma-data")
+@app.get("/api/gamma-data/example")
+async def get_gamma_data_fallback():
+    """Fallback for gamma data when live feed unavailable"""
+    return {
+        "error": "Gamma scanner not available",
+        "message": "Live options data feed required",
+        "timestamp": datetime.now().isoformat()
+    }
 
 # Import and add Multi-Timeframe router
 try:
@@ -1716,8 +1734,8 @@ async def get_percentile_forward_mapping_4h(ticker: str, force_refresh: bool = F
             "timestamp": datetime.now().isoformat(),
             "cached": False
         }
-
-        # Clean NaN values before serialization
+        import traceback
+        # Clean NaN values before serializationError in /api/percentile-forward-4h for {ticker}:")
         result = clean_nan_values(result)
 
         # Save to cache
@@ -1732,12 +1750,6 @@ async def get_percentile_forward_mapping_4h(ticker: str, force_refresh: bool = F
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
-
-# ============================================================================
-# Multi-Timeframe Trading Guide Endpoints
-# ============================================================================
-
-# Helper function to get stock data
 def get_stock_data(ticker: str, timeframe: str):
     """Get data for a specific stock and timeframe."""
     # Normalize timeframe to lowercase
@@ -1782,10 +1794,10 @@ async def get_recommendation(ticker: str):
     try:
         # Import the analyzer
         from multi_timeframe_analyzer import MultiTimeframeAnalyzer
-        
+
         analyzer = MultiTimeframeAnalyzer()
         result = analyzer.analyze(ticker.upper())
-        
+
         if not result:
             return {
                 "ticker": ticker.upper(),
