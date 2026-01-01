@@ -70,7 +70,7 @@ allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
 allow_all_regex = r"https://.*\.app\.github\.dev"
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for now
+    allow_origins=["*"]"*"],  # Allow all origins for now
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
