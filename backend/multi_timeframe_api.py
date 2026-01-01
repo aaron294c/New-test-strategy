@@ -5,7 +5,7 @@ Endpoints for stock metadata, bins, and trading recommendations
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from typing import Dict
+from typing import Dict, Optional
 from stock_statistics import (
     get_stock_data,
     calculate_position_size,
@@ -54,8 +54,8 @@ class TradingRecommendation(BaseModel):
     detailed_guidance: str
 
     # Risk management
-    stop_loss_5th_percentile: float
-    upside_95th_percentile: float
+    stop_loss_5th_percentile: Optional[float] = None
+    upside_95th_percentile: Optional[float] = None
 
 
 # ============================================
@@ -203,7 +203,8 @@ async def get_trading_recommendation(position: StockPosition) -> TradingRecommen
     daily_stats = daily_data[daily_bin_key]
 
     # Calculate position
-    position_calc = calculate_position_size(daily_stats.t_score, fourh_stats.t_score)
+    position_calc = calculate_position_size(fourh_stats.t_statistic if fourh_stats else 0, 
+                                             daily_stats.t_statistic if daily_stats else 0)
 
     # Generate detailed guidance
     meta = STOCK_METADATA[ticker]
@@ -246,11 +247,11 @@ async def get_trading_recommendation(position: StockPosition) -> TradingRecommen
         daily_is_significant=daily_stats.is_significant,
         daily_signal_strength=daily_stats.significance_level.value,
         recommended_action=position_calc["action"],
-        position_size=position_calc["position"],
+        position_size=f"{position_calc['position']}%",
         confidence=position_calc["confidence"],
         detailed_guidance=detailed_guidance,
-        stop_loss_5th_percentile=fourh_stats.percentile_5th,
-        upside_95th_percentile=fourh_stats.percentile_95th
+        stop_loss_5th_percentile=fourh_stats.percentile_5th if fourh_stats and fourh_stats.percentile_5th is not None else None,
+        upside_95th_percentile=fourh_stats.percentile_95th if fourh_stats and fourh_stats.percentile_95th is not None else None,
     )
 
 

@@ -16,7 +16,6 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Button,
   Select,
   MenuItem,
   FormControl,
@@ -25,7 +24,6 @@ import {
   AccordionSummary,
   AccordionDetails,
   LinearProgress,
-  Tooltip,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -37,6 +35,20 @@ import axios from 'axios';
 
 // Use environment variable for API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
+// Helper function to safely format numbers - MUST be defined before component
+const safeToFixed = (value: number | null | undefined, decimals: number = 2): string => {
+  if (value == null || typeof value !== 'number' || isNaN(value)) return 'N/A';
+  return value.toFixed(decimals);
+};
+
+// Helper to parse position_size (handles both number and "50%" string formats)
+const parsePositionSize = (value: number | string | null | undefined): number => {
+  if (value == null) return 0;
+  if (typeof value === 'number') return value;
+  const parsed = parseFloat(String(value).replace('%', ''));
+  return isNaN(parsed) ? 0 : parsed;
+};
 
 interface BinStatistic {
   bin_range: string;
@@ -95,7 +107,7 @@ interface TradingRecommendation {
   daily_is_significant: boolean;
   daily_signal_strength: string;
   recommended_action: string;
-  position_size: number;
+  position_size: number | string;  // Can be number or string like "50%"
   confidence: string;
   detailed_guidance: string;
   stop_loss_5th_percentile: number | null;
@@ -292,7 +304,7 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
               severity={recommendation.daily_is_significant ? 'success' : 'error'}
               icon={recommendation.daily_is_significant ? <CheckCircleIcon /> : <WarningIcon />}
             >
-              Daily t-score: {recommendation.daily_t_score.toFixed(2)}{' '}
+              Daily t-score: {safeToFixed(recommendation.daily_t_score)}{' '}
               {recommendation.daily_is_significant ? '✅ Proceed to Step 2' : '❌ SKIP - No trade'}
             </Alert>
           )}
@@ -338,36 +350,39 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
           </Grid>
         </Box>
 
-        {recommendation && (
-          <Alert
-            severity={
-              recommendation.position_size >= 50
-                ? 'success'
-                : recommendation.position_size >= 30
-                ? 'info'
-                : recommendation.position_size > 0
-                ? 'warning'
-                : 'error'
-            }
-            icon={
-              recommendation.position_size >= 50 ? (
-                <TrendingUpIcon />
-              ) : recommendation.position_size > 0 ? (
-                <InfoIcon />
-              ) : (
-                <TrendingDownIcon />
-              )
-            }
-          >
-            <Typography variant="subtitle2" gutterBottom>
-              <strong>Recommendation:</strong> {recommendation.recommended_action}
-            </Typography>
-            <Typography variant="body2">
-              Position Size: <strong>{recommendation.position_size}%</strong> | Confidence:{' '}
-              <strong>{recommendation.confidence}</strong>
-            </Typography>
-          </Alert>
-        )}
+        {recommendation && (() => {
+          const posSize = parsePositionSize(recommendation.position_size);
+          return (
+            <Alert
+              severity={
+                posSize >= 50
+                  ? 'success'
+                  : posSize >= 30
+                  ? 'info'
+                  : posSize > 0
+                  ? 'warning'
+                  : 'error'
+              }
+              icon={
+                posSize >= 50 ? (
+                  <TrendingUpIcon />
+                ) : posSize > 0 ? (
+                  <InfoIcon />
+                ) : (
+                  <TrendingDownIcon />
+                )
+              }
+            >
+              <Typography variant="subtitle2" gutterBottom>
+                <strong>Recommendation:</strong> {recommendation.recommended_action}
+              </Typography>
+              <Typography variant="body2">
+                Position Size: <strong>{posSize}%</strong> | Confidence:{' '}
+                <strong>{recommendation.confidence}</strong>
+              </Typography>
+            </Alert>
+          );
+        })()}
       </CardContent>
     </Card>
   );
@@ -387,6 +402,7 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
         </TableHead>
         <TableBody>
           {(fourHBins || []).map((bin) => {
+            if (!bin) return null;  // Skip undefined bins
             const isCurrentBin = bin.bin_range === current4HBin + '%';
             return (
               <TableRow
@@ -401,37 +417,37 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
                 </TableCell>
                 <TableCell align="right">
                   <Typography
-                    color={bin.mean > 0 ? 'success.main' : 'error.main'}
+                    color={(bin.mean ?? 0) > 0 ? 'success.main' : 'error.main'}
                     fontWeight={bin.is_significant ? 'bold' : 'normal'}
                   >
-                    {bin.mean > 0 ? '+' : ''}
-                    {bin.mean.toFixed(2)}%
+                    {(bin.mean ?? 0) > 0 ? '+' : ''}
+                    {safeToFixed(bin.mean)}%
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
                   <Chip
-                    label={bin.t_score.toFixed(2)}
+                    label={safeToFixed(bin.t_score)}
                     size="small"
                     sx={{
-                      backgroundColor: getSignalColor(bin.t_score),
+                      backgroundColor: getSignalColor(bin.t_score ?? 0),
                       color: 'white',
                       fontWeight: 'bold',
                     }}
                   />
                 </TableCell>
                 <TableCell align="center">
-                  <Typography variant="caption">{bin.signal_strength}</Typography>
+                  <Typography variant="caption">{bin.signal_strength ?? 'N/A'}</Typography>
                 </TableCell>
                 <TableCell>
                   <Chip
-                    label={bin.action}
+                    label={bin.action ?? 'N/A'}
                     size="small"
-                    color={getActionColor(bin.action) as any}
+                    color={getActionColor(bin.action ?? '') as any}
                     variant={bin.is_significant ? 'filled' : 'outlined'}
                   />
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2">{bin.position_size_guidance}</Typography>
+                  <Typography variant="body2">{bin.position_size_guidance ?? 'N/A'}</Typography>
                 </TableCell>
               </TableRow>
             );
@@ -456,6 +472,7 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
         </TableHead>
         <TableBody>
           {(dailyBins || []).map((bin) => {
+            if (!bin) return null;  // Skip undefined bins
             const isCurrentBin = bin.bin_range === currentDailyBin + '%';
             return (
               <TableRow
@@ -469,31 +486,31 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
                 </TableCell>
                 <TableCell align="right">
                   <Typography
-                    color={bin.mean > 0 ? 'success.main' : 'error.main'}
+                    color={(bin.mean ?? 0) > 0 ? 'success.main' : 'error.main'}
                     fontWeight={bin.is_significant ? 'bold' : 'normal'}
                   >
-                    {bin.mean > 0 ? '+' : ''}
-                    {bin.mean.toFixed(2)}%
+                    {(bin.mean ?? 0) > 0 ? '+' : ''}
+                    {safeToFixed(bin.mean)}%
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
                   <Chip
-                    label={bin.t_score.toFixed(2)}
+                    label={safeToFixed(bin.t_score)}
                     size="small"
                     sx={{
-                      backgroundColor: getSignalColor(bin.t_score),
+                      backgroundColor: getSignalColor(bin.t_score ?? 0),
                       color: 'white',
                       fontWeight: 'bold',
                     }}
                   />
                 </TableCell>
                 <TableCell align="center">
-                  <Typography variant="caption">{bin.signal_strength}</Typography>
+                  <Typography variant="caption">{bin.signal_strength ?? 'N/A'}</Typography>
                 </TableCell>
-                <TableCell align="right">{bin.sample_size}</TableCell>
+                <TableCell align="right">{bin.sample_size ?? 0}</TableCell>
                 <TableCell align="right">
                   <Typography variant="caption">
-                    [{bin.confidence_interval_95[0].toFixed(2)}%, {bin.confidence_interval_95[1].toFixed(2)}%]
+                    [{safeToFixed(bin.confidence_interval_95?.[0])}%, {safeToFixed(bin.confidence_interval_95?.[1])}%]
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -520,7 +537,7 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
                     Daily Score
                   </Typography>
                   <Typography variant="h4">
-                    {((recommendation.daily_t_score / 2.0) * 100).toFixed(0)}
+                    {safeToFixed((recommendation.daily_t_score / 2.0) * 100, 0)}
                   </Typography>
                   <LinearProgress
                     variant="determinate"
@@ -528,7 +545,7 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
                     sx={{ mt: 1 }}
                   />
                   <Typography variant="caption" color="textSecondary">
-                    t-score: {recommendation.daily_t_score.toFixed(2)} / 4.0 (max)
+                    t-score: {safeToFixed(recommendation.daily_t_score)} / 4.0 (max)
                   </Typography>
                 </Paper>
               </Grid>
@@ -538,7 +555,7 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
                     4H Score
                   </Typography>
                   <Typography variant="h4">
-                    {((recommendation.fourh_t_score / 2.0) * 100).toFixed(0)}
+                    {safeToFixed((recommendation.fourh_t_score / 2.0) * 100, 0)}
                   </Typography>
                   <LinearProgress
                     variant="determinate"
@@ -546,7 +563,7 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
                     sx={{ mt: 1 }}
                   />
                   <Typography variant="caption" color="textSecondary">
-                    t-score: {recommendation.fourh_t_score.toFixed(2)} / 4.0 (max)
+                    t-score: {safeToFixed(recommendation.fourh_t_score)} / 4.0 (max)
                   </Typography>
                 </Paper>
               </Grid>
@@ -561,14 +578,14 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
 
             <Paper sx={{ p: 2, backgroundColor: 'success.light', color: 'success.contrastText' }}>
               <Typography variant="h5" align="center" gutterBottom>
-                Recommended Position: {recommendation.position_size}%
+                Recommended Position: {parsePositionSize(recommendation.position_size)}%
               </Typography>
               <Typography variant="subtitle1" align="center">
                 Confidence: {recommendation.confidence}
               </Typography>
-              {recommendation.stop_loss_5th_percentile && (
+              {recommendation.stop_loss_5th_percentile != null && (
                 <Typography variant="body2" align="center" sx={{ mt: 1 }}>
-                  Stop Loss (5th percentile): {recommendation.stop_loss_5th_percentile.toFixed(2)}%
+                  Stop Loss (5th percentile): {safeToFixed(recommendation.stop_loss_5th_percentile)}%
                 </Typography>
               )}
             </Paper>
@@ -632,7 +649,7 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
               <Typography variant="body2">{stockMetadata.guidance.entry}</Typography>
               <Box sx={{ mt: 1 }}>
                 <Typography variant="caption" color="textSecondary">
-                  Best 4H Zone: <strong>{stockMetadata.best_4h_bin}</strong> (t-score: {stockMetadata.best_4h_t_score.toFixed(2)})
+                  Best 4H Zone: <strong>{stockMetadata.best_4h_bin}</strong> (t-score: {stockMetadata.best_4h_t_score != null ? stockMetadata.best_4h_t_score.toFixed(2) : 'N/A'})
                 </Typography>
               </Box>
             </AccordionDetails>
@@ -687,13 +704,13 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
             🔄 {tradeManagement.stock_name} Trade Management Rules (Day 0 → Day 7)
           </Typography>
           <Typography variant="caption" color="textSecondary" display="block" gutterBottom>
-            {tradeManagement.personality} • {tradeManagement.time_management.daily_monitoring}
+            {tradeManagement.personality} • {tradeManagement.time_management?.daily_monitoring ?? 'N/A'}
           </Typography>
 
           {/* ADD RULES */}
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography variant="subtitle1">🟢 ADD Rules (Buy the Dip) - {tradeManagement.add_rules.length} Zones</Typography>
+              <Typography variant="subtitle1">🟢 ADD Rules (Buy the Dip) - {tradeManagement.add_rules?.length ?? 0} Zones</Typography>
             </AccordionSummary>
             <AccordionDetails>
               <Typography variant="body2" paragraph>
@@ -712,24 +729,27 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {tradeManagement.add_rules.map((rule) => (
-                      <TableRow key={rule.bin}>
-                        <TableCell>{rule.bin}</TableCell>
-                        <TableCell>
-                          <Chip label={rule.intensity} color="success" size="small" />
-                        </TableCell>
-                        <TableCell align="right"><strong>{rule.max_position}%</strong></TableCell>
-                        <TableCell align="right" style={{ color: '#2e7d32' }}>
-                          +{rule.expected_return.toFixed(2)}%
-                        </TableCell>
-                        <TableCell align="right">
-                          <Chip label={rule.t_score.toFixed(2)} size="small" sx={{ backgroundColor: getSignalColor(rule.t_score), color: 'white' }} />
-                        </TableCell>
-                        <TableCell align="right" style={{ color: '#d32f2f' }}>
-                          {rule.stop_loss ? rule.stop_loss.toFixed(2) + '%' : 'N/A'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {(tradeManagement.add_rules || []).map((rule) => {
+                      if (!rule) return null;
+                      return (
+                        <TableRow key={rule.bin}>
+                          <TableCell>{rule.bin}</TableCell>
+                          <TableCell>
+                            <Chip label={rule.intensity ?? 'N/A'} color="success" size="small" />
+                          </TableCell>
+                          <TableCell align="right"><strong>{rule.max_position ?? 0}%</strong></TableCell>
+                          <TableCell align="right" style={{ color: '#2e7d32' }}>
+                            +{safeToFixed(rule.expected_return)}%
+                          </TableCell>
+                          <TableCell align="right">
+                            <Chip label={safeToFixed(rule.t_score)} size="small" sx={{ backgroundColor: getSignalColor(rule.t_score ?? 0), color: 'white' }} />
+                          </TableCell>
+                          <TableCell align="right" style={{ color: '#d32f2f' }}>
+                            {rule.stop_loss != null ? safeToFixed(rule.stop_loss) + '%' : 'N/A'}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -753,16 +773,19 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {tradeManagement.trim_rules.map((rule) => (
-                      <TableRow key={rule.bin}>
-                        <TableCell>{rule.bin}</TableCell>
-                        <TableCell>
-                          <Chip label={rule.action} color="warning" size="small" />
-                        </TableCell>
-                        <TableCell align="right"><strong>{rule.trim_percentage}%</strong></TableCell>
-                        <TableCell>{rule.reason}</TableCell>
-                      </TableRow>
-                    ))}
+                    {(tradeManagement.trim_rules || []).map((rule) => {
+                      if (!rule) return null;
+                      return (
+                        <TableRow key={rule.bin}>
+                          <TableCell>{rule.bin}</TableCell>
+                          <TableCell>
+                            <Chip label={rule.action ?? 'N/A'} color="warning" size="small" />
+                          </TableCell>
+                          <TableCell align="right"><strong>{rule.trim_percentage ?? 0}%</strong></TableCell>
+                          <TableCell>{rule.reason ?? 'N/A'}</TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -775,7 +798,7 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
               <Typography variant="subtitle1">🛑 EXIT Rules (Stop Loss / Early Exit)</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              {tradeManagement.exit_rules.length > 0 && (
+              {(tradeManagement.exit_rules?.length ?? 0) > 0 && (
                 <>
                   <Typography variant="body2" paragraph>
                     <strong>Bearish Zone Exit Triggers:</strong>
@@ -791,18 +814,21 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {tradeManagement.exit_rules.map((rule) => (
-                          <TableRow key={rule.bin}>
-                            <TableCell>{rule.bin}</TableCell>
-                            <TableCell>
-                              <Chip label={rule.action} color="error" size="small" />
-                            </TableCell>
-                            <TableCell align="right" style={{ color: '#d32f2f' }}>
-                              {rule.expected_return.toFixed(2)}%
-                            </TableCell>
-                            <TableCell>{rule.reason}</TableCell>
-                          </TableRow>
-                        ))}
+                        {(tradeManagement.exit_rules || []).map((rule) => {
+                          if (!rule) return null;
+                          return (
+                            <TableRow key={rule.bin}>
+                              <TableCell>{rule.bin}</TableCell>
+                              <TableCell>
+                                <Chip label={rule.action ?? 'N/A'} color="error" size="small" />
+                              </TableCell>
+                              <TableCell align="right" style={{ color: '#d32f2f' }}>
+                                {safeToFixed(rule.expected_return)}%
+                              </TableCell>
+                              <TableCell>{rule.reason ?? 'N/A'}</TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </TableContainer>
@@ -812,15 +838,15 @@ const MultiTimeframeGuide: React.FC<MultiTimeframeGuideProps> = ({ ticker }) => 
                 <strong>Time-Based Exit Triggers:</strong>
               </Typography>
               <ul>
-                <li>✅ Target hit early ({tradeManagement.time_management.early_exit_trigger})</li>
-                <li>📅 Hold period complete ({tradeManagement.time_management.hold_period})</li>
+                <li>✅ Target hit early ({tradeManagement.time_management?.early_exit_trigger ?? 'N/A'})</li>
+                <li>📅 Hold period complete ({tradeManagement.time_management?.hold_period ?? 'N/A'})</li>
               </ul>
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
-                  <strong>Dynamic Stop Loss for {tradeManagement.stock_name}:</strong> {tradeManagement.stop_loss_guidance.recommended_stop.toFixed(2)}%
+                  <strong>Dynamic Stop Loss for {tradeManagement.stock_name}:</strong> {safeToFixed(tradeManagement.stop_loss_guidance?.recommended_stop)}%
                 </Typography>
                 <Typography variant="caption">
-                  {tradeManagement.stop_loss_guidance.explanation}
+                  {tradeManagement.stop_loss_guidance?.explanation ?? 'N/A'}
                 </Typography>
               </Alert>
             </AccordionDetails>
