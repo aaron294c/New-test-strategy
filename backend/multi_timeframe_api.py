@@ -203,8 +203,8 @@ async def get_trading_recommendation(position: StockPosition) -> TradingRecommen
     daily_stats = daily_data[daily_bin_key]
 
     # Calculate position
-    position_calc = calculate_position_size(fourh_stats.t_statistic if fourh_stats else 0, 
-                                             daily_stats.t_statistic if daily_stats else 0)
+    position_calc = calculate_position_size(fourh_stats.t_score if fourh_stats else 0, 
+                                             daily_stats.t_score if daily_stats else 0)
 
     # Generate detailed guidance
     meta = STOCK_METADATA[ticker]
