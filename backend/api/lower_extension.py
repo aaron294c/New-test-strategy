@@ -42,13 +42,15 @@ def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30
         lower_3 = ma - (std * 3.0)
 
         current_price = float(close.iloc[-1])
+        lower_ext_value = float(lower_1.iloc[-1])
 
         return {
             "ticker": ticker,
             "current_price": current_price,
+            "lower_ext": lower_ext_value,  # Add this field for frontend compatibility
             "ma_baseline": float(ma.iloc[-1]),
             "levels": {
-                "lower_1sd": float(lower_1.iloc[-1]),
+                "lower_1sd": lower_ext_value,
                 "lower_2sd": float(lower_2.iloc[-1]),
                 "lower_3sd": float(lower_3.iloc[-1]),
             },

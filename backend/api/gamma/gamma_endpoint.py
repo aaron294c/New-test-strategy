@@ -7,14 +7,23 @@ import subprocess
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
+import asyncio
 
 # FIXED: Remove /api prefix - it will be added by main app
 router = APIRouter(prefix="/gamma-data", tags=["Gamma Scanner"])
+
+# Simple in-memory cache
+_gamma_cache = {
+    "data": None,
+    "timestamp": None,
+    "is_refreshing": False
+}
+CACHE_TTL_SECONDS = 300  # 5 minutes
 
 # Path to the gamma scanner Python script
 SCRIPT_DIR = Path(__file__).parent.parent.parent
@@ -151,42 +160,100 @@ def run_gamma_scanner_script() -> str:
         )
 
 
-@router.get("", response_model=GammaDataResponse)  # Changed from "/api/gamma-data"
-async def get_gamma_data(force_refresh: bool = False):
+def _is_cache_valid() -> bool:
+    """Check if cached data is still valid."""
+    if _gamma_cache["data"] is None or _gamma_cache["timestamp"] is None:
+        return False
+
+    age = datetime.now() - _gamma_cache["timestamp"]
+    return age.total_seconds() < CACHE_TTL_SECONDS
+
+
+def _refresh_cache_sync():
+    """Refresh the cache synchronously (for background tasks)."""
+    if _gamma_cache["is_refreshing"]:
+        return  # Already refreshing
+
+    try:
+        _gamma_cache["is_refreshing"] = True
+        stdout = run_gamma_scanner_script()
+        parser = GammaScriptOutput(stdout)
+        data = parser.parse()
+
+        if data.level_data:
+            _gamma_cache["data"] = data
+            _gamma_cache["timestamp"] = datetime.now()
+    except Exception as e:
+        print(f"Cache refresh failed: {e}")
+    finally:
+        _gamma_cache["is_refreshing"] = False
+
+
+@router.get("", response_model=GammaDataResponse)
+async def get_gamma_data(force_refresh: bool = False, background_tasks: BackgroundTasks = None):
     """
-    Get gamma wall scanner data
+    Get gamma wall scanner data with caching
 
     Query parameters:
     - force_refresh: Force a fresh run of the scanner (default: False)
 
-    Returns JSON with level_data arrays and metadata
+    Returns JSON with level_data arrays and metadata.
+    Uses cached data (5 min TTL) unless force_refresh=true.
     """
-    try:
-        # Run the scanner script
-        stdout = run_gamma_scanner_script()
+    # If force refresh, bypass cache
+    if force_refresh:
+        try:
+            stdout = run_gamma_scanner_script()
+            parser = GammaScriptOutput(stdout)
+            data = parser.parse()
 
-        # Parse the output
+            if not data.level_data:
+                raise ValueError("No gamma data found in script output")
+
+            # Update cache
+            _gamma_cache["data"] = data
+            _gamma_cache["timestamp"] = datetime.now()
+
+            return data
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to fetch fresh data: {str(e)}"
+            )
+
+    # Check cache first
+    if _is_cache_valid():
+        # Schedule background refresh if cache is getting old (>60% of TTL)
+        if background_tasks:
+            cache_age = (datetime.now() - _gamma_cache["timestamp"]).total_seconds()
+            if cache_age > CACHE_TTL_SECONDS * 0.6:
+                background_tasks.add_task(_refresh_cache_sync)
+
+        return _gamma_cache["data"]
+
+    # Cache miss or expired - try to fetch fresh data
+    try:
+        stdout = run_gamma_scanner_script()
         parser = GammaScriptOutput(stdout)
         data = parser.parse()
 
         if not data.level_data:
             raise ValueError("No gamma data found in script output")
 
+        # Update cache
+        _gamma_cache["data"] = data
+        _gamma_cache["timestamp"] = datetime.now()
+
         return data
 
-    except HTTPException:
-        # If the caller explicitly asked for a fresh run, bubble up the failure
-        if force_refresh:
-            raise
-        # Otherwise fall back to example data so the UI can still render
-        return _build_example_response()
     except Exception as e:
-        if force_refresh:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Internal server error: {str(e)}"
-            )
-        # Graceful fallback when live fetch fails (e.g., no network)
+        # If we have stale cache, return it with a warning
+        if _gamma_cache["data"] is not None:
+            print(f"Returning stale cache due to error: {e}")
+            return _gamma_cache["data"]
+
+        # No cache available, fall back to example
         return _build_example_response()
 
 

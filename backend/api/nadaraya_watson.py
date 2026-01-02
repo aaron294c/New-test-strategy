@@ -15,6 +15,12 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
+import sys
+from pathlib import Path
+
+# Add parent directory to path to import ticker_utils
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from ticker_utils import resolve_yahoo_symbol
 
 router = APIRouter(prefix="/api/nadaraya-watson", tags=["Nadaraya-Watson"])
 
@@ -30,10 +36,13 @@ def calculate_nadaraya_watson_lower_band(
     This is a nonparametric smoothing technique that adapts to local price structure.
     """
     try:
+        # Resolve Yahoo Finance symbol (e.g., SPX -> ^GSPC)
+        symbol = resolve_yahoo_symbol(ticker)
+
         end_date = datetime.now()
         start_date = end_date - timedelta(days=lookback_days)
 
-        data = yf.download(ticker, start=start_date, end=end_date, progress=False)
+        data = yf.download(symbol, start=start_date, end=end_date, progress=False, timeout=10)
 
         if data.empty:
             raise ValueError(f"No data available for {ticker}")
@@ -78,4 +87,21 @@ async def get_nadaraya_watson_band(
     lookback_days: int = 365
 ):
     """Get Nadaraya-Watson lower envelope band."""
+    return calculate_nadaraya_watson_lower_band(ticker.upper(), bandwidth, lookback_days)
+
+
+@router.get("/metrics/{ticker}")
+async def get_nadaraya_watson_metrics(
+    ticker: str,
+    length: int = 200,
+    bandwidth: float = 8.0,
+    atr_period: int = 50,
+    atr_mult: float = 2.0
+):
+    """
+    Get Nadaraya-Watson metrics for frontend compatibility.
+    Note: length parameter is used as lookback_days for consistency.
+    """
+    # Use length as lookback_days (convert to approximate days)
+    lookback_days = max(365, length * 2)  # Ensure enough data
     return calculate_nadaraya_watson_lower_band(ticker.upper(), bandwidth, lookback_days)
