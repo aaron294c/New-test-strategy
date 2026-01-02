@@ -36,8 +36,14 @@ def calculate_nadaraya_watson_lower_band(
     This is a nonparametric smoothing technique that adapts to local price structure.
     """
     try:
+        # Clean ticker symbol (remove display suffixes like (NDX))
+        clean_ticker = ticker
+        if '(' in ticker:
+            # Extract symbol before parentheses: QQQ(NDX) -> QQQ
+            clean_ticker = ticker.split('(')[0].strip()
+
         # Resolve Yahoo Finance symbol (e.g., SPX -> ^GSPC)
-        symbol = resolve_yahoo_symbol(ticker)
+        symbol = resolve_yahoo_symbol(clean_ticker)
 
         end_date = datetime.now()
         start_date = end_date - timedelta(days=lookback_days)
