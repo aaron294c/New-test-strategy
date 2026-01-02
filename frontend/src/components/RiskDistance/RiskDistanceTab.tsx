@@ -13,6 +13,8 @@ import { calculateMaxPain } from './maxPainCalculator';
 import { batchGetPrices } from '../../utils/priceService';
 import { ProximitySettings, ProximityConfig } from './ProximitySettings';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 export const RiskDistanceTab: React.FC = () => {
   const [symbols, setSymbols] = useState<ParsedSymbolData[]>([]);
   const [selectedSymbols, setSelectedSymbols] = useState<Set<string>>(new Set());
@@ -47,10 +49,10 @@ export const RiskDistanceTab: React.FC = () => {
 
       let data;
       try {
-        data = await fetchJson(`/api/gamma-data?t=${Date.now()}`);
+        data = await fetchJson(`${API_BASE_URL}/api/gamma-data?t=${Date.now()}`);
       } catch (primaryErr) {
         console.warn('Primary gamma-data fetch failed, falling back to example:', primaryErr);
-        data = await fetchJson('/api/gamma-data/example');
+        data = await fetchJson(`${API_BASE_URL}/api/gamma-data/example`);
         setError('Live gamma data unavailable; showing example data.');
       }
 
@@ -88,7 +90,7 @@ export const RiskDistanceTab: React.FC = () => {
       await Promise.all(
         parsedSymbols.map(async (s) => {
           try {
-            const response = await fetch(`/api/lower-extension/metrics/${s.symbol}?length=30&lookback_days=30&t=${Date.now()}`);
+            const response = await fetch(`${API_BASE_URL}/api/lower-extension/metrics/${s.symbol}?length=30&lookback_days=30&t=${Date.now()}`);
             if (response.ok) {
               const data = await response.json();
               if (data.lower_ext) {
@@ -108,7 +110,7 @@ export const RiskDistanceTab: React.FC = () => {
       await Promise.all(
         parsedSymbols.map(async (s) => {
           try {
-            const response = await fetch(`/api/nadaraya-watson/metrics/${s.symbol}?length=200&bandwidth=8.0&atr_period=50&atr_mult=2.0&t=${Date.now()}`);
+            const response = await fetch(`${API_BASE_URL}/api/nadaraya-watson/metrics/${s.symbol}?length=200&bandwidth=8.0&atr_period=50&atr_mult=2.0&t=${Date.now()}`);
             if (response.ok) {
               const data = await response.json();
               if (data.lower_band) {
