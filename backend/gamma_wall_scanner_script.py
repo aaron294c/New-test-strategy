@@ -358,8 +358,16 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                     swing_puts_gex = puts_gex.copy()
 
                 # Find walls (strikes with maximum absolute GEX)
-                call_wall_strike = calls_gex.abs().idxmax() if not calls_gex.empty else None
-                put_wall_strike = puts_gex.abs().idxmax() if not puts_gex.empty else None
+                # CRITICAL FIX: Put walls MUST be BELOW current price (support)
+                # Call walls MUST be ABOVE current price (resistance)
+
+                # Filter calls to strikes ABOVE current price
+                calls_above = calls_gex[calls_gex.index > current_price]
+                call_wall_strike = calls_above.abs().idxmax() if not calls_above.empty else None
+
+                # Filter puts to strikes BELOW current price
+                puts_below = puts_gex[puts_gex.index < current_price]
+                put_wall_strike = puts_below.abs().idxmax() if not puts_below.empty else None
                 
                 # Calculate wall strengths using original formula
                 call_strength = calculator.calculate_wall_strength(calls_gex)
