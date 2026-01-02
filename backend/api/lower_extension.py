@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/lower-extension", tags=["Lower Extension"])
 
 
 def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30):
-    """Calculate MBAD (Moving Baseline Adaptive Detection) levels."""
+    """Calculate MBAD (Moving Baseline Adaptive Detection) levels with comprehensive metrics."""
     try:
         symbol = resolve_yahoo_symbol(ticker)
         end_date = datetime.now()
@@ -44,12 +44,61 @@ def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30
         current_price = float(close.iloc[-1])
         lower_ext_value = float(lower_1.iloc[-1])
 
+        # Calculate comprehensive metrics for frontend
+        pct_dist_lower_ext = ((current_price - lower_ext_value) / lower_ext_value) * 100
+        is_below_lower_ext = pct_dist_lower_ext < 0
+        abs_pct_dist_lower_ext = abs(pct_dist_lower_ext)
+
+        # Calculate 30-day lookback metrics
+        recent_data = close.tail(min(30, len(close)))
+        pct_dists = []
+        breach_count = 0
+
+        for i in range(len(recent_data)):
+            if i >= length:  # Only calculate when we have enough data for MA
+                hist_ma = recent_data.iloc[max(0, i - length):i + 1].mean()
+                hist_std = recent_data.iloc[max(0, i - length):i + 1].std()
+                hist_lower = hist_ma - hist_std
+
+                if pd.notna(hist_lower) and hist_lower > 0:
+                    hist_price = recent_data.iloc[i]
+                    dist = ((hist_price - hist_lower) / hist_lower) * 100
+                    pct_dists.append(dist)
+                    if dist < 0:
+                        breach_count += 1
+
+        min_pct_dist_30d = min(pct_dists) if pct_dists else 0
+        median_abs_pct_dist_30d = np.median([abs(d) for d in pct_dists]) if pct_dists else 0
+        breach_rate_30d = breach_count / len(pct_dists) if pct_dists else 0
+
+        # Check if recently breached (last 5 points)
+        recent_breached = any(d < 0 for d in pct_dists[-5:]) if len(pct_dists) >= 5 else False
+
+        # Proximity score (0-1, normalized by 5% threshold)
+        proximity_score_30d = max(0, min(1, 1 - (median_abs_pct_dist_30d / 5.0)))
+
+        # Historical prices for last 30 days
+        historical_prices = [
+            {
+                "timestamp": idx.isoformat(),
+                "price": float(price)
+            }
+            for idx, price in recent_data.items()
+        ]
+
         return {
-            "ticker": ticker,
-            "current_price": current_price,
-            "lower_ext": lower_ext_value,  # Add this field for frontend compatibility
+            "symbol": ticker,
+            "ticker": ticker,  # Keep both for compatibility
+            "price": current_price,
+            "current_price": current_price,  # Keep both for compatibility
+            "lower_ext": lower_ext_value,
             "ma_baseline": float(ma.iloc[-1]),
             "levels": {
+                "lower_1sd": lower_ext_value,
+                "lower_2sd": float(lower_2.iloc[-1]),
+                "lower_3sd": float(lower_3.iloc[-1]),
+            },
+            "all_levels": {
                 "lower_1sd": lower_ext_value,
                 "lower_2sd": float(lower_2.iloc[-1]),
                 "lower_3sd": float(lower_3.iloc[-1]),
@@ -57,7 +106,19 @@ def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30
             "distance_from_baseline": float(
                 (current_price - ma.iloc[-1]) / ma.iloc[-1] * 100
             ),
+            # Comprehensive metrics for frontend
+            "pct_dist_lower_ext": round(pct_dist_lower_ext, 2),
+            "is_below_lower_ext": is_below_lower_ext,
+            "abs_pct_dist_lower_ext": round(abs_pct_dist_lower_ext, 2),
+            "min_pct_dist_30d": round(min_pct_dist_30d, 2),
+            "median_abs_pct_dist_30d": round(median_abs_pct_dist_30d, 2),
+            "breach_count_30d": breach_count,
+            "breach_rate_30d": round(breach_rate_30d, 4),
+            "recent_breached": recent_breached,
+            "proximity_score_30d": round(proximity_score_30d, 3),
+            "historical_prices": historical_prices,
             "timestamp": datetime.now().isoformat(),
+            "last_update": datetime.now().isoformat(),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")

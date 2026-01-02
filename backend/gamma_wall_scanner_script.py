@@ -356,7 +356,7 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                 if tf_name == 'swing':
                     swing_calls_gex = calls_gex.copy()
                     swing_puts_gex = puts_gex.copy()
-                
+
                 # Find walls (strikes with maximum absolute GEX)
                 call_wall_strike = calls_gex.abs().idxmax() if not calls_gex.empty else None
                 put_wall_strike = puts_gex.abs().idxmax() if not puts_gex.empty else None

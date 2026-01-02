@@ -28,6 +28,9 @@ import {
   UTCTimestamp,
 } from 'lightweight-charts';
 
+// Use environment variable for API base URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 type Candle = {
   time: string;
   open: number;
@@ -527,7 +530,7 @@ export default function WeightedFourierTransformPage(props: { ticker: string }) 
     setError(null);
 
     try {
-      const res = await fetch(`/api/lower-extension/candles/${encodeURIComponent(ticker)}?days=${days}`);
+      const res = await fetch(`${API_BASE_URL}/api/lower-extension/candles/${encodeURIComponent(ticker)}?days=${days}`);
       if (!res.ok) throw new Error(`Failed to fetch candles for ${ticker}`);
       const json = (await res.json()) as { candles?: Candle[] };
       const candles = (json.candles ?? []).filter(c => c.time && Number.isFinite(c.close));
