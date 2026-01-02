@@ -38,12 +38,14 @@ function cleanSymbol(symbol: string): string {
   return symbol;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 /**
  * Fetch real price from our backend API
  */
 async function fetchBackendPrice(symbol: string): Promise<number | null> {
   try {
-    const response = await fetch(`/api/prices/${encodeURIComponent(symbol)}`);
+    const response = await fetch(`${API_BASE_URL}/api/prices/${encodeURIComponent(symbol)}`);
     if (!response.ok) {
       return null;
     }

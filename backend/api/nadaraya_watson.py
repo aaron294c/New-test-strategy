@@ -61,7 +61,11 @@ def calculate_nadaraya_watson_lower_band(
             # Calculate weighted percentile (lower envelope at 10th percentile)
             sorted_idx = np.argsort(close)
             cumsum = np.cumsum(weights[sorted_idx])
-            lower_idx = sorted_idx[np.searchsorted(cumsum, 0.10)]
+            # Fix index out of bounds: ensure index is within valid range
+            search_idx = np.searchsorted(cumsum, 0.10)
+            if search_idx >= len(sorted_idx):
+                search_idx = len(sorted_idx) - 1
+            lower_idx = sorted_idx[search_idx]
             lower_band[i] = close[lower_idx]
 
         current_price = float(close[-1])

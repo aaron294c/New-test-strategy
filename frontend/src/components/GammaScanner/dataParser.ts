@@ -140,9 +140,15 @@ export class GammaDataParser {
         upper_2sd: parseField(FIELD_MAPPING.UPPER_2SD),
       };
 
-      // Calculate current price from gamma flip or use middle of SD bands
+      // Calculate current price: use ST_CALL_WALL as best estimate
+      // This is typically closest to actual market price
       const gammaFlip = parseField(FIELD_MAPPING.GAMMA_FLIP);
-      const currentPrice = gammaFlip > 0 ? gammaFlip : (sdBands.lower_1sd + sdBands.upper_1sd) / 2;
+      const stCallWallPrice = parseField(FIELD_MAPPING.ST_CALL_WALL, 0);
+
+      // Use ST_CALL_WALL if available, fallback to midpoint of 1SD bands
+      const currentPrice = stCallWallPrice > 0
+        ? stCallWallPrice
+        : (sdBands.lower_1sd + sdBands.upper_1sd) / 2;
 
       // Parse market metrics
       const swingIV = parseField(FIELD_MAPPING.SWING_IV, 5, 300);
