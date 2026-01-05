@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -20,6 +21,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   Typography,
 } from '@mui/material';
 import {
@@ -32,6 +34,7 @@ import {
 } from '@mui/icons-material';
 
 type DurationUnit = 'days' | 'hours';
+type Timeframe = 'daily' | 'intraday';
 
 interface ThresholdStats {
   sample_size: number;
@@ -188,10 +191,45 @@ export const SwingDurationPanelV2: React.FC<SwingDurationPanelV2Props> = ({
 }) => {
   const [ticker, setTicker] = useState<string>(selectedTicker || tickers[0]);
   const [threshold] = useState<number>(defaultThreshold);
-  const [timeframe, setTimeframe] = useState<'daily' | 'intraday'>('daily');
+  const [timeframe, setTimeframe] = useState<Timeframe>('daily');
   const [data, setData] = useState<DurationResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [summaryCache, setSummaryCache] = useState<Record<Timeframe, Record<string, DurationResponse>>>({
+    daily: {},
+    intraday: {},
+  });
+  const [summaryErrors, setSummaryErrors] = useState<Record<Timeframe, Record<string, string>>>({
+    daily: {},
+    intraday: {},
+  });
+  const [summaryLoadingState, setSummaryLoadingState] = useState<{
+    timeframe: Timeframe;
+    loaded: number;
+    total: number;
+  } | null>(null);
+
+  type SummarySortKey =
+    | 'ticker'
+    | 'sample_size'
+    | 'median_time_to_profit'
+    | 'median_escape'
+    | 'escape_rate'
+    | 'data_source';
+
+  const [summarySort, setSummarySort] = useState<{
+    key: SummarySortKey;
+    direction: 'asc' | 'desc';
+  }>({ key: 'ticker', direction: 'asc' });
+
+  const summaryRunIdRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      summaryRunIdRef.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     if (selectedTicker) {
@@ -227,6 +265,160 @@ export const SwingDurationPanelV2: React.FC<SwingDurationPanelV2Props> = ({
     setTicker(value);
     onTickerChange?.(value);
   };
+
+  const handleSummarySortChange = (key: SummarySortKey) => {
+    setSummarySort((current) => {
+      if (current.key !== key) return { key, direction: 'asc' };
+      return { key, direction: current.direction === 'asc' ? 'desc' : 'asc' };
+    });
+  };
+
+  const loadSummary = async () => {
+    if (summaryLoadingState) return;
+
+    const timeframeToLoad = timeframe;
+    const runId = summaryRunIdRef.current + 1;
+    summaryRunIdRef.current = runId;
+
+    setSummaryLoadingState({ timeframe: timeframeToLoad, loaded: 0, total: tickers.length });
+    setSummaryCache((prev) => ({ ...prev, [timeframeToLoad]: {} }));
+    setSummaryErrors((prev) => ({ ...prev, [timeframeToLoad]: {} }));
+
+    for (let index = 0; index < tickers.length; index += 1) {
+      const symbol = tickers[index];
+      try {
+        const response = await axios.get(`${API_BASE_URL}/api/swing-duration/${symbol}`, {
+          params: { threshold, use_sample_data: false, timeframe: timeframeToLoad },
+        });
+
+        if (summaryRunIdRef.current !== runId) return;
+        setSummaryCache((prev) => ({
+          ...prev,
+          [timeframeToLoad]: { ...prev[timeframeToLoad], [symbol]: response.data },
+        }));
+      } catch (err: any) {
+        if (summaryRunIdRef.current !== runId) return;
+        const message =
+          err?.response?.data?.detail || err?.message || 'Failed to load duration analysis';
+        setSummaryErrors((prev) => ({
+          ...prev,
+          [timeframeToLoad]: { ...prev[timeframeToLoad], [symbol]: message },
+        }));
+      } finally {
+        if (summaryRunIdRef.current !== runId) return;
+        setSummaryLoadingState((prev) =>
+          prev
+            ? { ...prev, loaded: Math.min(index + 1, prev.total) }
+            : { timeframe: timeframeToLoad, loaded: index + 1, total: tickers.length }
+        );
+      }
+    }
+
+    if (summaryRunIdRef.current !== runId) return;
+    setSummaryLoadingState(null);
+  };
+
+  const currentSummaryCache = summaryCache[timeframe];
+  const currentSummaryErrors = summaryErrors[timeframe];
+  const hasAnySummaryData =
+    Object.keys(currentSummaryCache).length > 0 || Object.keys(currentSummaryErrors).length > 0;
+
+  type SummaryRow = {
+    ticker: string;
+    data?: DurationResponse;
+    error?: string;
+    unit?: DurationUnit;
+    sampleSize: number | null;
+    medianTimeToProfit: number | null;
+    medianTimeToProfitDays: number | null;
+    medianEscape: number | null;
+    medianEscapeDays: number | null;
+    escapeRate: number | null;
+    dataSource: string | null;
+  };
+
+  const summaryRows: SummaryRow[] = useMemo(() => {
+    const rows: SummaryRow[] = tickers.map((symbol) => {
+      const cached = currentSummaryCache[symbol];
+      const rowError = currentSummaryErrors[symbol];
+      if (!cached) {
+        return {
+          ticker: symbol,
+          error: rowError,
+          sampleSize: null,
+          medianTimeToProfit: null,
+          medianTimeToProfitDays: null,
+          medianEscape: null,
+          medianEscapeDays: null,
+          escapeRate: null,
+          dataSource: null,
+        };
+      }
+
+      const unit = resolveDurationUnit(cached);
+      const w5 = cached.winners.threshold_5pct;
+      const medianTimeToProfit = pickMedianTimeToProfit(w5, unit);
+      const medianEscape = pickMedianEscapeFromProfile(cached.ticker_profile, unit);
+
+      return {
+        ticker: symbol,
+        data: cached,
+        error: rowError,
+        unit,
+        sampleSize: cached.sample_size ?? null,
+        medianTimeToProfit,
+        medianTimeToProfitDays: convertDurationToDays(medianTimeToProfit, unit),
+        medianEscape,
+        medianEscapeDays: convertDurationToDays(medianEscape, unit),
+        escapeRate: w5.escape_rate ?? null,
+        dataSource: cached.data_source ?? null,
+      };
+    });
+
+    const compareNullableNumbers = (a: number | null, b: number | null) => {
+      if (a === null && b === null) return 0;
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return a - b;
+    };
+
+    const compareNullableStrings = (a: string | null, b: string | null) => {
+      if (a === null && b === null) return 0;
+      if (a === null) return 1;
+      if (b === null) return -1;
+      return a.localeCompare(b);
+    };
+
+    const comparator = (a: SummaryRow, b: SummaryRow) => {
+      switch (summarySort.key) {
+        case 'ticker':
+          return a.ticker.localeCompare(b.ticker);
+        case 'sample_size':
+          return compareNullableNumbers(a.sampleSize, b.sampleSize);
+        case 'median_time_to_profit':
+          return compareNullableNumbers(a.medianTimeToProfitDays, b.medianTimeToProfitDays);
+        case 'median_escape':
+          return compareNullableNumbers(a.medianEscapeDays, b.medianEscapeDays);
+        case 'escape_rate':
+          return compareNullableNumbers(a.escapeRate, b.escapeRate);
+        case 'data_source':
+          return compareNullableStrings(a.dataSource, b.dataSource);
+        default:
+          return 0;
+      }
+    };
+
+    const sorted = [...rows].sort((a, b) => {
+      const delta = comparator(a, b);
+      if (delta === 0) return a.ticker.localeCompare(b.ticker);
+      return summarySort.direction === 'asc' ? delta : -delta;
+    });
+
+    return sorted;
+  }, [tickers, currentSummaryCache, currentSummaryErrors, summarySort]);
+
+  const isSummaryLoading = summaryLoadingState !== null;
+  const isSummaryLoadingForCurrentTimeframe = summaryLoadingState?.timeframe === timeframe;
 
   // Generate actionable insights
   const getActionableInsights = () => {
@@ -351,7 +543,7 @@ export const SwingDurationPanelV2: React.FC<SwingDurationPanelV2Props> = ({
             <Select
               value={timeframe}
               label="Resolution"
-              onChange={(e) => setTimeframe(e.target.value as 'daily' | 'intraday')}
+              onChange={(e) => setTimeframe(e.target.value as Timeframe)}
               sx={{ minWidth: 180 }}
             >
               <MenuItem value="daily">Daily (1D)</MenuItem>
@@ -360,6 +552,182 @@ export const SwingDurationPanelV2: React.FC<SwingDurationPanelV2Props> = ({
           </FormControl>
         </Box>
       </Box>
+
+      <Card variant="outlined" sx={{ mb: 3 }}>
+        <CardContent sx={{ py: 2, '&:last-child': { pb: 2 } }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 2,
+              flexWrap: 'wrap',
+            }}
+          >
+            <Box>
+              <Typography variant="h6" fontWeight="bold">
+                All Tickers Summary
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Scan duration metrics at the selected resolution, then click a ticker to drill in.
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={loadSummary}
+                disabled={isSummaryLoading || tickers.length === 0}
+              >
+                {hasAnySummaryData ? 'Reload Summary' : 'Load Summary'}
+              </Button>
+              {isSummaryLoadingForCurrentTimeframe && <CircularProgress size={18} />}
+              {isSummaryLoadingForCurrentTimeframe && summaryLoadingState && (
+                <Typography variant="body2" color="text.secondary">
+                  {summaryLoadingState.loaded}/{summaryLoadingState.total}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+
+          {!hasAnySummaryData && (
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Click “Load Summary” to fetch stats for all tickers without changing the detailed view.
+            </Typography>
+          )}
+
+          {hasAnySummaryData && (
+            <TableContainer component={Paper} variant="outlined" sx={{ mt: 2 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sortDirection={summarySort.key === 'ticker' ? summarySort.direction : false}>
+                      <TableSortLabel
+                        active={summarySort.key === 'ticker'}
+                        direction={summarySort.key === 'ticker' ? summarySort.direction : 'asc'}
+                        onClick={() => handleSummarySortChange('ticker')}
+                      >
+                        Ticker
+                      </TableSortLabel>
+                    </TableCell>
+
+                    <TableCell
+                      align="right"
+                      sortDirection={summarySort.key === 'sample_size' ? summarySort.direction : false}
+                    >
+                      <TableSortLabel
+                        active={summarySort.key === 'sample_size'}
+                        direction={summarySort.key === 'sample_size' ? summarySort.direction : 'asc'}
+                        onClick={() => handleSummarySortChange('sample_size')}
+                      >
+                        n
+                      </TableSortLabel>
+                    </TableCell>
+
+                    <TableCell
+                      align="right"
+                      sortDirection={summarySort.key === 'median_time_to_profit' ? summarySort.direction : false}
+                    >
+                      <TableSortLabel
+                        active={summarySort.key === 'median_time_to_profit'}
+                        direction={summarySort.key === 'median_time_to_profit' ? summarySort.direction : 'asc'}
+                        onClick={() => handleSummarySortChange('median_time_to_profit')}
+                      >
+                        Median time-to-profit (W @5%)
+                      </TableSortLabel>
+                    </TableCell>
+
+                    <TableCell
+                      align="right"
+                      sortDirection={summarySort.key === 'median_escape' ? summarySort.direction : false}
+                    >
+                      <TableSortLabel
+                        active={summarySort.key === 'median_escape'}
+                        direction={summarySort.key === 'median_escape' ? summarySort.direction : 'asc'}
+                        onClick={() => handleSummarySortChange('median_escape')}
+                      >
+                        Median escape (W @5%)
+                      </TableSortLabel>
+                    </TableCell>
+
+                    <TableCell
+                      align="right"
+                      sortDirection={summarySort.key === 'escape_rate' ? summarySort.direction : false}
+                    >
+                      <TableSortLabel
+                        active={summarySort.key === 'escape_rate'}
+                        direction={summarySort.key === 'escape_rate' ? summarySort.direction : 'asc'}
+                        onClick={() => handleSummarySortChange('escape_rate')}
+                      >
+                        Escape rate
+                      </TableSortLabel>
+                    </TableCell>
+
+                    <TableCell sortDirection={summarySort.key === 'data_source' ? summarySort.direction : false}>
+                      <TableSortLabel
+                        active={summarySort.key === 'data_source'}
+                        direction={summarySort.key === 'data_source' ? summarySort.direction : 'asc'}
+                        onClick={() => handleSummarySortChange('data_source')}
+                      >
+                        Data source
+                      </TableSortLabel>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+
+                <TableBody>
+                  {summaryRows.map((row) => (
+                    <TableRow
+                      key={row.ticker}
+                      hover
+                      onClick={() => handleTickerChange(row.ticker)}
+                      sx={{
+                        cursor: 'pointer',
+                        ...(row.ticker === ticker ? { backgroundColor: 'action.selected' } : null),
+                      }}
+                    >
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={row.ticker === ticker ? 'bold' : 'normal'}>
+                          {row.ticker}
+                        </Typography>
+                        {row.error && (
+                          <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+                            {row.error}
+                          </Typography>
+                        )}
+                      </TableCell>
+
+                      <TableCell align="right">{row.sampleSize ?? '—'}</TableCell>
+                      <TableCell align="right">
+                        {row.unit ? formatDurationValue(row.medianTimeToProfit, row.unit) : '—'}
+                      </TableCell>
+                      <TableCell align="right">
+                        {row.unit ? formatDurationValue(row.medianEscape, row.unit) : '—'}
+                      </TableCell>
+                      <TableCell align="right">{formatPercent(row.escapeRate, 0)}</TableCell>
+                      <TableCell>
+                        {row.dataSource === 'sample' && (
+                          <Chip size="small" label="SAMPLE" color="warning" variant="outlined" />
+                        )}
+                        {row.dataSource && row.dataSource !== 'sample' && (
+                          <Chip size="small" label={row.dataSource.toUpperCase()} color="success" variant="outlined" />
+                        )}
+                        {!row.dataSource && row.error && (
+                          <Chip size="small" label="ERROR" color="error" variant="outlined" />
+                        )}
+                        {!row.dataSource && !row.error && (
+                          <Chip size="small" label="NOT LOADED" variant="outlined" />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </CardContent>
+      </Card>
 
       {loading && (
         <Box sx={{ textAlign: 'center', py: 4 }}>

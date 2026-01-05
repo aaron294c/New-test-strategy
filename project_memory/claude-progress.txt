@@ -517,3 +517,19 @@ Testing:
 - Not run. After backend restart, refresh Duration Analysis tab; per-threshold rows should now show sample counts and values.
 Next Actions:
 - Re-verify GOOGL/AMZN tables and confirm non-null per-threshold metrics with live data.
+
+Date: 2026-01-05
+Agent: Coding Agent
+Activity: Swing Framework — Duration Tab Summary Table (SwingDurationPanelV2)
+Changes:
+- Added an on-demand, per-resolution (daily vs intraday) cached “All Tickers Summary” table to support scan → click → drill-in without changing the existing single-ticker detail behavior (frontend/src/components/TradingFramework/SwingDurationPanelV2.tsx)
+- Added sequential multi-ticker fetch with progress indicator and per-ticker error capture so one failure doesn’t break the summary view (frontend/src/components/TradingFramework/SwingDurationPanelV2.tsx)
+- Added sortable columns (ticker, n, median time-to-profit W@5%, median escape W@5%, escape rate, data source) and row click-to-select behavior (frontend/src/components/TradingFramework/SwingDurationPanelV2.tsx)
+Testing:
+- Frontend build: cd frontend && npm run build (PASS)
+- Frontend tests: cd frontend && npm test (FAIL - Jest config references missing frontend/src/setupTests.ts; pre-existing configuration issue)
+Manual QA (recommended):
+- Run init: ./init.sh (from repo root; may require chmod +x init.sh)
+- Start backend + frontend, go to Swing Framework → Duration Analysis, switch Resolution, click Load Summary, click rows to confirm the detail panel updates and no console errors.
+Next Actions:
+- Fix Jest setup (either add frontend/src/setupTests.ts or update Jest config) so npm test runs, then do the manual smoke test above to confirm UX end-to-end.

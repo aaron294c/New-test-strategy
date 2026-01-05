@@ -1,5 +1,36 @@
 # Next Task for Coding Agent
 
+## Selected Next Task: Swing Framework — Duration Tab Summary Table
+
+**Why**: The Swing Framework already has rich “Live Market State” + “Divergence” tables, but the **Duration Analysis** view is currently single-ticker-first. Add a lightweight **multi-ticker summary table** so the Duration tab feels like the other Swing Framework panels (scan → click → drill in).
+
+### Goal (Single Feature)
+In `SwingDurationPanelV2`, add an optional **All Tickers Summary** table that lists every configured ticker with a few key duration metrics at the selected resolution (Daily vs Intraday/4H). Clicking a row should set the active ticker and keep the existing detailed panel behaviour unchanged.
+
+### Scope / Guardrails
+- **Frontend-only** (reuse existing `GET /api/swing-duration/{ticker}` with its `timeframe` param).
+- **No strategy/logic changes**: purely UI aggregation + caching for convenience.
+- Keep changes localized to **one component** unless a small shared helper is clearly necessary.
+
+### Acceptance Criteria
+- Summary table can be loaded on demand (button) and shows progress without freezing the UI.
+- Summary respects the existing `Resolution` selector (`daily` vs `intraday`) and caches results per resolution.
+- Table supports sorting by at least: ticker, sample size, median time-to-profit (winners @ 5%), median escape (winners @ 5%), escape rate.
+- Clicking a row updates the selected ticker and reveals the existing detailed breakdown for that ticker.
+- Existing single-ticker flow still works if the user never uses the summary table.
+
+### Suggested Files
+- `frontend/src/components/TradingFramework/SwingDurationPanelV2.tsx`
+
+### Testing
+1. Frontend build: `cd frontend && npm run build`
+2. Frontend tests (if present): `cd frontend && npm test`
+3. Manual smoke test:
+   - Start backend + frontend
+   - Go to `Swing Framework` → `Duration Analysis`
+   - Switch `Resolution` between Daily and Intraday (4H bars)
+   - Load the summary table, click a few tickers, confirm detail panel updates and no console errors
+
 ## Recently Completed: LEAPS Options Scanner - Phase 1 ✅
 
 **Completed on**: 2025-12-27
