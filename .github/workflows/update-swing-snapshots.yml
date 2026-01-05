@@ -33,20 +33,22 @@ jobs:
 
       - name: Commit and push (if changed)
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Pull latest changes first
+          git pull origin main
+
+          # Regenerate snapshots with latest code
+          python scripts/compute_swing_snapshots.py --pretty
+
+          # Check if there are changes after regeneration
           if [ -z "$(git status --porcelain)" ]; then
             echo "No snapshot changes to commit."
             exit 0
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git add backend/static_snapshots/swing_framework
           git commit -m "chore: update swing snapshots"
-
-          # Pull latest changes with rebase to avoid merge commits
-          git pull --rebase origin main
-
-          # Push changes
           git push
 
