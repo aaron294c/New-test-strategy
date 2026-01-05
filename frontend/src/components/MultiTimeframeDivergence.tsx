@@ -5,7 +5,7 @@
  * to identify mean reversion opportunities.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Paper,
   Typography,
@@ -78,7 +78,7 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
   const [analysis, setAnalysis] = useState<any>(null);
   const [tabValue, setTabValue] = useState(0);
 
-  const fetchAnalysis = async () => {
+  const fetchAnalysis = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -98,11 +98,11 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
     } finally {
       setLoading(false);
     }
-  };
+  }, [ticker]);
 
   useEffect(() => {
     fetchAnalysis();
-  }, [ticker]);
+  }, [fetchAnalysis]);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -206,13 +206,11 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
     return { level: 'Low', reasons };
   };
 
-  // Prepare chart data for divergence over time
-  const getDivergenceChartData = () => {
-    if (!analysis?.divergence_events) return [];
+  const divergenceEvents = analysis?.divergence_events || [];
 
-    // Get last 100 events for visualization
-    const recentEvents = analysis.divergence_events.slice(-100);
-
+  const divergenceChartData = useMemo(() => {
+    if (!divergenceEvents.length) return [];
+    const recentEvents = divergenceEvents.slice(-100);
     return recentEvents.map((event: any) => ({
       date: event.date,
       divergence_pct: event.divergence_pct,
@@ -221,27 +219,35 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
       price: event.daily_price,
       type: event.divergence_type,
     }));
-  };
+  }, [divergenceEvents]);
 
-  // Prepare scatter plot data: divergence vs forward returns
-  const getDivergenceReturnsData = () => {
-    if (!analysis?.divergence_events) return [];
+  const divergenceReturnsByType = useMemo(() => {
+    const grouped: Record<string, any[]> = {
+      daily_overextended: [],
+      '4h_overextended': [],
+      bullish_convergence: [],
+      bearish_convergence: [],
+    };
 
-    return analysis.divergence_events.map((event: any) => ({
-      divergence_pct: event.divergence_pct,
-      return_d7: event.forward_returns?.D7 || 0,
-      return_d14: event.forward_returns?.D14 || 0,
-      type: event.divergence_type,
-      strength: event.signal_strength,
-    }));
-  };
+    for (const event of divergenceEvents) {
+      const point = {
+        divergence_pct: event.divergence_pct,
+        return_d7: event.forward_returns?.D7 || 0,
+        return_d14: event.forward_returns?.D14 || 0,
+        type: event.divergence_type,
+        strength: event.signal_strength,
+      };
+      if (grouped[point.type]) grouped[point.type].push(point);
+    }
 
-  // Prepare bar chart data for stats by divergence type
-  const getStatsBarData = () => {
+    return grouped;
+  }, [divergenceEvents]);
+
+  const statsBarData = useMemo(() => {
     if (!analysis?.divergence_stats) return [];
 
     const stats = analysis.divergence_stats;
-    const data = [];
+    const data: any[] = [];
 
     // New categories
     const categories = [
@@ -293,7 +299,7 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
     }
 
     return data;
-  };
+  }, [analysis?.divergence_stats]);
 
   if (loading && !analysis) {
     return (
@@ -435,7 +441,7 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
           Historical Divergence Patterns (Last 100 Events)
         </Typography>
         <ResponsiveContainer width="100%" height={400}>
-          <LineChart data={getDivergenceChartData()}>
+          <LineChart data={divergenceChartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
@@ -475,7 +481,7 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
         </Typography>
 
         <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={getStatsBarData()}>
+          <BarChart data={statsBarData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="type" />
             <YAxis />
@@ -571,22 +577,22 @@ const MultiTimeframeDivergence: React.FC<MultiTimeframeDivergenceProps> = ({ tic
             <ReferenceLine y={0} stroke="gray" />
             <Scatter
               name="Daily Overextended (reduce/hedge)"
-              data={getDivergenceReturnsData().filter((d: any) => d.type === 'daily_overextended')}
+              data={divergenceReturnsByType.daily_overextended}
               fill="#ff6b6b"
             />
             <Scatter
               name="4H Overextended (take profits)"
-              data={getDivergenceReturnsData().filter((d: any) => d.type === '4h_overextended')}
+              data={divergenceReturnsByType['4h_overextended']}
               fill="#ffd43b"
             />
             <Scatter
               name="Bullish Convergence (buy/add)"
-              data={getDivergenceReturnsData().filter((d: any) => d.type === 'bullish_convergence')}
+              data={divergenceReturnsByType.bullish_convergence}
               fill="#51cf66"
             />
             <Scatter
               name="Bearish Convergence (exit/avoid longs)"
-              data={getDivergenceReturnsData().filter((d: any) => d.type === 'bearish_convergence')}
+              data={divergenceReturnsByType.bearish_convergence}
               fill="#845ef7"
             />
           </ScatterChart>

@@ -13,12 +13,13 @@ Endpoints:
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+import asyncio
 import os
+import time
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional
 import json
-import os
-from datetime import datetime
+from datetime import datetime, timezone
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -180,6 +181,91 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 
 # Default tickers
 DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY", "GLD", "SLV", "BRK-B", "AVGO"]
+
+# ============================================================================
+# Multi-timeframe response caching (performance)
+# ============================================================================
+
+_MTF_STATIC_SNAPSHOT_DIR = Path(__file__).resolve().parent / "static_snapshots" / "multi_timeframe"
+
+_MTF_CACHE_TTL_SECONDS = int(os.getenv("MTF_CACHE_TTL_SECONDS", "900"))  # 15 minutes
+_ENHANCED_MTF_CACHE_TTL_SECONDS = int(os.getenv("ENHANCED_MTF_CACHE_TTL_SECONDS", "1800"))  # 30 minutes
+
+_mtf_cache: Dict[str, Dict] = {}
+_mtf_cache_timestamp: Dict[str, float] = {}
+_mtf_cache_locks: Dict[str, asyncio.Lock] = {}
+_mtf_cache_locks_guard = asyncio.Lock()
+
+
+def _cache_key(*parts: str) -> str:
+    return ":".join(part.strip().lower() for part in parts if part is not None)
+
+
+def _file_safe_slug(value: str) -> str:
+    return "".join(ch if ch.isalnum() or ch in {"-", "_", "."} else "_" for ch in value.upper())
+
+
+def _is_time_fresh(timestamp: float | None, ttl_seconds: int) -> bool:
+    if timestamp is None:
+        return False
+    return (time.time() - timestamp) < ttl_seconds
+
+
+def _load_static_snapshot(filename: str, env_var: str) -> Dict | None:
+    if os.getenv(env_var, "1").lower() in {"0", "false", "no"}:
+        return None
+
+    path = _MTF_STATIC_SNAPSHOT_DIR / filename
+    if not path.exists():
+        return None
+
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            payload = json.load(file)
+        if isinstance(payload, dict):
+            return payload
+    except Exception as e:
+        print(f"[WARN] Failed to load static snapshot {path}: {e}")
+    return None
+
+
+def _read_disk_cache(path: str, ttl_seconds: int) -> Dict | None:
+    try:
+        stat = os.stat(path)
+    except FileNotFoundError:
+        return None
+    except Exception:
+        return None
+
+    if (time.time() - stat.st_mtime) > ttl_seconds:
+        return None
+
+    try:
+        with open(path, "r", encoding="utf-8") as file:
+            payload = json.load(file)
+        if isinstance(payload, dict):
+            return payload
+    except Exception:
+        return None
+    return None
+
+
+def _write_disk_cache(path: str, payload: Dict) -> None:
+    try:
+        with open(path, "w", encoding="utf-8") as file:
+            json.dump(payload, file)
+            file.write("\n")
+    except Exception:
+        return
+
+
+async def _get_cache_lock(key: str) -> asyncio.Lock:
+    async with _mtf_cache_locks_guard:
+        lock = _mtf_cache_locks.get(key)
+        if lock is None:
+            lock = asyncio.Lock()
+            _mtf_cache_locks[key] = lock
+        return lock
 
 # ============================================================================
 # Request/Response Models
@@ -1270,7 +1356,7 @@ async def get_live_exit_signal(request: ExitSignalRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/multi-timeframe/{ticker}")
-async def get_multi_timeframe_analysis(ticker: str):
+async def get_multi_timeframe_analysis(ticker: str, force_refresh: bool = False):
     """
     Get multi-timeframe divergence analysis between daily and 4-hourly RSI-MA.
 
@@ -1291,13 +1377,43 @@ async def get_multi_timeframe_analysis(ticker: str):
     ticker = ticker.upper()
 
     try:
-        analysis = run_multi_timeframe_analysis(ticker)
+        cache_key = _cache_key("mtf", ticker)
+        cache_file = os.path.join(CACHE_DIR, f"mtf_{_file_safe_slug(ticker)}.json")
 
-        return {
-            "ticker": ticker,
-            "analysis": analysis,
-            "timestamp": datetime.now().isoformat()
-        }
+        if not force_refresh:
+            static_payload = _load_static_snapshot(
+                f"multi-timeframe-{_file_safe_slug(ticker)}.json",
+                env_var="MTF_STATIC_SNAPSHOTS",
+            )
+            if static_payload is not None:
+                return static_payload
+
+            disk_payload = _read_disk_cache(cache_file, ttl_seconds=_MTF_CACHE_TTL_SECONDS)
+            if disk_payload is not None:
+                return disk_payload
+
+            if _is_time_fresh(_mtf_cache_timestamp.get(cache_key), _MTF_CACHE_TTL_SECONDS):
+                cached = _mtf_cache.get(cache_key)
+                if cached is not None:
+                    return cached
+
+        lock = await _get_cache_lock(cache_key)
+        async with lock:
+            if not force_refresh and _is_time_fresh(_mtf_cache_timestamp.get(cache_key), _MTF_CACHE_TTL_SECONDS):
+                cached = _mtf_cache.get(cache_key)
+                if cached is not None:
+                    return cached
+
+            analysis = await asyncio.to_thread(run_multi_timeframe_analysis, ticker)
+            payload = {
+                "ticker": ticker,
+                "analysis": analysis,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+            _mtf_cache[cache_key] = payload
+            _mtf_cache_timestamp[cache_key] = time.time()
+            _write_disk_cache(cache_file, payload)
+            return payload
 
     except Exception as e:
         import traceback
@@ -1492,7 +1608,7 @@ async def get_position_management_recommendation(ticker: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/enhanced-mtf/{ticker}")
-async def get_enhanced_multi_timeframe_analysis(ticker: str):
+async def get_enhanced_multi_timeframe_analysis(ticker: str, force_refresh: bool = False):
     """
     Get enhanced multi-timeframe divergence analysis with intraday tracking.
 
@@ -1518,13 +1634,43 @@ async def get_enhanced_multi_timeframe_analysis(ticker: str):
     ticker = ticker.upper()
 
     try:
-        analysis = run_enhanced_analysis(ticker)
+        cache_key = _cache_key("enhanced_mtf", ticker)
+        cache_file = os.path.join(CACHE_DIR, f"enhanced_mtf_{_file_safe_slug(ticker)}.json")
 
-        return {
-            "ticker": ticker,
-            "enhanced_analysis": analysis,
-            "timestamp": datetime.now().isoformat()
-        }
+        if not force_refresh:
+            static_payload = _load_static_snapshot(
+                f"enhanced-mtf-{_file_safe_slug(ticker)}.json",
+                env_var="ENHANCED_MTF_STATIC_SNAPSHOTS",
+            )
+            if static_payload is not None:
+                return static_payload
+
+            disk_payload = _read_disk_cache(cache_file, ttl_seconds=_ENHANCED_MTF_CACHE_TTL_SECONDS)
+            if disk_payload is not None:
+                return disk_payload
+
+            if _is_time_fresh(_mtf_cache_timestamp.get(cache_key), _ENHANCED_MTF_CACHE_TTL_SECONDS):
+                cached = _mtf_cache.get(cache_key)
+                if cached is not None:
+                    return cached
+
+        lock = await _get_cache_lock(cache_key)
+        async with lock:
+            if not force_refresh and _is_time_fresh(_mtf_cache_timestamp.get(cache_key), _ENHANCED_MTF_CACHE_TTL_SECONDS):
+                cached = _mtf_cache.get(cache_key)
+                if cached is not None:
+                    return cached
+
+            analysis = await asyncio.to_thread(run_enhanced_analysis, ticker)
+            payload = {
+                "ticker": ticker,
+                "enhanced_analysis": analysis,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+            _mtf_cache[cache_key] = payload
+            _mtf_cache_timestamp[cache_key] = time.time()
+            _write_disk_cache(cache_file, payload)
+            return payload
 
     except Exception as e:
         import traceback
