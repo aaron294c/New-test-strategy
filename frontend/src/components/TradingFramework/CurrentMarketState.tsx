@@ -32,6 +32,7 @@ import {
   Cancel,
   ArrowUpward,
   ArrowDownward,
+  Refresh,
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -85,13 +86,20 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
   const [dailyData, setDailyData] = useState<MarketStateResponse | null>(null);
   const [fourHourData, setFourHourData] = useState<MarketStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('percentile');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  const fetchCurrentState = async (target: Timeframe, refresh: boolean = false) => {
+  const fetchCurrentState = async (
+    target: Timeframe,
+    refresh: boolean = false,
+    forceRefresh: boolean = false
+  ) => {
     if (!refresh) {
       setLoading(true);
+    } else {
+      setRefreshing(true);
     }
     setError(null);
 
@@ -100,7 +108,9 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
         target === '4hour'
           ? `${API_BASE_URL}/api/swing-framework/current-state-4h`
           : `${API_BASE_URL}/api/swing-framework/current-state`;
-      const response = await axios.get<MarketStateResponse>(endpoint);
+      const response = await axios.get<MarketStateResponse>(endpoint, {
+        params: forceRefresh ? { force_refresh: true } : undefined,
+      });
       if (target === '4hour') {
         setFourHourData(response.data);
       } else {
@@ -112,6 +122,7 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
       setError(err.message || 'Failed to fetch current market state');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -260,6 +271,17 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
           🎯 Live Market State - {timeframe === '4hour' ? '4-Hour' : 'Daily'} Buy Opportunities (Stocks + Indices)
         </Typography>
         <Box display="flex" alignItems="center" gap={1}>
+          <Tooltip title="Force a live recompute (bypasses static snapshots and caches)">
+            <Chip
+              icon={<Refresh fontSize="small" />}
+              clickable
+              disabled={refreshing}
+              label={refreshing ? 'Refreshing…' : 'Force refresh'}
+              size="small"
+              variant="outlined"
+              onClick={() => fetchCurrentState(timeframe, true, true)}
+            />
+          </Tooltip>
           <Tooltip
             title={
               timeframe === '4hour'
