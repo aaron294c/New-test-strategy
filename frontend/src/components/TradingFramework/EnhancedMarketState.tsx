@@ -34,6 +34,7 @@ import {
   CheckCircle,
   Info,
   Cancel,
+  Refresh,
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -88,19 +89,25 @@ type SortOrder = 'asc' | 'desc';
 export const EnhancedMarketState: React.FC = () => {
   const [data, setData] = useState<EnrichedResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('divergence');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
-  const fetchEnrichedState = async (refresh: boolean = false) => {
+  const fetchEnrichedState = async (refresh: boolean = false, forceRefresh: boolean = false) => {
     if (!refresh) {
       setLoading(true);
+    } else {
+      setRefreshing(true);
     }
     setError(null);
 
     try {
       const response = await axios.get<EnrichedResponse>(
-        `${API_BASE_URL}/api/swing-framework/current-state-enriched`
+        `${API_BASE_URL}/api/swing-framework/current-state-enriched`,
+        {
+          params: forceRefresh ? { force_refresh: true } : undefined,
+        }
       );
       setData(response.data);
       console.log('✅ Enhanced market state loaded:', response.data.summary);
@@ -109,6 +116,7 @@ export const EnhancedMarketState: React.FC = () => {
       setError(err.message || 'Failed to fetch enriched market state');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -221,9 +229,22 @@ export const EnhancedMarketState: React.FC = () => {
         <Typography variant="h5" fontWeight="bold">
           📊 Live Market State - Daily + 4H Divergence Analysis
         </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Updated: {new Date(data.timestamp).toLocaleString()}
-        </Typography>
+        <Box display="flex" alignItems="center" gap={1}>
+          <Tooltip title="Force a live recompute (bypasses static snapshots and caches)">
+            <Chip
+              icon={<Refresh fontSize="small" />}
+              clickable
+              disabled={refreshing}
+              label={refreshing ? 'Refreshing…' : 'Force refresh'}
+              size="small"
+              variant="outlined"
+              onClick={() => fetchEnrichedState(true, true)}
+            />
+          </Tooltip>
+          <Typography variant="caption" color="text.secondary">
+            Updated: {new Date(data.timestamp).toLocaleString()}
+          </Typography>
+        </Box>
       </Box>
 
       <Box display="flex" gap={2} mb={3} flexWrap="wrap">
