@@ -1,0 +1,1944 @@
+{
+  "timestamp": "2026-01-05T17:19:37.004051+00:00",
+  "cohort_stats": {
+    "SPY": {
+      "cohort_extreme_low": {
+        "count": 33,
+        "win_rate": 0.6666666666666666,
+        "avg_return": 1.3519549793523793,
+        "avg_holding_days": 8.848484848484848
+      },
+      "cohort_low": {
+        "count": 73,
+        "win_rate": 0.6986301369863014,
+        "avg_return": 0.45015760121770837,
+        "avg_holding_days": 5.739726027397261
+      },
+      "cohort_medium_low": {
+        "count": 114,
+        "win_rate": 0.7456140350877193,
+        "avg_return": 0.3531078201377145,
+        "avg_holding_days": 5.131578947368421
+      },
+      "cohort_medium": {
+        "count": 157,
+        "win_rate": 0.8343949044585988,
+        "avg_return": 0.377764225061548,
+        "avg_holding_days": 3.9936305732484074
+      },
+      "cohort_medium_high": {
+        "count": 158,
+        "win_rate": 0.7341772151898734,
+        "avg_return": 0.1004545980052011,
+        "avg_holding_days": 3.132911392405063
+      },
+      "cohort_high": {
+        "count": 110,
+        "win_rate": 0.6545454545454545,
+        "avg_return": 0.09188924184437078,
+        "avg_holding_days": 1.8727272727272728
+      },
+      "cohort_extreme_high": {
+        "count": 91,
+        "win_rate": 0.6373626373626373,
+        "avg_return": 0.15124582535337697,
+        "avg_holding_days": 1.5824175824175823
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.7269021739130435,
+        "avg_return": 0.29454117830535814,
+        "avg_holding_days": 3.760869565217391
+      },
+      "metadata": {
+        "ticker": "SPY",
+        "name": "S&P 500 ETF",
+        "personality": "Market Benchmark",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-75%"
+        ],
+        "dead_zones_4h": [
+          "75-100%"
+        ],
+        "best_4h_bin": "5-25%",
+        "best_4h_t_score": 0.0,
+        "ease_rating": 5,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Low",
+        "entry_guidance": "Buy market dips at \u226415% percentile for mean reversion plays",
+        "avoid_guidance": "Avoid entering above 75% percentile - limited upside",
+        "special_notes": "Tracks broad market, excellent for mean reversion at extreme lows"
+      }
+    },
+    "QQQ": {
+      "cohort_extreme_low": {
+        "count": 36,
+        "win_rate": 0.6111111111111112,
+        "avg_return": 1.131889361710555,
+        "avg_holding_days": 6.083333333333333
+      },
+      "cohort_low": {
+        "count": 69,
+        "win_rate": 0.6521739130434783,
+        "avg_return": 0.500860037787066,
+        "avg_holding_days": 5.72463768115942
+      },
+      "cohort_medium_low": {
+        "count": 102,
+        "win_rate": 0.7549019607843137,
+        "avg_return": 0.7051773913857038,
+        "avg_holding_days": 4.676470588235294
+      },
+      "cohort_medium": {
+        "count": 163,
+        "win_rate": 0.803680981595092,
+        "avg_return": 0.4188381375302828,
+        "avg_holding_days": 3.5337423312883436
+      },
+      "cohort_medium_high": {
+        "count": 156,
+        "win_rate": 0.6923076923076923,
+        "avg_return": 0.06016698340793494,
+        "avg_holding_days": 2.730769230769231
+      },
+      "cohort_high": {
+        "count": 114,
+        "win_rate": 0.6842105263157895,
+        "avg_return": 0.3271660372168972,
+        "avg_holding_days": 1.719298245614035
+      },
+      "cohort_extreme_high": {
+        "count": 96,
+        "win_rate": 0.5520833333333334,
+        "avg_return": 0.09418410586535707,
+        "avg_holding_days": 1.46875
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6983695652173914,
+        "avg_return": 0.3685200024254128,
+        "avg_holding_days": 3.301630434782609
+      },
+      "metadata": {
+        "ticker": "QQQ",
+        "name": "Nasdaq 100 ETF",
+        "personality": "Tech Momentum Leader",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-75%"
+        ],
+        "dead_zones_4h": [
+          "75-100%"
+        ],
+        "best_4h_bin": "5-25%",
+        "best_4h_t_score": 0.0,
+        "ease_rating": 5,
+        "is_mean_reverter": true,
+        "is_momentum": true,
+        "volatility_level": "Medium",
+        "entry_guidance": "Buy tech dips at \u226415% percentile, can ride momentum above 50%",
+        "avoid_guidance": "Avoid entering above 75% without momentum confirmation",
+        "special_notes": "Tech-heavy, higher beta than SPY, good for both mean reversion and momentum"
+      }
+    },
+    "AAPL": {
+      "cohort_extreme_low": {
+        "count": 44,
+        "win_rate": 0.4772727272727273,
+        "avg_return": 0.4365118194225378,
+        "avg_holding_days": 5.704545454545454
+      },
+      "cohort_low": {
+        "count": 69,
+        "win_rate": 0.5942028985507246,
+        "avg_return": 0.499961273800607,
+        "avg_holding_days": 5.086956521739131
+      },
+      "cohort_medium_low": {
+        "count": 101,
+        "win_rate": 0.6534653465346535,
+        "avg_return": 0.5244108542754744,
+        "avg_holding_days": 4.524752475247524
+      },
+      "cohort_medium": {
+        "count": 152,
+        "win_rate": 0.7236842105263158,
+        "avg_return": 0.34000639196029736,
+        "avg_holding_days": 3.526315789473684
+      },
+      "cohort_medium_high": {
+        "count": 143,
+        "win_rate": 0.6783216783216783,
+        "avg_return": 0.20113354533024044,
+        "avg_holding_days": 2.4055944055944054
+      },
+      "cohort_high": {
+        "count": 116,
+        "win_rate": 0.5862068965517241,
+        "avg_return": 0.06740050614234938,
+        "avg_holding_days": 1.7155172413793103
+      },
+      "cohort_extreme_high": {
+        "count": 111,
+        "win_rate": 0.5585585585585585,
+        "avg_return": 0.18881431074314545,
+        "avg_holding_days": 1.4234234234234233
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6317934782608695,
+        "avg_return": 0.29332779890468436,
+        "avg_holding_days": 3.119565217391304
+      },
+      "metadata": {
+        "ticker": "AAPL",
+        "name": "Apple",
+        "personality": "The Extremist",
+        "reliability_4h": "\u2b50\u2b50 Poor (50% but patchy)",
+        "reliability_daily": "\u2b50\u2b50\u2b50 Good",
+        "tradeable_4h_zones": [
+          "0-25%",
+          "95-100%"
+        ],
+        "dead_zones_4h": [
+          "25-95%"
+        ],
+        "best_4h_bin": "5-15%",
+        "best_4h_t_score": 3.9,
+        "ease_rating": 2,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "Medium-High",
+        "entry_guidance": "ONLY trade 4H extremes (0-25%), be patient for good setups",
+        "avoid_guidance": "NEVER trade 4H 25-95% range (62.5% of time - no statistical edge)",
+        "special_notes": "U-shaped curve - mid-range has zero predictive power, median/mean divergence common"
+      }
+    },
+    "MSFT": {
+      "cohort_extreme_low": {
+        "count": 33,
+        "win_rate": 0.5757575757575758,
+        "avg_return": 0.7839171671656971,
+        "avg_holding_days": 6.393939393939394
+      },
+      "cohort_low": {
+        "count": 71,
+        "win_rate": 0.5352112676056338,
+        "avg_return": 0.3559224000298088,
+        "avg_holding_days": 7.126760563380282
+      },
+      "cohort_medium_low": {
+        "count": 117,
+        "win_rate": 0.7264957264957265,
+        "avg_return": 0.836671591645322,
+        "avg_holding_days": 6.068376068376068
+      },
+      "cohort_medium": {
+        "count": 155,
+        "win_rate": 0.7032258064516129,
+        "avg_return": 0.24255328386418123,
+        "avg_holding_days": 4.341935483870968
+      },
+      "cohort_medium_high": {
+        "count": 149,
+        "win_rate": 0.7046979865771812,
+        "avg_return": 0.25662961529423794,
+        "avg_holding_days": 2.5167785234899327
+      },
+      "cohort_high": {
+        "count": 96,
+        "win_rate": 0.6458333333333334,
+        "avg_return": 0.40836035498767903,
+        "avg_holding_days": 1.5416666666666667
+      },
+      "cohort_extreme_high": {
+        "count": 115,
+        "win_rate": 0.4608695652173913,
+        "avg_return": -0.21573658273401805,
+        "avg_holding_days": 1.4608695652173913
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6399456521739131,
+        "avg_return": 0.32507716288489397,
+        "avg_holding_days": 3.792119565217391
+      },
+      "metadata": {
+        "ticker": "MSFT",
+        "name": "Microsoft",
+        "personality": "Steady Eddie",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent (75% coverage)",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "tradeable_4h_zones": [
+          "5-85%"
+        ],
+        "dead_zones_4h": [
+          "0-5%",
+          "85-100%"
+        ],
+        "best_4h_bin": "25-50%",
+        "best_4h_t_score": 4.88,
+        "ease_rating": 5,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "Can enter almost anywhere 5-75%, target 25-50% for optimal entry",
+        "avoid_guidance": "Skip extreme dips 0-5% (small sample) and 85-100% (no edge)",
+        "special_notes": "Most reliable stock - works across widest range"
+      }
+    },
+    "NVDA": {
+      "cohort_extreme_low": {
+        "count": 29,
+        "win_rate": 0.5862068965517241,
+        "avg_return": 3.501190277532723,
+        "avg_holding_days": 6.275862068965517
+      },
+      "cohort_low": {
+        "count": 79,
+        "win_rate": 0.45569620253164556,
+        "avg_return": 1.0362747380157253,
+        "avg_holding_days": 4.848101265822785
+      },
+      "cohort_medium_low": {
+        "count": 113,
+        "win_rate": 0.49557522123893805,
+        "avg_return": 0.5569943941910345,
+        "avg_holding_days": 3.398230088495575
+      },
+      "cohort_medium": {
+        "count": 161,
+        "win_rate": 0.6149068322981367,
+        "avg_return": 0.5412321012867759,
+        "avg_holding_days": 3.3354037267080745
+      },
+      "cohort_medium_high": {
+        "count": 146,
+        "win_rate": 0.6643835616438356,
+        "avg_return": 0.6186207525866337,
+        "avg_holding_days": 2.0205479452054793
+      },
+      "cohort_high": {
+        "count": 121,
+        "win_rate": 0.5537190082644629,
+        "avg_return": 0.5204904394370142,
+        "avg_holding_days": 1.4462809917355373
+      },
+      "cohort_extreme_high": {
+        "count": 87,
+        "win_rate": 0.5747126436781609,
+        "avg_return": 0.1750639171016187,
+        "avg_holding_days": 1.4597701149425288
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.5733695652173914,
+        "avg_return": 0.6820753954345341,
+        "avg_holding_days": 2.8301630434782608
+      },
+      "metadata": {
+        "ticker": "NVDA",
+        "name": "NVIDIA",
+        "personality": "Selective Bouncer",
+        "reliability_4h": "\u2b50\u2b50\u2b50 Good (37.5% coverage)",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "tradeable_4h_zones": [
+          "0-5%",
+          "25-75%"
+        ],
+        "dead_zones_4h": [
+          "5-25%",
+          "75-100%"
+        ],
+        "best_4h_bin": "25-50%",
+        "best_4h_t_score": 6.41,
+        "ease_rating": 3,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "High",
+        "entry_guidance": "Wait for 4H @ 25-50% for best risk/reward or aggressive buying at 0-5%",
+        "avoid_guidance": "Don't trade 4H 5-25% (no edge) or 75-100% (trim/exit)",
+        "special_notes": "Highest t-score of all stocks at 25-50% sweet spot"
+      }
+    },
+    "GOOGL": {
+      "cohort_extreme_low": {
+        "count": 37,
+        "win_rate": 0.6486486486486487,
+        "avg_return": 1.4328680194122783,
+        "avg_holding_days": 7.486486486486487
+      },
+      "cohort_low": {
+        "count": 71,
+        "win_rate": 0.5915492957746479,
+        "avg_return": 0.7945267490242137,
+        "avg_holding_days": 5.436619718309859
+      },
+      "cohort_medium_low": {
+        "count": 97,
+        "win_rate": 0.7319587628865979,
+        "avg_return": 1.2480982795955469,
+        "avg_holding_days": 3.9381443298969074
+      },
+      "cohort_medium": {
+        "count": 141,
+        "win_rate": 0.7163120567375887,
+        "avg_return": 0.511293753398431,
+        "avg_holding_days": 3.1560283687943262
+      },
+      "cohort_medium_high": {
+        "count": 158,
+        "win_rate": 0.6329113924050633,
+        "avg_return": 0.1509439607165684,
+        "avg_holding_days": 2.170886075949367
+      },
+      "cohort_high": {
+        "count": 112,
+        "win_rate": 0.5714285714285714,
+        "avg_return": 0.1024788092396381,
+        "avg_holding_days": 1.7053571428571428
+      },
+      "cohort_extreme_high": {
+        "count": 120,
+        "win_rate": 0.5083333333333333,
+        "avg_return": 0.20725737083781684,
+        "avg_holding_days": 1.5166666666666666
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6290760869565217,
+        "avg_return": 0.49291185486075484,
+        "avg_holding_days": 2.9972826086956523
+      },
+      "metadata": {
+        "ticker": "GOOGL",
+        "name": "Google",
+        "personality": "Mean Reverter",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good (62.5% coverage)",
+        "reliability_daily": "\u2b50\u2b50\u2b50 Good",
+        "tradeable_4h_zones": [
+          "0-75%"
+        ],
+        "dead_zones_4h": [
+          "75-100%"
+        ],
+        "best_4h_bin": "5-15%",
+        "best_4h_t_score": 3.74,
+        "ease_rating": 4,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "Wait for 4H @ 5-15% for best bounce, aggressive buying below 25%",
+        "avoid_guidance": "NEVER enter when 4H > 75% (zero edge)",
+        "special_notes": "Strong mean reversion below 75%, upper range completely fails"
+      }
+    },
+    "TSLA": {
+      "cohort_extreme_low": {
+        "count": 29,
+        "win_rate": 0.41379310344827586,
+        "avg_return": 2.8823740365291646,
+        "avg_holding_days": 7.586206896551724
+      },
+      "cohort_low": {
+        "count": 62,
+        "win_rate": 0.2903225806451613,
+        "avg_return": -0.8752136424023865,
+        "avg_holding_days": 4.306451612903226
+      },
+      "cohort_medium_low": {
+        "count": 126,
+        "win_rate": 0.3253968253968254,
+        "avg_return": -0.6566327645999408,
+        "avg_holding_days": 3.238095238095238
+      },
+      "cohort_medium": {
+        "count": 148,
+        "win_rate": 0.5540540540540541,
+        "avg_return": 0.5826564464864553,
+        "avg_holding_days": 2.5135135135135136
+      },
+      "cohort_medium_high": {
+        "count": 151,
+        "win_rate": 0.5562913907284768,
+        "avg_return": 0.22354935622019892,
+        "avg_holding_days": 1.7152317880794703
+      },
+      "cohort_high": {
+        "count": 109,
+        "win_rate": 0.5412844036697247,
+        "avg_return": 0.4503172403300008,
+        "avg_holding_days": 1.4770642201834863
+      },
+      "cohort_extreme_high": {
+        "count": 111,
+        "win_rate": 0.5945945945945946,
+        "avg_return": 0.6498007808924159,
+        "avg_holding_days": 1.3873873873873874
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.49184782608695654,
+        "avg_return": 0.2551514206998353,
+        "avg_holding_days": 2.501358695652174
+      },
+      "metadata": {
+        "ticker": "TSLA",
+        "name": "Tesla, Inc.",
+        "personality": "High Volatility Momentum - Strong trending behavior",
+        "reliability_4h": "High",
+        "reliability_daily": "High",
+        "tradeable_4h_zones": [
+          "0-5",
+          "75-85",
+          "85-95",
+          "95-100"
+        ],
+        "dead_zones_4h": [
+          "5-15",
+          "15-25",
+          "25-50",
+          "50-75"
+        ],
+        "best_4h_bin": "85-95",
+        "best_4h_t_score": 2.79,
+        "ease_rating": 8,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "High",
+        "entry_guidance": "Enter LONG when momentum is confirmed (percentile > 75). TSLA shows strong trending behavior. Avoid catching falling knives.",
+        "avoid_guidance": "Avoid trading in 25-50 range - weak signals. Never fight the trend. Be cautious during earnings.",
+        "special_notes": "TSLA is extremely volatile and momentum-driven. Best for trend following strategies. Use wider stops. Works well for 7-14 day momentum plays. High news sensitivity."
+      }
+    },
+    "NFLX": {
+      "cohort_extreme_low": {
+        "count": 34,
+        "win_rate": 0.47058823529411764,
+        "avg_return": 0.6415650025203956,
+        "avg_holding_days": 6.5588235294117645
+      },
+      "cohort_low": {
+        "count": 78,
+        "win_rate": 0.44871794871794873,
+        "avg_return": -0.19671176965868242,
+        "avg_holding_days": 4.9743589743589745
+      },
+      "cohort_medium_low": {
+        "count": 126,
+        "win_rate": 0.626984126984127,
+        "avg_return": 0.6893568655095298,
+        "avg_holding_days": 3.7857142857142856
+      },
+      "cohort_medium": {
+        "count": 141,
+        "win_rate": 0.6170212765957447,
+        "avg_return": -0.37314358930458424,
+        "avg_holding_days": 3.0354609929078014
+      },
+      "cohort_medium_high": {
+        "count": 144,
+        "win_rate": 0.6388888888888888,
+        "avg_return": 0.3299312888708197,
+        "avg_holding_days": 2.361111111111111
+      },
+      "cohort_high": {
+        "count": 107,
+        "win_rate": 0.5887850467289719,
+        "avg_return": 0.361490496336364,
+        "avg_holding_days": 1.6261682242990654
+      },
+      "cohort_extreme_high": {
+        "count": 106,
+        "win_rate": 0.5283018867924528,
+        "avg_return": -0.00017494216679497275,
+        "avg_holding_days": 1.3867924528301887
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.5815217391304348,
+        "avg_return": 0.1724000758835316,
+        "avg_holding_days": 2.957880434782609
+      },
+      "metadata": {
+        "ticker": "NFLX",
+        "name": "Netflix Inc.",
+        "personality": "High Volatility Momentum - Earnings Driven",
+        "reliability_4h": "High",
+        "reliability_daily": "High",
+        "tradeable_4h_zones": [
+          "5-15",
+          "50-75",
+          "75-85",
+          "85-95"
+        ],
+        "dead_zones_4h": [
+          "0-5",
+          "15-25",
+          "25-50",
+          "95-100"
+        ],
+        "best_4h_bin": "50-75",
+        "best_4h_t_score": 3.56,
+        "ease_rating": 9,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "High",
+        "entry_guidance": "Enter LONG when percentile > 75 (momentum plays). NFLX shows strong momentum characteristics. Watch for earnings catalysts.",
+        "avoid_guidance": "Avoid trading in 0-5, 15-25, 25-50, 95-100 ranges - weak signals. Exercise extreme caution around earnings dates (high volatility).",
+        "special_notes": "NFLX is highly volatile (avg daily std > 5%) Strong momentum characteristics - trends can persist Earnings-driven stock with unpredictable reactions to quarterly reports Best for experienced traders comfortable with high volatility Consider position sizing due to large price swings Best 4H trading zones: 5-15, 50-75, 75-85, 85-95"
+      }
+    },
+    "AMZN": {
+      "cohort_extreme_low": {
+        "count": 33,
+        "win_rate": 0.5757575757575758,
+        "avg_return": 1.227127347302214,
+        "avg_holding_days": 6.090909090909091
+      },
+      "cohort_low": {
+        "count": 64,
+        "win_rate": 0.578125,
+        "avg_return": 0.8375788163600659,
+        "avg_holding_days": 4.546875
+      },
+      "cohort_medium_low": {
+        "count": 108,
+        "win_rate": 0.6574074074074074,
+        "avg_return": 0.7744301309765044,
+        "avg_holding_days": 4.324074074074074
+      },
+      "cohort_medium": {
+        "count": 155,
+        "win_rate": 0.7354838709677419,
+        "avg_return": 0.6322139667965341,
+        "avg_holding_days": 3.503225806451613
+      },
+      "cohort_medium_high": {
+        "count": 155,
+        "win_rate": 0.6645161290322581,
+        "avg_return": 0.20465741280312172,
+        "avg_holding_days": 2.096774193548387
+      },
+      "cohort_high": {
+        "count": 128,
+        "win_rate": 0.6015625,
+        "avg_return": 0.1105809152395805,
+        "avg_holding_days": 1.5859375
+      },
+      "cohort_extreme_high": {
+        "count": 93,
+        "win_rate": 0.43010752688172044,
+        "avg_return": -0.20237666660684853,
+        "avg_holding_days": 1.5698924731182795
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.626358695652174,
+        "avg_return": 0.4113955052277935,
+        "avg_holding_days": 2.9565217391304346
+      },
+      "metadata": {
+        "ticker": "AMZN",
+        "name": "Amazon.com Inc.",
+        "personality": "Mean Reversion - High Volume Leader",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-75%"
+        ],
+        "dead_zones_4h": [
+          "75-100%"
+        ],
+        "best_4h_bin": "5-15%",
+        "best_4h_t_score": 0.0,
+        "ease_rating": 4,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "Buy at \u226415% percentile for mean reversion plays, strong bounce potential",
+        "avoid_guidance": "Avoid entering above 75% percentile - limited upside potential",
+        "special_notes": "Large cap with strong mean reversion characteristics, excellent liquidity for swing trading"
+      }
+    },
+    "BRK-B": {
+      "cohort_extreme_low": {
+        "count": 32,
+        "win_rate": 0.71875,
+        "avg_return": 1.4831455496921269,
+        "avg_holding_days": 7.4375
+      },
+      "cohort_low": {
+        "count": 61,
+        "win_rate": 0.6885245901639344,
+        "avg_return": 0.41393659304852354,
+        "avg_holding_days": 7.754098360655738
+      },
+      "cohort_medium_low": {
+        "count": 113,
+        "win_rate": 0.7522123893805309,
+        "avg_return": 0.2688839995960301,
+        "avg_holding_days": 5.911504424778761
+      },
+      "cohort_medium": {
+        "count": 163,
+        "win_rate": 0.7300613496932515,
+        "avg_return": 0.028621475066894126,
+        "avg_holding_days": 4.012269938650307
+      },
+      "cohort_medium_high": {
+        "count": 156,
+        "win_rate": 0.6538461538461539,
+        "avg_return": 0.019051934741998285,
+        "avg_holding_days": 2.5833333333333335
+      },
+      "cohort_high": {
+        "count": 102,
+        "win_rate": 0.5784313725490197,
+        "avg_return": 0.055261448265454816,
+        "avg_holding_days": 1.9019607843137254
+      },
+      "cohort_extreme_high": {
+        "count": 109,
+        "win_rate": 0.5688073394495413,
+        "avg_return": 0.09527870943380945,
+        "avg_holding_days": 1.5871559633027523
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6684782608695652,
+        "avg_return": 0.1722202867221149,
+        "avg_holding_days": 3.808423913043478
+      },
+      "metadata": {
+        "ticker": "BRK-B",
+        "name": "Berkshire Hathaway Inc. Class B",
+        "personality": "Momentum Trending",
+        "reliability_4h": "High",
+        "reliability_daily": "Medium",
+        "tradeable_4h_zones": [
+          "50-75",
+          "85-95",
+          "95-100"
+        ],
+        "dead_zones_4h": [
+          "0-5",
+          "5-15",
+          "15-25",
+          "25-50"
+        ],
+        "best_4h_bin": "50-75",
+        "best_4h_t_score": 3.09,
+        "ease_rating": 6,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "Low",
+        "entry_guidance": "Standard entry rules apply",
+        "avoid_guidance": "Avoid weak signal zones",
+        "special_notes": "Trade based on t-score strength"
+      }
+    },
+    "AVGO": {
+      "cohort_extreme_low": {
+        "count": 34,
+        "win_rate": 0.5882352941176471,
+        "avg_return": 3.535056145732202,
+        "avg_holding_days": 5.764705882352941
+      },
+      "cohort_low": {
+        "count": 79,
+        "win_rate": 0.6708860759493671,
+        "avg_return": 2.2059302798306772,
+        "avg_holding_days": 5.89873417721519
+      },
+      "cohort_medium_low": {
+        "count": 119,
+        "win_rate": 0.5966386554621849,
+        "avg_return": 0.6655620432859279,
+        "avg_holding_days": 3.8151260504201683
+      },
+      "cohort_medium": {
+        "count": 158,
+        "win_rate": 0.6772151898734177,
+        "avg_return": 0.7739921778530039,
+        "avg_holding_days": 3.2531645569620253
+      },
+      "cohort_medium_high": {
+        "count": 142,
+        "win_rate": 0.6197183098591549,
+        "avg_return": 0.015410070408239466,
+        "avg_holding_days": 2.2535211267605635
+      },
+      "cohort_high": {
+        "count": 101,
+        "win_rate": 0.48514851485148514,
+        "avg_return": 0.221620773714545,
+        "avg_holding_days": 1.386138613861386
+      },
+      "cohort_extreme_high": {
+        "count": 103,
+        "win_rate": 0.5145631067961165,
+        "avg_return": 0.6444632902257591,
+        "avg_holding_days": 1.4466019417475728
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.5991847826086957,
+        "avg_return": 0.7974248578121075,
+        "avg_holding_days": 3.042119565217391
+      },
+      "metadata": {
+        "ticker": "AVGO",
+        "name": "Broadcom Inc.",
+        "personality": "Momentum Trending",
+        "reliability_4h": "High",
+        "reliability_daily": "High",
+        "tradeable_4h_zones": [
+          "0-5",
+          "50-75",
+          "75-85"
+        ],
+        "dead_zones_4h": [
+          "5-15",
+          "15-25",
+          "25-50"
+        ],
+        "best_4h_bin": "50-75",
+        "best_4h_t_score": 4.96,
+        "ease_rating": 10,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "High",
+        "entry_guidance": "Standard entry rules apply",
+        "avoid_guidance": "Avoid weak signal zones",
+        "special_notes": "Trade based on t-score strength"
+      }
+    },
+    "CNX1": {
+      "cohort_extreme_low": {
+        "count": 40,
+        "win_rate": 0.6,
+        "avg_return": 0.5730779529465081,
+        "avg_holding_days": 5.85
+      },
+      "cohort_low": {
+        "count": 74,
+        "win_rate": 0.7567567567567568,
+        "avg_return": 1.0524241705980104,
+        "avg_holding_days": 5.5675675675675675
+      },
+      "cohort_medium_low": {
+        "count": 99,
+        "win_rate": 0.8282828282828283,
+        "avg_return": 0.8147708682019787,
+        "avg_holding_days": 5.383838383838384
+      },
+      "cohort_medium": {
+        "count": 153,
+        "win_rate": 0.7777777777777778,
+        "avg_return": 0.5102518271288389,
+        "avg_holding_days": 4.588235294117647
+      },
+      "cohort_medium_high": {
+        "count": 162,
+        "win_rate": 0.7160493827160493,
+        "avg_return": 0.1046606830886696,
+        "avg_holding_days": 2.5864197530864197
+      },
+      "cohort_high": {
+        "count": 104,
+        "win_rate": 0.5769230769230769,
+        "avg_return": 0.18838981960659257,
+        "avg_holding_days": 1.9711538461538463
+      },
+      "cohort_extreme_high": {
+        "count": 104,
+        "win_rate": 0.5576923076923077,
+        "avg_return": 0.09085097703703728,
+        "avg_holding_days": 1.4230769230769231
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6997282608695652,
+        "avg_return": 0.4151215023860369,
+        "avg_holding_days": 3.604619565217391
+      },
+      "metadata": {
+        "ticker": "CNX1",
+        "name": "CNX1 (LSE)",
+        "personality": "UK Equity",
+        "reliability_4h": "Medium",
+        "reliability_daily": "Medium",
+        "tradeable_4h_zones": [
+          "0-5",
+          "5-15",
+          "15-25",
+          "25-50"
+        ],
+        "dead_zones_4h": [
+          "75-85",
+          "85-95",
+          "95-100"
+        ],
+        "best_4h_bin": "5-15",
+        "best_4h_t_score": 0.0,
+        "ease_rating": 5,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "Treat as an LSE equity; favor 0-15% percentile pullbacks for entries.",
+        "avoid_guidance": "Avoid chasing above 85% until the setup resets.",
+        "special_notes": "Yahoo Finance symbol CNX1.L (London Stock Exchange)."
+      }
+    },
+    "VIX": {
+      "cohort_extreme_low": {
+        "count": 25,
+        "win_rate": 0.12,
+        "avg_return": -2.118151097424851,
+        "avg_holding_days": 3.0
+      },
+      "cohort_low": {
+        "count": 64,
+        "win_rate": 0.359375,
+        "avg_return": 1.6066247372298212,
+        "avg_holding_days": 3.140625
+      },
+      "cohort_medium_low": {
+        "count": 107,
+        "win_rate": 0.4766355140186916,
+        "avg_return": 1.4483661666346226,
+        "avg_holding_days": 2.794392523364486
+      },
+      "cohort_medium": {
+        "count": 153,
+        "win_rate": 0.5947712418300654,
+        "avg_return": 2.015018544931333,
+        "avg_holding_days": 2.065359477124183
+      },
+      "cohort_medium_high": {
+        "count": 159,
+        "win_rate": 0.4779874213836478,
+        "avg_return": -0.017261227910456135,
+        "avg_holding_days": 1.559748427672956
+      },
+      "cohort_high": {
+        "count": 116,
+        "win_rate": 0.4396551724137931,
+        "avg_return": 0.8141469599104554,
+        "avg_holding_days": 1.4137931034482758
+      },
+      "cohort_extreme_high": {
+        "count": 112,
+        "win_rate": 0.33035714285714285,
+        "avg_return": -0.8898853395371793,
+        "avg_holding_days": 1.3214285714285714
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.45108695652173914,
+        "avg_return": 0.6863757840151795,
+        "avg_holding_days": 1.971467391304348
+      },
+      "metadata": {
+        "ticker": "VIX",
+        "name": "CBOE Volatility Index",
+        "personality": "Fear Gauge - Mean Reverting",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-15%",
+          "85-100%"
+        ],
+        "dead_zones_4h": [
+          "25-75%"
+        ],
+        "best_4h_bin": "85-100%",
+        "best_4h_t_score": 0.0,
+        "ease_rating": 7,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "High",
+        "entry_guidance": "Sell volatility at extreme highs (\u226585% percentile) for mean reversion. Buy volatility at extreme lows (\u226415%) before market events.",
+        "avoid_guidance": "Avoid trading mid-range (25-75%) - wait for extremes",
+        "special_notes": "VIX measures market fear. Spikes to extreme highs then reverts. Counter-cyclical to equity markets. Best traded at statistical extremes."
+      }
+    },
+    "IGLS": {
+      "cohort_extreme_low": {
+        "count": 20,
+        "win_rate": 0.9,
+        "avg_return": 0.2127067825681082,
+        "avg_holding_days": 11.5
+      },
+      "cohort_low": {
+        "count": 59,
+        "win_rate": 0.9152542372881356,
+        "avg_return": 0.21227172704160277,
+        "avg_holding_days": 8.0
+      },
+      "cohort_medium_low": {
+        "count": 116,
+        "win_rate": 0.7844827586206896,
+        "avg_return": 0.06264256216603963,
+        "avg_holding_days": 7.896551724137931
+      },
+      "cohort_medium": {
+        "count": 170,
+        "win_rate": 0.8470588235294118,
+        "avg_return": 0.0648707035625353,
+        "avg_holding_days": 5.270588235294118
+      },
+      "cohort_medium_high": {
+        "count": 153,
+        "win_rate": 0.6862745098039216,
+        "avg_return": 0.03769806605297707,
+        "avg_holding_days": 4.137254901960785
+      },
+      "cohort_high": {
+        "count": 126,
+        "win_rate": 0.626984126984127,
+        "avg_return": 0.036429925984450745,
+        "avg_holding_days": 2.2301587301587302
+      },
+      "cohort_extreme_high": {
+        "count": 98,
+        "win_rate": 0.45918367346938777,
+        "avg_return": 0.010104319800783333,
+        "avg_holding_days": 1.5408163265306123
+      },
+      "cohort_all": {
+        "count": 742,
+        "win_rate": 0.7223719676549866,
+        "avg_return": 0.0625618901406083,
+        "avg_holding_days": 4.82345013477089
+      },
+      "metadata": {
+        "ticker": "IGLS",
+        "name": "IGLS (London)",
+        "personality": "London Market Equity",
+        "reliability_4h": "\u2b50\u2b50\u2b50 Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "tradeable_4h_zones": [
+          "0-5",
+          "5-15",
+          "15-25",
+          "25-50"
+        ],
+        "dead_zones_4h": [
+          "75-85",
+          "85-95",
+          "95-100"
+        ],
+        "best_4h_bin": "5-15",
+        "best_4h_t_score": 0.0,
+        "ease_rating": 5,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "Buy at \u226415% percentile for mean reversion plays. London market hours provide liquidity.",
+        "avoid_guidance": "Avoid entering above 75% percentile without strong momentum confirmation",
+        "special_notes": "London-based equity. Consider GBP/USD impact on returns. Best traded during London hours (8am-4:30pm GMT)."
+      }
+    },
+    "XOM": {
+      "cohort_extreme_low": {
+        "count": 36,
+        "win_rate": 0.5277777777777778,
+        "avg_return": 0.3036232851199018,
+        "avg_holding_days": 7.222222222222222
+      },
+      "cohort_low": {
+        "count": 76,
+        "win_rate": 0.6842105263157895,
+        "avg_return": 0.712140149448371,
+        "avg_holding_days": 5.973684210526316
+      },
+      "cohort_medium_low": {
+        "count": 106,
+        "win_rate": 0.6132075471698113,
+        "avg_return": 0.1543852819485463,
+        "avg_holding_days": 4.19811320754717
+      },
+      "cohort_medium": {
+        "count": 146,
+        "win_rate": 0.7191780821917808,
+        "avg_return": 0.3795058767599669,
+        "avg_holding_days": 2.6986301369863015
+      },
+      "cohort_medium_high": {
+        "count": 140,
+        "win_rate": 0.6571428571428571,
+        "avg_return": 0.023993991637458224,
+        "avg_holding_days": 2.007142857142857
+      },
+      "cohort_high": {
+        "count": 116,
+        "win_rate": 0.5603448275862069,
+        "avg_return": -0.0005691431490171299,
+        "avg_holding_days": 1.9051724137931034
+      },
+      "cohort_extreme_high": {
+        "count": 116,
+        "win_rate": 0.5,
+        "avg_return": -0.05321796604663048,
+        "avg_holding_days": 1.4396551724137931
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6195652173913043,
+        "avg_return": 0.1819913609761453,
+        "avg_holding_days": 3.0190217391304346
+      },
+      "metadata": {
+        "ticker": "XOM",
+        "name": "ExxonMobil",
+        "personality": "Energy Giant - Mean Reverter",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-50%"
+        ],
+        "dead_zones_4h": [
+          "75-100%"
+        ],
+        "best_4h_bin": "0-5%",
+        "best_4h_t_score": 3.33,
+        "ease_rating": 5,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "Buy extreme dips at \u22645% percentile for strong mean reversion. Energy sector correlation with crude oil.",
+        "avoid_guidance": "Avoid entering above 75% percentile - limited upside in extended positions",
+        "special_notes": "Strong mean reversion characteristics. Correlates with crude oil prices. Dividend-paying stock with institutional support."
+      }
+    },
+    "CVX": {
+      "cohort_extreme_low": {
+        "count": 37,
+        "win_rate": 0.4864864864864865,
+        "avg_return": -0.8886223905095573,
+        "avg_holding_days": 7.108108108108108
+      },
+      "cohort_low": {
+        "count": 73,
+        "win_rate": 0.6986301369863014,
+        "avg_return": 0.7388525366198634,
+        "avg_holding_days": 5.561643835616438
+      },
+      "cohort_medium_low": {
+        "count": 97,
+        "win_rate": 0.711340206185567,
+        "avg_return": 0.4916873434155544,
+        "avg_holding_days": 4.030927835051546
+      },
+      "cohort_medium": {
+        "count": 157,
+        "win_rate": 0.802547770700637,
+        "avg_return": 0.4649071768236577,
+        "avg_holding_days": 3.0573248407643314
+      },
+      "cohort_medium_high": {
+        "count": 153,
+        "win_rate": 0.6535947712418301,
+        "avg_return": 0.08039456690981824,
+        "avg_holding_days": 2.1633986928104574
+      },
+      "cohort_high": {
+        "count": 108,
+        "win_rate": 0.5462962962962963,
+        "avg_return": -0.058129506449565244,
+        "avg_holding_days": 1.9722222222222223
+      },
+      "cohort_extreme_high": {
+        "count": 111,
+        "win_rate": 0.5585585585585585,
+        "avg_return": -0.06931899156338443,
+        "avg_holding_days": 1.5585585585585586
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6589673913043478,
+        "avg_return": 0.19031152143224594,
+        "avg_holding_days": 3.066576086956522
+      },
+      "metadata": {
+        "ticker": "CVX",
+        "name": "Chevron",
+        "personality": "Energy Leader - Mean Reverter",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-50%"
+        ],
+        "dead_zones_4h": [
+          "75-100%"
+        ],
+        "best_4h_bin": "0-5%",
+        "best_4h_t_score": 3.29,
+        "ease_rating": 5,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "Buy extreme dips at \u22645% percentile. Similar characteristics to XOM. Watch crude oil correlation.",
+        "avoid_guidance": "Avoid entering above 75% percentile - mean reversion weakens at extremes",
+        "special_notes": "Integrated energy company with strong balance sheet. Dividend aristocrat. Trades similar to XOM but slightly less volatile."
+      }
+    },
+    "JPM": {
+      "cohort_extreme_low": {
+        "count": 38,
+        "win_rate": 0.5526315789473685,
+        "avg_return": 0.8906362738904129,
+        "avg_holding_days": 6.315789473684211
+      },
+      "cohort_low": {
+        "count": 72,
+        "win_rate": 0.4583333333333333,
+        "avg_return": -0.7373416138535004,
+        "avg_holding_days": 6.486111111111111
+      },
+      "cohort_medium_low": {
+        "count": 107,
+        "win_rate": 0.7383177570093458,
+        "avg_return": 0.9051944615748986,
+        "avg_holding_days": 4.94392523364486
+      },
+      "cohort_medium": {
+        "count": 145,
+        "win_rate": 0.8068965517241379,
+        "avg_return": 0.6463241501337004,
+        "avg_holding_days": 4.075862068965518
+      },
+      "cohort_medium_high": {
+        "count": 147,
+        "win_rate": 0.7278911564625851,
+        "avg_return": 0.2853501665667259,
+        "avg_holding_days": 2.4149659863945576
+      },
+      "cohort_high": {
+        "count": 133,
+        "win_rate": 0.6917293233082706,
+        "avg_return": 0.2383436347591231,
+        "avg_holding_days": 1.8345864661654134
+      },
+      "cohort_extreme_high": {
+        "count": 94,
+        "win_rate": 0.5,
+        "avg_return": 0.02860015749762646,
+        "avg_holding_days": 1.5851063829787233
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6739130434782609,
+        "avg_return": 0.33649861967572475,
+        "avg_holding_days": 3.498641304347826
+      },
+      "metadata": {
+        "ticker": "JPM",
+        "name": "JPMorgan Chase",
+        "personality": "Banking Leader - Mean Reverter",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-50%"
+        ],
+        "dead_zones_4h": [
+          "75-100%"
+        ],
+        "best_4h_bin": "0-5%",
+        "best_4h_t_score": 3.11,
+        "ease_rating": 4,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "Buy extreme dips at \u22645% percentile. Sensitive to interest rates and economic data. Watch Fed policy.",
+        "avoid_guidance": "Avoid entering above 75% percentile - banking stocks show strong mean reversion",
+        "special_notes": "Largest US bank by assets. Sensitive to interest rate environment and economic outlook. Strong institutional ownership."
+      }
+    },
+    "BAC": {
+      "cohort_extreme_low": {
+        "count": 45,
+        "win_rate": 0.5555555555555556,
+        "avg_return": 0.8393685393511608,
+        "avg_holding_days": 5.711111111111111
+      },
+      "cohort_low": {
+        "count": 67,
+        "win_rate": 0.417910447761194,
+        "avg_return": -0.7012145157883775,
+        "avg_holding_days": 5.164179104477612
+      },
+      "cohort_medium_low": {
+        "count": 96,
+        "win_rate": 0.5833333333333334,
+        "avg_return": 0.3240047094616127,
+        "avg_holding_days": 4.989583333333333
+      },
+      "cohort_medium": {
+        "count": 149,
+        "win_rate": 0.7248322147651006,
+        "avg_return": 0.370870040122826,
+        "avg_holding_days": 3.51006711409396
+      },
+      "cohort_medium_high": {
+        "count": 155,
+        "win_rate": 0.6516129032258065,
+        "avg_return": 0.24495447257461125,
+        "avg_holding_days": 2.3483870967741933
+      },
+      "cohort_high": {
+        "count": 119,
+        "win_rate": 0.5966386554621849,
+        "avg_return": 0.2214291842541703,
+        "avg_holding_days": 1.5798319327731092
+      },
+      "cohort_extreme_high": {
+        "count": 105,
+        "win_rate": 0.44761904761904764,
+        "avg_return": -0.030921976110472007,
+        "avg_holding_days": 1.457142857142857
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.592391304347826,
+        "avg_return": 0.18780639739579957,
+        "avg_holding_days": 3.1385869565217392
+      },
+      "metadata": {
+        "ticker": "BAC",
+        "name": "Bank of America",
+        "personality": "Mega Bank - Mean Reverter",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-50%"
+        ],
+        "dead_zones_4h": [
+          "75-100%"
+        ],
+        "best_4h_bin": "0-5%",
+        "best_4h_t_score": 3.31,
+        "ease_rating": 4,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "Buy extreme dips at \u22645% percentile. Slightly more volatile than JPM. Interest rate sensitive.",
+        "avoid_guidance": "Avoid entering above 75% percentile - strong mean reversion after extremes",
+        "special_notes": "Second largest US bank. Higher retail exposure than JPM. More sensitive to consumer credit cycles and Fed policy."
+      }
+    },
+    "LLY": {
+      "cohort_extreme_low": {
+        "count": 41,
+        "win_rate": 0.2682926829268293,
+        "avg_return": -0.9419888681625577,
+        "avg_holding_days": 4.658536585365853
+      },
+      "cohort_low": {
+        "count": 65,
+        "win_rate": 0.6615384615384615,
+        "avg_return": 1.497928247350085,
+        "avg_holding_days": 4.4
+      },
+      "cohort_medium_low": {
+        "count": 113,
+        "win_rate": 0.584070796460177,
+        "avg_return": 0.030984367329128685,
+        "avg_holding_days": 3.6548672566371683
+      },
+      "cohort_medium": {
+        "count": 149,
+        "win_rate": 0.6577181208053692,
+        "avg_return": 0.0014039410172523323,
+        "avg_holding_days": 3.610738255033557
+      },
+      "cohort_medium_high": {
+        "count": 135,
+        "win_rate": 0.5851851851851851,
+        "avg_return": -0.05222141921926898,
+        "avg_holding_days": 2.562962962962963
+      },
+      "cohort_high": {
+        "count": 119,
+        "win_rate": 0.6218487394957983,
+        "avg_return": 0.4365593167248536,
+        "avg_holding_days": 1.4285714285714286
+      },
+      "cohort_extreme_high": {
+        "count": 114,
+        "win_rate": 0.543859649122807,
+        "avg_return": 0.38409060209438056,
+        "avg_holding_days": 1.4824561403508771
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.5883152173913043,
+        "avg_return": 0.20535490344737578,
+        "avg_holding_days": 2.870923913043478
+      },
+      "metadata": {
+        "ticker": "LLY",
+        "name": "Eli Lilly and Company",
+        "personality": "Momentum Trending",
+        "reliability_4h": "Medium",
+        "reliability_daily": "Medium",
+        "tradeable_4h_zones": [
+          "85-95",
+          "95-100"
+        ],
+        "dead_zones_4h": [
+          "5-15",
+          "15-25",
+          "25-50"
+        ],
+        "best_4h_bin": "95-100",
+        "best_4h_t_score": 5.38,
+        "ease_rating": 5,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "High",
+        "entry_guidance": "Standard entry rules apply",
+        "avoid_guidance": "Avoid weak signal zones",
+        "special_notes": "Trade based on t-score strength"
+      }
+    },
+    "UNH": {
+      "cohort_extreme_low": {
+        "count": 52,
+        "win_rate": 0.36538461538461536,
+        "avg_return": -1.206984718906885,
+        "avg_holding_days": 6.769230769230769
+      },
+      "cohort_low": {
+        "count": 70,
+        "win_rate": 0.5428571428571428,
+        "avg_return": 0.032641654489185844,
+        "avg_holding_days": 5.928571428571429
+      },
+      "cohort_medium_low": {
+        "count": 103,
+        "win_rate": 0.49514563106796117,
+        "avg_return": -0.6570547566824204,
+        "avg_holding_days": 4.922330097087379
+      },
+      "cohort_medium": {
+        "count": 141,
+        "win_rate": 0.6453900709219859,
+        "avg_return": -0.44147716713278257,
+        "avg_holding_days": 3.326241134751773
+      },
+      "cohort_medium_high": {
+        "count": 136,
+        "win_rate": 0.625,
+        "avg_return": -0.026052652634525823,
+        "avg_holding_days": 2.1911764705882355
+      },
+      "cohort_high": {
+        "count": 113,
+        "win_rate": 0.5132743362831859,
+        "avg_return": 0.09119975241537023,
+        "avg_holding_days": 1.584070796460177
+      },
+      "cohort_extreme_high": {
+        "count": 121,
+        "win_rate": 0.5289256198347108,
+        "avg_return": 0.163377469808201,
+        "avg_holding_days": 1.512396694214876
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.5516304347826086,
+        "avg_return": -0.2226523436976807,
+        "avg_holding_days": 3.264945652173913
+      },
+      "metadata": {
+        "ticker": "UNH",
+        "name": "UnitedHealth Group Inc.",
+        "personality": "Momentum Trending",
+        "reliability_4h": "Medium",
+        "reliability_daily": "Low",
+        "tradeable_4h_zones": [
+          "85-95",
+          "95-100"
+        ],
+        "dead_zones_4h": [
+          "5-15",
+          "50-75",
+          "75-85"
+        ],
+        "best_4h_bin": "95-100",
+        "best_4h_t_score": 2.66,
+        "ease_rating": 3,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "High",
+        "entry_guidance": "Standard entry rules apply",
+        "avoid_guidance": "Avoid weak signal zones",
+        "special_notes": "Trade based on t-score strength"
+      }
+    },
+    "OXY": {
+      "cohort_extreme_low": {
+        "count": 41,
+        "win_rate": 0.43902439024390244,
+        "avg_return": 0.19109770713149785,
+        "avg_holding_days": 7.2682926829268295
+      },
+      "cohort_low": {
+        "count": 81,
+        "win_rate": 0.49382716049382713,
+        "avg_return": -0.0821637914135617,
+        "avg_holding_days": 4.728395061728395
+      },
+      "cohort_medium_low": {
+        "count": 93,
+        "win_rate": 0.5806451612903226,
+        "avg_return": -0.09022652600460353,
+        "avg_holding_days": 4.247311827956989
+      },
+      "cohort_medium": {
+        "count": 140,
+        "win_rate": 0.7,
+        "avg_return": 0.3685317280812315,
+        "avg_holding_days": 2.95
+      },
+      "cohort_medium_high": {
+        "count": 152,
+        "win_rate": 0.5855263157894737,
+        "avg_return": -0.09270942099193477,
+        "avg_holding_days": 1.9736842105263157
+      },
+      "cohort_high": {
+        "count": 113,
+        "win_rate": 0.4690265486725664,
+        "avg_return": -0.0560328563302194,
+        "avg_holding_days": 1.4601769911504425
+      },
+      "cohort_extreme_high": {
+        "count": 116,
+        "win_rate": 0.47413793103448276,
+        "avg_return": -0.07181146209722232,
+        "avg_holding_days": 1.5258620689655173
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.5529891304347826,
+        "avg_return": 0.02123565155091101,
+        "avg_holding_days": 2.895380434782609
+      },
+      "metadata": {
+        "ticker": "OXY",
+        "name": "Occidental Petroleum",
+        "personality": "Momentum Trending",
+        "reliability_4h": "Low",
+        "reliability_daily": "Medium",
+        "tradeable_4h_zones": [
+          "25-50"
+        ],
+        "dead_zones_4h": [
+          "5-15",
+          "15-25",
+          "75-85",
+          "85-95",
+          "95-100"
+        ],
+        "best_4h_bin": "25-50",
+        "best_4h_t_score": -2.59,
+        "ease_rating": 4,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "Medium",
+        "entry_guidance": "Standard entry rules apply",
+        "avoid_guidance": "Avoid weak signal zones",
+        "special_notes": "Trade based on t-score strength"
+      }
+    },
+    "TSM": {
+      "cohort_extreme_low": {
+        "count": 32,
+        "win_rate": 0.59375,
+        "avg_return": 1.3666430741457587,
+        "avg_holding_days": 5.96875
+      },
+      "cohort_low": {
+        "count": 63,
+        "win_rate": 0.6666666666666666,
+        "avg_return": 1.8205696232191095,
+        "avg_holding_days": 5.523809523809524
+      },
+      "cohort_medium_low": {
+        "count": 120,
+        "win_rate": 0.6333333333333333,
+        "avg_return": 1.0078251960464892,
+        "avg_holding_days": 3.7666666666666666
+      },
+      "cohort_medium": {
+        "count": 152,
+        "win_rate": 0.6710526315789473,
+        "avg_return": 0.6007924512085943,
+        "avg_holding_days": 2.598684210526316
+      },
+      "cohort_medium_high": {
+        "count": 151,
+        "win_rate": 0.5629139072847682,
+        "avg_return": -0.12622793515460692,
+        "avg_holding_days": 2.013245033112583
+      },
+      "cohort_high": {
+        "count": 115,
+        "win_rate": 0.591304347826087,
+        "avg_return": 0.31839565456183216,
+        "avg_holding_days": 1.5304347826086957
+      },
+      "cohort_extreme_high": {
+        "count": 103,
+        "win_rate": 0.4563106796116505,
+        "avg_return": 0.08405598886580484,
+        "avg_holding_days": 1.3786407766990292
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.5964673913043478,
+        "avg_return": 0.539267377261136,
+        "avg_holding_days": 2.7282608695652173
+      },
+      "metadata": {
+        "ticker": "TSM",
+        "name": "Taiwan Semiconductor",
+        "personality": "Momentum Trending",
+        "reliability_4h": "High",
+        "reliability_daily": "High",
+        "tradeable_4h_zones": [
+          "0-5",
+          "5-15",
+          "15-25",
+          "50-75"
+        ],
+        "dead_zones_4h": [
+          "25-50",
+          "75-85",
+          "85-95",
+          "95-100"
+        ],
+        "best_4h_bin": "5-15",
+        "best_4h_t_score": 3.69,
+        "ease_rating": 9,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "High",
+        "entry_guidance": "Standard entry rules apply",
+        "avoid_guidance": "Avoid weak signal zones",
+        "special_notes": "Trade based on t-score strength"
+      }
+    },
+    "WMT": {
+      "cohort_extreme_low": {
+        "count": 32,
+        "win_rate": 0.71875,
+        "avg_return": 0.5663201681513562,
+        "avg_holding_days": 8.53125
+      },
+      "cohort_low": {
+        "count": 70,
+        "win_rate": 0.5857142857142857,
+        "avg_return": -0.026247405856024204,
+        "avg_holding_days": 6.742857142857143
+      },
+      "cohort_medium_low": {
+        "count": 115,
+        "win_rate": 0.7304347826086957,
+        "avg_return": 0.9304763029371791,
+        "avg_holding_days": 5.6521739130434785
+      },
+      "cohort_medium": {
+        "count": 148,
+        "win_rate": 0.75,
+        "avg_return": 0.38749566085464016,
+        "avg_holding_days": 4.344594594594595
+      },
+      "cohort_medium_high": {
+        "count": 144,
+        "win_rate": 0.7083333333333334,
+        "avg_return": 0.2545632366268845,
+        "avg_holding_days": 2.8333333333333335
+      },
+      "cohort_high": {
+        "count": 109,
+        "win_rate": 0.5871559633027523,
+        "avg_return": 0.06389049549751208,
+        "avg_holding_days": 1.8807339449541285
+      },
+      "cohort_extreme_high": {
+        "count": 118,
+        "win_rate": 0.6101694915254238,
+        "avg_return": 0.2124131286987305,
+        "avg_holding_days": 1.4406779661016949
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6752717391304348,
+        "avg_return": 0.3387567647895849,
+        "avg_holding_days": 3.832880434782609
+      },
+      "metadata": {
+        "ticker": "WMT",
+        "name": "Walmart Inc.",
+        "personality": "Momentum Trending",
+        "reliability_4h": "High",
+        "reliability_daily": "High",
+        "tradeable_4h_zones": [
+          "50-75",
+          "85-95",
+          "95-100"
+        ],
+        "dead_zones_4h": [
+          "5-15",
+          "15-25",
+          "25-50"
+        ],
+        "best_4h_bin": "50-75",
+        "best_4h_t_score": 4.99,
+        "ease_rating": 8,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "Medium",
+        "entry_guidance": "Standard entry rules apply",
+        "avoid_guidance": "Avoid weak signal zones",
+        "special_notes": "Trade based on t-score strength"
+      }
+    },
+    "COST": {
+      "cohort_extreme_low": {
+        "count": 30,
+        "win_rate": 0.5,
+        "avg_return": -0.34146037898004167,
+        "avg_holding_days": 9.933333333333334
+      },
+      "cohort_low": {
+        "count": 71,
+        "win_rate": 0.6197183098591549,
+        "avg_return": 0.08525234225165164,
+        "avg_holding_days": 7.549295774647887
+      },
+      "cohort_medium_low": {
+        "count": 121,
+        "win_rate": 0.628099173553719,
+        "avg_return": 0.45329918864006413,
+        "avg_holding_days": 5.851239669421488
+      },
+      "cohort_medium": {
+        "count": 145,
+        "win_rate": 0.6827586206896552,
+        "avg_return": 0.07689024526214863,
+        "avg_holding_days": 3.8620689655172415
+      },
+      "cohort_medium_high": {
+        "count": 148,
+        "win_rate": 0.668918918918919,
+        "avg_return": 0.1243017035108855,
+        "avg_holding_days": 2.324324324324324
+      },
+      "cohort_high": {
+        "count": 108,
+        "win_rate": 0.6481481481481481,
+        "avg_return": 0.3204708071116977,
+        "avg_holding_days": 1.7407407407407407
+      },
+      "cohort_extreme_high": {
+        "count": 113,
+        "win_rate": 0.5486725663716814,
+        "avg_return": -0.03369348928305107,
+        "avg_holding_days": 1.4513274336283186
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6317934782608695,
+        "avg_return": 0.15082544472502016,
+        "avg_holding_days": 3.801630434782609
+      },
+      "metadata": {
+        "ticker": "COST",
+        "name": "Costco",
+        "personality": "Retail Leader - Mean Reverter",
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-50%"
+        ],
+        "dead_zones_4h": [
+          "75-100%"
+        ],
+        "best_4h_bin": "0-5%",
+        "best_4h_t_score": 3.19,
+        "ease_rating": 5,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "Buy extreme dips at \u22645% percentile. Strong membership model provides stability. Consumer discretionary sector.",
+        "avoid_guidance": "Avoid entering above 75% percentile - mean reversion pattern weakens at extremes",
+        "special_notes": "Warehouse retailer with membership model. Strong pricing power. Less volatile than typical retail. Consistent earnings growth."
+      }
+    },
+    "GLD": {
+      "cohort_extreme_low": {
+        "count": 33,
+        "win_rate": 0.7575757575757576,
+        "avg_return": 1.2638212286973896,
+        "avg_holding_days": 7.9393939393939394
+      },
+      "cohort_low": {
+        "count": 68,
+        "win_rate": 0.75,
+        "avg_return": 0.9126885548237945,
+        "avg_holding_days": 7.573529411764706
+      },
+      "cohort_medium_low": {
+        "count": 110,
+        "win_rate": 0.7636363636363637,
+        "avg_return": 0.4644283929012569,
+        "avg_holding_days": 5.845454545454546
+      },
+      "cohort_medium": {
+        "count": 152,
+        "win_rate": 0.7894736842105263,
+        "avg_return": 0.4019461822390236,
+        "avg_holding_days": 3.8947368421052633
+      },
+      "cohort_medium_high": {
+        "count": 142,
+        "win_rate": 0.704225352112676,
+        "avg_return": 0.22097151136271173,
+        "avg_holding_days": 2.7746478873239435
+      },
+      "cohort_high": {
+        "count": 124,
+        "win_rate": 0.6129032258064516,
+        "avg_return": 0.1279866632950625,
+        "avg_holding_days": 2.0161290322580645
+      },
+      "cohort_extreme_high": {
+        "count": 107,
+        "win_rate": 0.4953271028037383,
+        "avg_return": 0.07985007396412626,
+        "avg_holding_days": 1.5327102803738317
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6915760869565217,
+        "avg_return": 0.369217559742875,
+        "avg_holding_days": 3.8315217391304346
+      },
+      "metadata": {
+        "ticker": "GLD",
+        "name": "SPDR Gold Trust",
+        "personality": "Safe Haven - Momentum Trending",
+        "reliability_4h": "High",
+        "reliability_daily": "High",
+        "tradeable_4h_zones": [
+          "25-50",
+          "50-75",
+          "75-85",
+          "85-95",
+          "95-100"
+        ],
+        "dead_zones_4h": [
+          "0-5",
+          "15-25"
+        ],
+        "best_4h_bin": "50-75",
+        "best_4h_t_score": 5.22,
+        "ease_rating": 5,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "Low",
+        "entry_guidance": "Enter LONG when percentile < 25 (oversold). Gold shows mean reversion at extremes.",
+        "avoid_guidance": "Avoid trading in 0-25 range at 4H - weak signals. Be cautious in high volatility periods.",
+        "special_notes": "Gold is a safe haven asset. Best during market uncertainty. Works well for swing trades (7-14 day holds). Daily shows strong edge across most bins."
+      }
+    },
+    "SLV": {
+      "cohort_extreme_low": {
+        "count": 27,
+        "win_rate": 0.6296296296296297,
+        "avg_return": 1.966424583092637,
+        "avg_holding_days": 6.148148148148148
+      },
+      "cohort_low": {
+        "count": 75,
+        "win_rate": 0.5866666666666667,
+        "avg_return": 0.5173102603617284,
+        "avg_holding_days": 5.773333333333333
+      },
+      "cohort_medium_low": {
+        "count": 106,
+        "win_rate": 0.6415094339622641,
+        "avg_return": 0.5129885770675444,
+        "avg_holding_days": 4.367924528301887
+      },
+      "cohort_medium": {
+        "count": 149,
+        "win_rate": 0.7449664429530202,
+        "avg_return": 0.3422399785280676,
+        "avg_holding_days": 3.2684563758389262
+      },
+      "cohort_medium_high": {
+        "count": 158,
+        "win_rate": 0.6392405063291139,
+        "avg_return": 0.2825702253348105,
+        "avg_holding_days": 1.9367088607594938
+      },
+      "cohort_high": {
+        "count": 122,
+        "win_rate": 0.48360655737704916,
+        "avg_return": 0.05522671872900089,
+        "avg_holding_days": 1.540983606557377
+      },
+      "cohort_extreme_high": {
+        "count": 99,
+        "win_rate": 0.48484848484848486,
+        "avg_return": 0.18340267126909499,
+        "avg_holding_days": 1.4747474747474747
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.6086956521739131,
+        "avg_return": 0.3625039388368903,
+        "avg_holding_days": 2.974184782608696
+      },
+      "metadata": {
+        "ticker": "SLV",
+        "name": "iShares Silver Trust",
+        "personality": "Volatile Safe Haven - Momentum",
+        "reliability_4h": "High",
+        "reliability_daily": "High",
+        "tradeable_4h_zones": [
+          "25-50",
+          "50-75",
+          "75-85",
+          "85-95",
+          "95-100"
+        ],
+        "dead_zones_4h": [
+          "0-5",
+          "5-15",
+          "15-25"
+        ],
+        "best_4h_bin": "95-100",
+        "best_4h_t_score": 4.68,
+        "ease_rating": 4,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "Medium",
+        "entry_guidance": "Enter LONG when percentile < 25 (oversold). Silver shows stronger mean reversion than gold.",
+        "avoid_guidance": "Avoid 0-25 range at 4H - weak/negative signals. Be cautious of high volatility (>5% daily moves).",
+        "special_notes": "Silver is more volatile than gold. Strong mean reversion at extremes (0-25%ile on Daily). Best for 7-14 day holds. 95-100 4H zone is strongest."
+      }
+    }
+  }
+}
