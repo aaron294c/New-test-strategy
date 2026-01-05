@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-05T13:35:55.994533+00:00",
+  "timestamp": "2026-01-05T13:49:40.014966+00:00",
   "timeframe": "4h",
   "market_state": [
     {
@@ -63,10 +63,10 @@
       "volatility_level": "Medium",
       "live_expectancy": {
         "expected_win_rate": 0.7857142857142857,
-        "expected_return_pct": 1.1125992138207323,
-        "expected_holding_days": 2.625,
-        "expected_return_per_day_pct": 0.42384731955075516,
-        "risk_adjusted_expectancy_pct": 0.7417328092138216,
+        "expected_return_pct": 1.1125992138207326,
+        "expected_holding_days": 2.6249999999999996,
+        "expected_return_per_day_pct": 0.42384731955075533,
+        "risk_adjusted_expectancy_pct": 0.7417328092138217,
         "sample_size": 28
       },
       "data_source": "4h"
@@ -109,10 +109,10 @@
       "volatility_level": "Medium",
       "live_expectancy": {
         "expected_win_rate": 0.7222222222222222,
-        "expected_return_pct": -0.10143209162997102,
-        "expected_holding_days": 2.7129629629629632,
+        "expected_return_pct": -0.10143209162997104,
+        "expected_holding_days": 2.7129629629629637,
         "expected_return_per_day_pct": -0.03738793821172993,
-        "risk_adjusted_expectancy_pct": -0.06762139441998068,
+        "risk_adjusted_expectancy_pct": -0.06762139441998069,
         "sample_size": 36
       },
       "data_source": "4h"
@@ -122,7 +122,7 @@
       "name": "Netflix Inc.",
       "current_date": "2026-01-02 12:00",
       "current_price": 90.9749984741211,
-      "current_percentile": 22.31075697211155,
+      "current_percentile": 21.91235059760956,
       "percentile_cohort": "medium_low",
       "zone_label": "15-30th percentile (Medium Low)",
       "in_entry_zone": false,
@@ -156,8 +156,8 @@
       "live_expectancy": {
         "expected_win_rate": 0.7021276595744681,
         "expected_return_pct": -0.14474037500941614,
-        "expected_holding_days": 2.9893617021276597,
-        "expected_return_per_day_pct": -0.048418488437313584,
+        "expected_holding_days": 2.98936170212766,
+        "expected_return_per_day_pct": -0.04841848843731358,
         "risk_adjusted_expectancy_pct": -0.14474037500941614,
         "sample_size": 47
       },
@@ -210,29 +210,6 @@
       "data_source": "4h"
     },
     {
-      "ticker": "CNX1",
-      "name": "CNX1 (LSE)",
-      "current_date": "2026-01-05 12:00",
-      "current_price": 108240.0,
-      "current_percentile": 50.99601593625498,
-      "percentile_cohort": "medium_high",
-      "zone_label": "50-70th percentile (Medium High)",
-      "in_entry_zone": false,
-      "regime": "mean_reversion",
-      "is_mean_reverter": true,
-      "is_momentum": false,
-      "volatility_level": "Medium",
-      "live_expectancy": {
-        "expected_win_rate": 0.7204301075268817,
-        "expected_return_pct": 0.09335677171511217,
-        "expected_holding_days": 1.1756272401433692,
-        "expected_return_per_day_pct": 0.07941018081864724,
-        "risk_adjusted_expectancy_pct": 0.06223784781007478,
-        "sample_size": 93
-      },
-      "data_source": "4h"
-    },
-    {
       "ticker": "IGLS",
       "name": "IGLS (London)",
       "current_date": "2026-01-05 12:00",
@@ -246,12 +223,35 @@
       "is_momentum": false,
       "volatility_level": "Medium",
       "live_expectancy": {
-        "expected_win_rate": 0.7241379310344828,
-        "expected_return_pct": 0.019441011085867217,
-        "expected_holding_days": 1.318007662835249,
-        "expected_return_per_day_pct": 0.01475030201573065,
-        "risk_adjusted_expectancy_pct": 0.012960674057244811,
-        "sample_size": 87
+        "expected_win_rate": 0.7159090909090909,
+        "expected_return_pct": 0.01997210923017895,
+        "expected_holding_days": 1.3560606060606064,
+        "expected_return_per_day_pct": 0.014728035856891737,
+        "risk_adjusted_expectancy_pct": 0.013314739486785966,
+        "sample_size": 88
+      },
+      "data_source": "4h"
+    },
+    {
+      "ticker": "CNX1",
+      "name": "CNX1 (LSE)",
+      "current_date": "2026-01-05 12:00",
+      "current_price": 108330.0,
+      "current_percentile": 54.980079681274894,
+      "percentile_cohort": "medium_high",
+      "zone_label": "50-70th percentile (Medium High)",
+      "in_entry_zone": false,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "Medium",
+      "live_expectancy": {
+        "expected_win_rate": 0.7204301075268817,
+        "expected_return_pct": 0.09335677171511211,
+        "expected_holding_days": 1.1756272401433705,
+        "expected_return_per_day_pct": 0.0794101808186471,
+        "risk_adjusted_expectancy_pct": 0.06223784781007474,
+        "sample_size": 93
       },
       "data_source": "4h"
     },
@@ -283,7 +283,7 @@
       "name": "Google",
       "current_date": "2026-01-02 12:00",
       "current_price": 315.1199951171875,
-      "current_percentile": 64.14342629482071,
+      "current_percentile": 64.5418326693227,
       "percentile_cohort": "medium_high",
       "zone_label": "50-70th percentile (Medium High)",
       "in_entry_zone": false,
@@ -305,8 +305,8 @@
       "ticker": "VIX",
       "name": "CBOE Volatility Index",
       "current_date": "2026-01-05 04:00",
-      "current_price": 15.220000267028809,
-      "current_percentile": 71.71314741035857,
+      "current_price": 15.199999809265137,
+      "current_percentile": 70.91633466135458,
       "percentile_cohort": "high",
       "zone_label": "70-85th percentile (High)",
       "in_entry_zone": false,
@@ -315,12 +315,12 @@
       "is_momentum": false,
       "volatility_level": "High",
       "live_expectancy": {
-        "expected_win_rate": 0.384,
-        "expected_return_pct": -0.12855383330089437,
-        "expected_holding_days": 0.3253333333333333,
-        "expected_return_per_day_pct": -0.3951449794084868,
-        "risk_adjusted_expectancy_pct": -0.06427691665044719,
-        "sample_size": 125
+        "expected_win_rate": 0.3870967741935484,
+        "expected_return_pct": -0.12134345097762435,
+        "expected_holding_days": 0.3266129032258063,
+        "expected_return_per_day_pct": -0.3715206894129735,
+        "risk_adjusted_expectancy_pct": -0.060671725488812174,
+        "sample_size": 124
       },
       "data_source": "4h"
     }

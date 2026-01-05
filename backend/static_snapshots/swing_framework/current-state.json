@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-05T13:35:51.284155+00:00",
+  "timestamp": "2026-01-05T13:49:34.097077+00:00",
   "market_state": [
     {
       "ticker": "TSLA",
@@ -38,10 +38,10 @@
       "volatility_level": "Medium",
       "live_expectancy": {
         "expected_win_rate": 0.5352112676056338,
-        "expected_return_pct": 0.35592177404271536,
+        "expected_return_pct": 0.3559204065038795,
         "expected_holding_days": 7.126760563380282,
-        "expected_return_per_day_pct": 0.04994159280046006,
-        "risk_adjusted_expectancy_pct": 0.23728118269514356,
+        "expected_return_per_day_pct": 0.049941400912599694,
+        "risk_adjusted_expectancy_pct": 0.23728027100258633,
         "sample_size": 71
       }
     },
@@ -60,9 +60,9 @@
       "volatility_level": "Medium",
       "live_expectancy": {
         "expected_win_rate": 0.6574074074074074,
-        "expected_return_pct": 0.7744301309765043,
+        "expected_return_pct": 0.7744301309765044,
         "expected_holding_days": 4.324074074074074,
-        "expected_return_per_day_pct": 0.17909733221726434,
+        "expected_return_per_day_pct": 0.17909733221726437,
         "risk_adjusted_expectancy_pct": 0.5162867539843362,
         "sample_size": 108
       }
@@ -82,10 +82,10 @@
       "volatility_level": "Medium",
       "live_expectancy": {
         "expected_win_rate": 0.7549019607843137,
-        "expected_return_pct": 0.7051803476561347,
+        "expected_return_pct": 0.7051781750336373,
         "expected_holding_days": 4.676470588235294,
-        "expected_return_per_day_pct": 0.1507932818887332,
-        "risk_adjusted_expectancy_pct": 0.47012023177075646,
+        "expected_return_per_day_pct": 0.15079281730279037,
+        "risk_adjusted_expectancy_pct": 0.47011878335575824,
         "sample_size": 102
       }
     },
@@ -104,10 +104,10 @@
       "volatility_level": "Low",
       "live_expectancy": {
         "expected_win_rate": 0.7589285714285714,
-        "expected_return_pct": 0.2928615631069693,
+        "expected_return_pct": 0.2928615631069696,
         "expected_holding_days": 5.910714285714286,
-        "expected_return_per_day_pct": 0.04954757563139058,
-        "risk_adjusted_expectancy_pct": 0.2928615631069693,
+        "expected_return_per_day_pct": 0.049547575631390624,
+        "risk_adjusted_expectancy_pct": 0.2928615631069696,
         "sample_size": 112
       }
     },
@@ -126,10 +126,10 @@
       "volatility_level": "Low",
       "live_expectancy": {
         "expected_win_rate": 0.7456140350877193,
-        "expected_return_pct": 0.35310862606811266,
+        "expected_return_pct": 0.35310730284786895,
         "expected_holding_days": 5.131578947368421,
-        "expected_return_per_day_pct": 0.06881091174660657,
-        "risk_adjusted_expectancy_pct": 0.35310862606811266,
+        "expected_return_per_day_pct": 0.06881065388830267,
+        "risk_adjusted_expectancy_pct": 0.35310730284786895,
         "sample_size": 114
       }
     },
@@ -148,10 +148,10 @@
       "volatility_level": "Medium-High",
       "live_expectancy": {
         "expected_win_rate": 0.6534653465346535,
-        "expected_return_pct": 0.5244077192805564,
+        "expected_return_pct": 0.5244083788503435,
         "expected_holding_days": 4.524752475247524,
-        "expected_return_per_day_pct": 0.11589754846244245,
-        "risk_adjusted_expectancy_pct": 0.3496051461870376,
+        "expected_return_per_day_pct": 0.11589769423169519,
+        "risk_adjusted_expectancy_pct": 0.349605585900229,
         "sample_size": 101
       }
     },
@@ -170,10 +170,10 @@
       "volatility_level": "High",
       "live_expectancy": {
         "expected_win_rate": 0.6170212765957447,
-        "expected_return_pct": -0.3731435893045842,
+        "expected_return_pct": -0.37314358930458424,
         "expected_holding_days": 3.0354609929078014,
-        "expected_return_per_day_pct": -0.12292814507464106,
-        "risk_adjusted_expectancy_pct": -0.1865717946522921,
+        "expected_return_per_day_pct": -0.12292814507464107,
+        "risk_adjusted_expectancy_pct": -0.18657179465229212,
         "sample_size": 141
       }
     },
@@ -192,10 +192,10 @@
       "volatility_level": "Medium",
       "live_expectancy": {
         "expected_win_rate": 0.7214285714285714,
-        "expected_return_pct": 0.5305770855414812,
+        "expected_return_pct": 0.5305785224201328,
         "expected_holding_days": 3.1214285714285714,
-        "expected_return_per_day_pct": 0.16997892900642417,
-        "risk_adjusted_expectancy_pct": 0.35371805702765413,
+        "expected_return_per_day_pct": 0.16997938933368098,
+        "risk_adjusted_expectancy_pct": 0.35371901494675523,
         "sample_size": 140
       }
     },
@@ -203,8 +203,8 @@
       "ticker": "CNX1",
       "name": "CNX1 (LSE)",
       "current_date": "2026-01-05",
-      "current_price": 108240.0,
-      "current_percentile": 51.10220440881763,
+      "current_price": 108330.0,
+      "current_percentile": 52.90581162324649,
       "percentile_cohort": "medium_high",
       "zone_label": "50-70th percentile (Medium High)",
       "in_entry_zone": false,
@@ -214,10 +214,10 @@
       "volatility_level": "Medium",
       "live_expectancy": {
         "expected_win_rate": 0.7160493827160493,
-        "expected_return_pct": 0.10466068308866962,
+        "expected_return_pct": 0.1046606830886696,
         "expected_holding_days": 2.5864197530864197,
         "expected_return_per_day_pct": 0.04046546696984362,
-        "risk_adjusted_expectancy_pct": 0.06977378872577975,
+        "risk_adjusted_expectancy_pct": 0.06977378872577973,
         "sample_size": 162
       }
     },
@@ -236,10 +236,10 @@
       "volatility_level": "High",
       "live_expectancy": {
         "expected_win_rate": 0.6170212765957447,
-        "expected_return_pct": -0.002424251504194044,
+        "expected_return_pct": -0.0024241148201375197,
         "expected_holding_days": 2.25531914893617,
-        "expected_return_per_day_pct": -0.0010749039688407553,
-        "risk_adjusted_expectancy_pct": -0.001212125752097022,
+        "expected_return_per_day_pct": -0.0010748433636458814,
+        "risk_adjusted_expectancy_pct": -0.0012120574100687599,
         "sample_size": 141
       }
     },
@@ -258,10 +258,10 @@
       "volatility_level": "High",
       "live_expectancy": {
         "expected_win_rate": 0.6643835616438356,
-        "expected_return_pct": 0.6186204697701257,
+        "expected_return_pct": 0.6186203245156163,
         "expected_holding_days": 2.0205479452054793,
-        "expected_return_per_day_pct": 0.3061647070726724,
-        "risk_adjusted_expectancy_pct": 0.3093102348850629,
+        "expected_return_per_day_pct": 0.30616463518399994,
+        "risk_adjusted_expectancy_pct": 0.30931016225780816,
         "sample_size": 146
       }
     },
@@ -280,10 +280,10 @@
       "volatility_level": "Medium",
       "live_expectancy": {
         "expected_win_rate": 0.6862745098039216,
-        "expected_return_pct": 0.03769824179800286,
+        "expected_return_pct": 0.03769806883958707,
         "expected_holding_days": 4.137254901960785,
-        "expected_return_per_day_pct": 0.009111897306626282,
-        "risk_adjusted_expectancy_pct": 0.02513216119866857,
+        "expected_return_per_day_pct": 0.009111855501511565,
+        "risk_adjusted_expectancy_pct": 0.025132045893058046,
         "sample_size": 153
       }
     },
@@ -291,8 +291,8 @@
       "ticker": "VIX",
       "name": "CBOE Volatility Index",
       "current_date": "2026-01-05",
-      "current_price": 15.220000267028809,
-      "current_percentile": 82.76553106212425,
+      "current_price": 15.199999809265137,
+      "current_percentile": 82.36472945891784,
       "percentile_cohort": "high",
       "zone_label": "70-85th percentile (High)",
       "in_entry_zone": false,
