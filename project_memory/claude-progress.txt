@@ -552,3 +552,20 @@ Testing:
   - force_refresh=true recomputes and changes timestamp.
 Recommended Next Action:
 - Validate in a real runtime with: time curl -s http://localhost:8000/api/swing-framework/current-state >/dev/null (twice) and confirm the 2nd call is fast within TTL.
+
+Date: 2026-01-05
+Agent: Coding Agent
+Activity: Performance — Batch Market Data Fetch for /current-state
+Changes:
+- Added `fetch_daily_batch()` to batch-fetch daily OHLCV for all tickers via a single `yfinance.download([...])` call and split results per ticker (backend/swing_framework_api.py).
+- Updated `GET /api/swing-framework/current-state` to use the batched daily frames first, with per-ticker fallback to the existing `fetch_data()` path (2y then 5y) if a ticker is missing/insufficient.
+- Preserved existing 60s TTL response cache and `force_refresh` behavior.
+Files Edited:
+- backend/swing_framework_api.py
+Testing:
+- Offline function-level test with monkeypatched `yf.download` verified:
+  - Endpoint still returns 14 tickers and preserves response shape.
+  - `force_refresh=true` recomputes and changes timestamp.
+  - Second call within TTL returns ~0s (cache hit).
+Recommended Next Action:
+- Validate against the real backend runtime by timing `/api/swing-framework/current-state` cold vs warm and ensuring output JSON fields remain unchanged.

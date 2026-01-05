@@ -1,42 +1,38 @@
 # Next Task for Coding Agent
 
-## Selected Next Task: Performance — TTL Cache for Swing “Current State” Endpoints
+## Selected Next Task: Performance — Batch Market Data Fetch for `current-state`
 
-Why: The worst latency comes from backend compute + repeated multi-ticker market data
-fetches. The most duplicated work is current-state being computed once directly and
-again inside current-state-enriched (which also computes 4H). A short TTL cache (e.g.,
-60s) makes repeat calls and “double fetch on initial load” dramatically faster without
-changing strategy logic.
+Why: TTL caching helps repeat calls but does not fix cold-start latency. The biggest
+remaining cost is per-ticker sequential Yahoo fetches (network latency × 14) plus
+per-ticker setup overhead. Fetching daily OHLCV for all tickers in a single batched
+`yfinance.download([...])` call collapses network latency, reduces throttling, and is
+reversible.
 
 ### Goal (Single Feature)
 
-Add a small in-memory TTL cache for:
+Change `GET /api/swing-framework/current-state` to fetch daily OHLCV for all tickers in
+one batched call, then compute RSI‑MA + percentile per ticker from the split
+dataframes.
 
-- GET `/api/swing-framework/current-state`
-- GET `/api/swing-framework/current-state-4h`
-
-and ensure GET `/api/swing-framework/current-state-enriched` reuses the cached results
-rather than recomputing (via direct function calls).
+Keep existing response shape and business logic unchanged; only change the data
+acquisition pattern (batch → split).
 
 ### Scope / Guardrails
 
-- Backend-only change in `backend/swing_framework_api.py`.
-- No strategy/logic changes: output values/structure stay the same; only reuse results
-  briefly.
-- Add `force_refresh: bool = False` query param (default False) to bypass cache when
-  needed.
-- TTL target: 60 seconds (tunable, keep small to preserve “live” feel).
-- Avoid cache stampede: use a lightweight lock so concurrent requests don’t all
-  recompute.
+- Backend-only change (likely `backend/swing_framework_api.py` plus a small helper).
+- No strategy/logic changes: same percentile window, same expectancy mapping, same
+  output JSON keys.
+- Preserve fallbacks: if batch fetch fails for a ticker, fall back to the existing
+  per-ticker fetch for that ticker only (so the endpoint still returns usable data).
+- Keep batching limited to daily; do not change 4H ingestion in this task.
 
 ### Acceptance Criteria
 
-- First request may still be slow (does real work), but a second request within TTL
-  returns fast.
-- When frontend requests both current-state and current-state-enriched in quick
-  succession, the backend does not recompute daily state twice.
-- `force_refresh=true` forces a recompute regardless of TTL.
-- No changes required in frontend; existing requests keep working.
+- Cold `current-state` runtime materially improves vs 14 sequential downloads.
+- Response data matches prior semantics (same tickers, same fields, no NaNs for current
+  percentile unless the ticker truly lacks data).
+- Partial failures degrade gracefully (one bad ticker does not fail the whole
+  endpoint).
 
 ### Suggested Files
 
@@ -45,12 +41,16 @@ rather than recomputing (via direct function calls).
 ### Testing
 
 1. Start backend locally.
-2. Time the endpoints twice (second call should be much faster):
+2. Time `current-state` before/after:
    - `time curl -s http://localhost:8000/api/swing-framework/current-state >/dev/null`
-   - `time curl -s http://localhost:8000/api/swing-framework/current-state >/dev/null`
-   - Repeat for `current-state-4h` and `current-state-enriched`.
-3. Verify bypass works:
-   - `time curl -s "http://localhost:8000/api/swing-framework/current-state?force_refresh=true" >/dev/null`
+3. Smoke-check JSON shape didn’t change:
+   - `curl -s http://localhost:8000/api/swing-framework/current-state | python -m json.tool | head`
+
+---
+
+## Backlog Note (Not This Task)
+- Add similar batching for 4H ingestion (harder due to resampling interval).
+- Decouple `current-state-enriched` so 4H can hydrate separately (perceived performance).
 
 ## Recently Completed: LEAPS Options Scanner - Phase 1 ✅
 

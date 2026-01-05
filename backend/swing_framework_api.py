@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 from scipy.stats import norm
 import pandas as pd
+import yfinance as yf
 from enhanced_backtester import EnhancedPerformanceMatrixBacktester
 from stock_statistics import (
     STOCK_METADATA,
@@ -23,6 +24,7 @@ from stock_statistics import (
     AVGO_4H_DATA, AVGO_DAILY_DATA
 )
 from percentile_forward_4h import fetch_4h_data, calculate_rsi_ma_4h
+from ticker_utils import resolve_yahoo_symbol
 
 router = APIRouter(prefix="/api/swing-framework", tags=["swing-framework"])
 
@@ -52,6 +54,58 @@ def _is_cache_valid(cache: Dict | None, cache_timestamp: datetime | None, ttl_se
     if cache is None or cache_timestamp is None:
         return False
     return (datetime.now(timezone.utc) - cache_timestamp).total_seconds() < ttl_seconds
+
+
+def fetch_daily_batch(tickers: List[str], period: str = "2y") -> Dict[str, pd.DataFrame]:
+    """
+    Batch-fetch daily OHLCV for multiple tickers using a single yfinance.download call.
+
+    Returns a mapping keyed by display ticker (input) to a single-ticker OHLCV DataFrame.
+    Any ticker missing from the batch response will be mapped to an empty DataFrame.
+    """
+    if not tickers:
+        return {}
+
+    yahoo_by_display = {ticker: resolve_yahoo_symbol(ticker) for ticker in tickers}
+    yahoo_symbols = list(dict.fromkeys(yahoo_by_display.values()))
+
+    data = yf.download(
+        yahoo_symbols,
+        period=period,
+        group_by="ticker",
+        auto_adjust=True,
+        prepost=True,
+        progress=False,
+        threads=True,
+    )
+
+    results: Dict[str, pd.DataFrame] = {ticker: pd.DataFrame() for ticker in tickers}
+    if data is None or getattr(data, "empty", True):
+        return results
+
+    multi = isinstance(data.columns, pd.MultiIndex)
+    for display_ticker, yahoo_symbol in yahoo_by_display.items():
+        frame = pd.DataFrame()
+        if multi:
+            try:
+                if yahoo_symbol in data.columns.get_level_values(0):
+                    frame = data[yahoo_symbol].copy()
+            except Exception:
+                frame = pd.DataFrame()
+        else:
+            if len(yahoo_symbols) == 1:
+                frame = data.copy()
+
+        if not frame.empty:
+            required_columns = {"Open", "High", "Low", "Close"}
+            if required_columns.issubset(frame.columns):
+                frame = frame.dropna(subset=["Close"])
+            else:
+                frame = pd.DataFrame()
+
+        results[display_ticker] = frame
+
+    return results
 
 
 def convert_bins_to_dict(bin_data: Dict) -> Dict:
@@ -829,6 +883,22 @@ async def get_current_market_state(force_refresh: bool = False):
 
         current_states = []
 
+        batch_daily_frames: Dict[str, pd.DataFrame] = {}
+        try:
+            print("Batch fetching daily OHLCV (2y) for current-state...")
+            batch_daily_frames = fetch_daily_batch(tickers, period="2y")
+        except Exception as e:
+            print(f"  Batch daily fetch failed: {e}. Falling back to per-ticker fetches.")
+            batch_daily_frames = {t: pd.DataFrame() for t in tickers}
+
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=tickers,
+            lookback_period=500,
+            rsi_length=14,
+            ma_length=14,
+            max_horizon=21
+        )
+
         print("Fetching current percentiles...")
         for ticker in tickers:
             try:
@@ -837,19 +907,12 @@ async def get_current_market_state(force_refresh: bool = False):
                     print(f"  No cohort data for {ticker}, skipping")
                     continue
 
-                backtester = EnhancedPerformanceMatrixBacktester(
-                    tickers=[ticker],
-                    lookback_period=500,
-                    rsi_length=14,
-                    ma_length=14,
-                    max_horizon=21
-                )
-
-                # Only need enough bars to fill the 500-bar percentile window.
-                # "2y" is typically ~504 trading days and materially faster than "5y".
-                data = backtester.fetch_data(ticker, period="2y")
+                data = batch_daily_frames.get(ticker, pd.DataFrame())
                 if data.empty or len(data) < backtester.lookback_period + 3:
-                    data = backtester.fetch_data(ticker, period="5y")
+                    # Fall back to the existing per-ticker fetch path for this ticker only.
+                    data = backtester.fetch_data(ticker, period="2y")
+                    if data.empty or len(data) < backtester.lookback_period + 3:
+                        data = backtester.fetch_data(ticker, period="5y")
                 if data.empty:
                     continue
 
