@@ -6,6 +6,7 @@ import json
 import os
 import sys
 from pathlib import Path
+from datetime import datetime, timezone
 
 
 async def _compute() -> dict:
@@ -14,14 +15,17 @@ async def _compute() -> dict:
     sys.path.insert(0, str(backend_dir))
 
     os.environ["SWING_STATIC_SNAPSHOTS"] = "0"
+    os.environ["SWING_FORCE_REFRESH_FULL"] = "1"
 
     import swing_framework_api  # noqa: E402
 
+    cohort_stats = await swing_framework_api.get_cached_cohort_stats(allow_compute=True)
     current_state = await swing_framework_api.get_current_market_state(force_refresh=True)
     current_state_4h = await swing_framework_api.get_current_market_state_4h(force_refresh=True)
     current_state_enriched = await swing_framework_api.get_current_market_state_enriched(force_refresh=False)
 
     return {
+        "cohort_stats": cohort_stats,
         "current_state": current_state,
         "current_state_4h": current_state_4h,
         "current_state_enriched": current_state_enriched,
@@ -47,13 +51,21 @@ def main() -> int:
 
     indent = 2 if args.pretty else None
     for filename, key in [
+        ("cohort-stats.json", "cohort_stats"),
         ("current-state.json", "current_state"),
         ("current-state-4h.json", "current_state_4h"),
         ("current-state-enriched.json", "current_state_enriched"),
     ]:
         path = out_dir / filename
         with path.open("w", encoding="utf-8") as file:
-            json.dump(payloads[key], file, indent=indent)
+            if key == "cohort_stats":
+                json.dump(
+                    {"timestamp": datetime.now(timezone.utc).isoformat(), "cohort_stats": payloads[key]},
+                    file,
+                    indent=indent,
+                )
+            else:
+                json.dump(payloads[key], file, indent=indent)
             file.write("\n")
 
     return 0
@@ -61,4 +73,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

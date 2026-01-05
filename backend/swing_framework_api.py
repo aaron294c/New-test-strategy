@@ -55,9 +55,7 @@ _current_state_enriched_lock = asyncio.Lock()
 _STATIC_SNAPSHOT_DIR = Path(__file__).resolve().parent / "static_snapshots" / "swing_framework"
 
 
-def _load_static_snapshot(filename: str) -> Dict | None:
-    if os.getenv("SWING_STATIC_SNAPSHOTS", "1").lower() in {"0", "false", "no"}:
-        return None
+def _read_snapshot_file(filename: str) -> Dict | None:
     path = _STATIC_SNAPSHOT_DIR / filename
     if not path.exists():
         return None
@@ -69,6 +67,25 @@ def _load_static_snapshot(filename: str) -> Dict | None:
     except Exception as e:
         print(f"  Failed to load static snapshot {path}: {e}")
     return None
+
+
+def _load_static_snapshot(filename: str) -> Dict | None:
+    if os.getenv("SWING_STATIC_SNAPSHOTS", "1").lower() in {"0", "false", "no"}:
+        return None
+    return _read_snapshot_file(filename)
+
+
+def _load_static_cohort_stats() -> Dict | None:
+    """
+    Load precomputed cohort statistics (if available) from disk.
+
+    This is intentionally controlled separately from SWING_STATIC_SNAPSHOTS so you can:
+    - Disable static current-state snapshots (always compute live percentiles), while still
+      avoiding expensive backtest recomputation for cohort stats.
+    """
+    if os.getenv("SWING_STATIC_COHORT_STATS", "1").lower() in {"0", "false", "no"}:
+        return None
+    return _read_snapshot_file("cohort-stats.json")
 
 
 def _is_cache_valid(cache: Dict | None, cache_timestamp: datetime | None, ttl_seconds: int) -> bool:
@@ -404,7 +421,7 @@ def find_exit_point(
     return entry_idx + max_days, 'max_days'
 
 
-async def get_cached_cohort_stats() -> Dict:
+async def get_cached_cohort_stats(allow_compute: bool = True) -> Dict:
     """
     Get cohort statistics from cache or compute if cache is stale/empty
     Returns: Dict[ticker] = {cohort_extreme_low: {...}, cohort_low: {...}}
@@ -423,7 +440,21 @@ async def get_cached_cohort_stats() -> Dict:
         print(f"  Using cached cohort stats (age: {(now - _cache_timestamp).total_seconds():.0f}s)")
         return _cohort_stats_cache
 
-    # Cache miss or stale - fetch full backtest data
+    # Try to load a precomputed cohort snapshot from disk (fast path).
+    static_payload = _load_static_cohort_stats()
+    if isinstance(static_payload, dict) and static_payload.get("cohort_stats"):
+        cohort_stats = static_payload.get("cohort_stats", {})
+        if isinstance(cohort_stats, dict) and cohort_stats:
+            _cohort_stats_cache = cohort_stats
+            _cache_timestamp = now
+            print(f"  ✓ Loaded cohort stats snapshot for {len(cohort_stats)} tickers")
+            return cohort_stats
+
+    if not allow_compute:
+        print("  Cohort stats unavailable (compute disabled); returning empty cohort cache")
+        return {}
+
+    # Cache miss or stale - fetch full backtest data (slow path)
     print("  Cache miss - fetching fresh cohort statistics...")
     all_data = await get_swing_framework_data()
 
@@ -746,9 +777,11 @@ async def get_current_indices_state():
     """
     indices = ["SPY", "QQQ"]
 
-    # Get cached cohort stats (fast - uses cache after first call)
+    allow_full_compute = os.getenv("SWING_FORCE_REFRESH_FULL", "0").lower() in {"1", "true", "yes"}
+
+    # Get cached cohort stats (fast when loaded from snapshot or in-memory cache)
     print("Fetching indices cohort statistics...")
-    cohort_stats_cache = await get_cached_cohort_stats()
+    cohort_stats_cache = await get_cached_cohort_stats(allow_compute=allow_full_compute)
     print("✓ Indices cohort stats ready")
 
     current_states = []
@@ -757,13 +790,7 @@ async def get_current_indices_state():
     print("Fetching current percentiles for SPY and QQQ...")
     for ticker in indices:
         try:
-            # Get cached cohort data for this index
-            ticker_cohort_data = cohort_stats_cache.get(ticker, {})
-            if not ticker_cohort_data:
-                print(f"  No cohort data for {ticker}, skipping")
-                continue
-
-            metadata_dict = ticker_cohort_data.get('metadata', {})
+            ticker_cohort_data = cohort_stats_cache.get(ticker, {}) if cohort_stats_cache else {}
 
             # Initialize backtester ONLY to get current percentile (fast)
             backtester = EnhancedPerformanceMatrixBacktester(
@@ -927,9 +954,18 @@ async def get_current_market_state(force_refresh: bool = False):
         # (e.g., current-state and current-state-enriched arriving concurrently).
         tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
 
-        # Get cached cohort stats (fast - uses cache after first call)
+        # Get cached cohort stats (fast when loaded from snapshot or in-memory cache).
+        #
+        # NOTE: A "cold" cohort computation runs a full backtest-style pass for every
+        # ticker (via /all-tickers) and can take minutes. For interactive "force refresh"
+        # (where the user mainly wants *current percentiles/prices*), default to keeping
+        # the endpoint responsive and only compute cohorts when explicitly enabled.
+        allow_full_compute = (
+            not force_refresh
+            or os.getenv("SWING_FORCE_REFRESH_FULL", "0").lower() in {"1", "true", "yes"}
+        )
         print("Fetching cohort statistics...")
-        cohort_stats_cache = await get_cached_cohort_stats()
+        cohort_stats_cache = await get_cached_cohort_stats(allow_compute=allow_full_compute)
         print("✓ Cohort stats ready")
 
         current_states = []
@@ -953,10 +989,7 @@ async def get_current_market_state(force_refresh: bool = False):
         print("Fetching current percentiles...")
         for ticker in tickers:
             try:
-                ticker_cohort_data = cohort_stats_cache.get(ticker, {})
-                if not ticker_cohort_data:
-                    print(f"  No cohort data for {ticker}, skipping")
-                    continue
+                ticker_cohort_data = cohort_stats_cache.get(ticker, {}) if cohort_stats_cache else {}
 
                 data = batch_daily_frames.get(ticker, pd.DataFrame())
                 if data.empty or len(data) < backtester.lookback_period + 3:
@@ -1006,17 +1039,21 @@ async def get_current_market_state(force_refresh: bool = False):
                     percentile_cohort = "extreme_high"
                     zone_label = "85-100th percentile (Extreme High)"
 
-                cohort_performance = ticker_cohort_data.get(f'cohort_{percentile_cohort}')
-                if not cohort_performance:
-                    cohort_performance = ticker_cohort_data.get('cohort_all')
+                cohort_performance = ticker_cohort_data.get(f"cohort_{percentile_cohort}") if ticker_cohort_data else None
+                if not cohort_performance and ticker_cohort_data:
+                    cohort_performance = ticker_cohort_data.get("cohort_all")
 
                 if cohort_performance:
-                    expected_win_rate = cohort_performance['win_rate']
-                    expected_return = cohort_performance['avg_return']
-                    expected_holding_days = cohort_performance['avg_holding_days']
-                    expected_return_per_day = expected_return / expected_holding_days if expected_holding_days > 0 else 0
+                    expected_win_rate = cohort_performance["win_rate"]
+                    expected_return = cohort_performance["avg_return"]
+                    expected_holding_days = cohort_performance["avg_holding_days"]
+                    expected_return_per_day = (
+                        expected_return / expected_holding_days if expected_holding_days > 0 else 0
+                    )
 
-                    volatility_multiplier = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(metadata.volatility_level, 1.5)
+                    volatility_multiplier = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(
+                        metadata.volatility_level, 1.5
+                    )
                     risk_adjusted_expectancy = expected_return / volatility_multiplier
 
                     live_expectancy = {
@@ -1025,7 +1062,7 @@ async def get_current_market_state(force_refresh: bool = False):
                         "expected_holding_days": expected_holding_days,
                         "expected_return_per_day_pct": expected_return_per_day,
                         "risk_adjusted_expectancy_pct": risk_adjusted_expectancy,
-                        "sample_size": cohort_performance['count']
+                        "sample_size": cohort_performance["count"],
                     }
                 else:
                     live_expectancy = {
@@ -1034,24 +1071,26 @@ async def get_current_market_state(force_refresh: bool = False):
                         "expected_holding_days": 0.0,
                         "expected_return_per_day_pct": 0.0,
                         "risk_adjusted_expectancy_pct": 0.0,
-                        "sample_size": 0
+                        "sample_size": 0,
                     }
 
-                current_states.append({
-                    "ticker": ticker,
-                    "name": metadata.name,
-                    "current_date": current_date,
-                    "current_price": current_price,
-                    "current_percentile": current_percentile,
-                    "percentile_cohort": percentile_cohort,
-                    "zone_label": zone_label,
-                    "in_entry_zone": in_entry_zone,
-                    "regime": regime,
-                    "is_mean_reverter": metadata.is_mean_reverter,
-                    "is_momentum": metadata.is_momentum,
-                    "volatility_level": metadata.volatility_level,
-                    "live_expectancy": live_expectancy  # Expected performance if entering NOW
-                })
+                current_states.append(
+                    {
+                        "ticker": ticker,
+                        "name": metadata.name,
+                        "current_date": current_date,
+                        "current_price": current_price,
+                        "current_percentile": current_percentile,
+                        "percentile_cohort": percentile_cohort,
+                        "zone_label": zone_label,
+                        "in_entry_zone": in_entry_zone,
+                        "regime": regime,
+                        "is_mean_reverter": metadata.is_mean_reverter,
+                        "is_momentum": metadata.is_momentum,
+                        "volatility_level": metadata.volatility_level,
+                        "live_expectancy": live_expectancy,  # Expected performance if entering NOW
+                    }
+                )
 
             except Exception as e:
                 print(f"  Error getting current state for {ticker}: {e}")
@@ -1103,7 +1142,11 @@ async def get_current_market_state_4h(force_refresh: bool = False):
 
         print("Fetching 4H current percentiles...")
         # Daily cohort cache as a final fallback if 4H data is unavailable
-        daily_cohort_cache = await get_cached_cohort_stats()
+        allow_full_compute = (
+            not force_refresh
+            or os.getenv("SWING_FORCE_REFRESH_FULL", "0").lower() in {"1", "true", "yes"}
+        )
+        daily_cohort_cache = await get_cached_cohort_stats(allow_compute=allow_full_compute)
 
         for ticker in tickers:
             try:
