@@ -6,8 +6,11 @@ from backtesting, not simulated/fake data.
 """
 
 import asyncio
+import json
+import os
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict, List, Any, Optional
 from scipy.stats import norm
 import pandas as pd
@@ -48,6 +51,24 @@ _current_state_enriched_cache: Dict | None = None
 _current_state_enriched_cache_timestamp: datetime | None = None
 _current_state_enriched_cache_ttl_seconds = 60  # 1 minute TTL
 _current_state_enriched_lock = asyncio.Lock()
+
+_STATIC_SNAPSHOT_DIR = Path(__file__).resolve().parent / "static_snapshots" / "swing_framework"
+
+
+def _load_static_snapshot(filename: str) -> Dict | None:
+    if os.getenv("SWING_STATIC_SNAPSHOTS", "1").lower() in {"0", "false", "no"}:
+        return None
+    path = _STATIC_SNAPSHOT_DIR / filename
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            payload = json.load(file)
+        if isinstance(payload, dict):
+            return payload
+    except Exception as e:
+        print(f"  Failed to load static snapshot {path}: {e}")
+    return None
 
 
 def _is_cache_valid(cache: Dict | None, cache_timestamp: datetime | None, ttl_seconds: int) -> bool:
@@ -886,6 +907,11 @@ async def get_current_market_state(force_refresh: bool = False):
 
     OPTIMIZED: Uses cached cohort statistics, only fetches current percentiles
     """
+    if not force_refresh:
+        static_payload = _load_static_snapshot("current-state.json")
+        if static_payload is not None:
+            return static_payload
+
     global _current_state_cache, _current_state_cache_timestamp
     if not force_refresh and _is_cache_valid(
         _current_state_cache, _current_state_cache_timestamp, _current_state_cache_ttl_seconds
@@ -1056,6 +1082,11 @@ async def get_current_market_state_4h(force_refresh: bool = False):
     Uses pre-computed 4H bin statistics when available and falls back to on-the-fly
     cohort calculations from 4H price data.
     """
+    if not force_refresh:
+        static_payload = _load_static_snapshot("current-state-4h.json")
+        if static_payload is not None:
+            return static_payload
+
     global _current_state_4h_cache, _current_state_4h_cache_timestamp
     if not force_refresh and _is_cache_valid(
         _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
@@ -1233,6 +1264,11 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
     
     Returns enriched market state with divergence metrics for quick visualization
     """
+    if not force_refresh:
+        static_payload = _load_static_snapshot("current-state-enriched.json")
+        if static_payload is not None:
+            return static_payload
+
     global _current_state_enriched_cache, _current_state_enriched_cache_timestamp
     if not force_refresh and _is_cache_valid(
         _current_state_enriched_cache,

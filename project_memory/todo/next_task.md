@@ -1,56 +1,61 @@
 # Next Task for Coding Agent
 
-## Selected Next Task: Performance — Batch Market Data Fetch for `current-state`
+## Selected Next Task: Performance — Static Swing Snapshots (Precompute During Deploy)
 
-Why: TTL caching helps repeat calls but does not fix cold-start latency. The biggest
-remaining cost is per-ticker sequential Yahoo fetches (network latency × 14) plus
-per-ticker setup overhead. Fetching daily OHLCV for all tickers in a single batched
-`yfinance.download([...])` call collapses network latency, reduces throttling, and is
-reversible.
+Why: Render free tier sleeps/cold-starts and loses in-memory caches, so user-facing
+GET endpoints that compute analytics on request can still take minutes. Serving a
+precomputed snapshot from the deployed codebase makes `current-state` and
+`current-state-enriched` effectively instant, even on cold start.
 
 ### Goal (Single Feature)
 
-Change `GET /api/swing-framework/current-state` to fetch daily OHLCV for all tickers in
-one batched call, then compute RSI‑MA + percentile per ticker from the split
-dataframes.
+Precompute and commit static JSON snapshots for:
+- `GET /api/swing-framework/current-state`
+- `GET /api/swing-framework/current-state-enriched`
+- (optional) `GET /api/swing-framework/current-state-4h`
 
-Keep existing response shape and business logic unchanged; only change the data
-acquisition pattern (batch → split).
+Then change the endpoints to load and return these snapshots immediately (no runtime
+compute) by default, while retaining `force_refresh=true` as an escape hatch for local
+dev/debug.
 
 ### Scope / Guardrails
 
-- Backend-only change (likely `backend/swing_framework_api.py` plus a small helper).
-- No strategy/logic changes: same percentile window, same expectancy mapping, same
-  output JSON keys.
-- Preserve fallbacks: if batch fetch fails for a ticker, fall back to the existing
-  per-ticker fetch for that ticker only (so the endpoint still returns usable data).
-- Keep batching limited to daily; do not change 4H ingestion in this task.
+- Backend + repo automation only (no frontend changes required).
+- No strategy/logic changes: JSON structure returned by the endpoints must remain the
+  same; only the data source changes (compute → static file).
+- Snapshots are committed to git so Render deploy includes them.
+- Use GitHub Actions (schedule + manual) to regenerate and commit snapshots so data
+  can be refreshed without adding paid infra.
 
 ### Acceptance Criteria
 
-- Cold `current-state` runtime materially improves vs 14 sequential downloads.
-- Response data matches prior semantics (same tickers, same fields, no NaNs for current
-  percentile unless the ticker truly lacks data).
-- Partial failures degrade gracefully (one bad ticker does not fail the whole
-  endpoint).
+- `current-state` and `current-state-enriched` respond quickly (static JSON read).
+- No `/api/swing-framework/all-tickers`-level computation occurs on these GETs.
+- `force_refresh=true` continues to bypass static snapshot and recompute (useful for
+  local dev).
+- GitHub Action can regenerate snapshots and commit to `main`.
 
 ### Suggested Files
 
 - `backend/swing_framework_api.py`
+- `scripts/` (snapshot generation script)
+- `.github/workflows/` (scheduled snapshot updater)
+- `backend/static_snapshots/` (committed JSON files)
 
 ### Testing
 
-1. Start backend locally.
-2. Time `current-state` before/after:
-   - `time curl -s http://localhost:8000/api/swing-framework/current-state >/dev/null`
-3. Smoke-check JSON shape didn’t change:
-   - `curl -s http://localhost:8000/api/swing-framework/current-state | python -m json.tool | head`
+1. Local backend smoke:
+   - Verify endpoints return quickly when snapshot files exist.
+   - Verify `force_refresh=true` still recomputes (may be slow).
+2. GitHub Actions:
+   - Run workflow manually once to generate initial snapshots.
+   - Confirm it commits updated JSON files and triggers a Render redeploy (if enabled).
 
 ---
 
 ## Backlog Note (Not This Task)
-- Add similar batching for 4H ingestion (harder due to resampling interval).
-- Decouple `current-state-enriched` so 4H can hydrate separately (perceived performance).
+- Add an auth-protected refresh endpoint so snapshots can be refreshed without git commits.
+- Add Upstash Redis to persist snapshots on free tier without redeploying.
 
 ## Recently Completed: LEAPS Options Scanner - Phase 1 ✅
 

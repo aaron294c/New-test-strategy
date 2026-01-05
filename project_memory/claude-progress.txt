@@ -199,6 +199,56 @@ Success Criteria:
 
 Estimated Effort: 2-3 hours
 
+=============================================================================
+CODING AGENT - PROGRESS UPDATE
+=============================================================================
+Date: 2026-01-05
+Focus: Performance — Static Swing Snapshots (free-tier friendly)
+
+What changed
+------------
+- Added support for serving precomputed static snapshot JSON files for Swing Framework:
+  - `GET /api/swing-framework/current-state`
+  - `GET /api/swing-framework/current-state-4h`
+  - `GET /api/swing-framework/current-state-enriched`
+  These endpoints now return committed JSON snapshots immediately when present, avoiding
+  cold-start compute on Render free tier.
+- Added a snapshot generation script and a scheduled GitHub Actions workflow to
+  regenerate + commit fresh snapshots periodically (every 6 hours) or on demand.
+
+Files edited/added
+------------------
+- backend/swing_framework_api.py
+- backend/static_snapshots/swing_framework/.gitkeep
+- scripts/compute_swing_snapshots.py
+- .github/workflows/update-swing-snapshots.yml
+- project_memory/todo/next_task.md
+- project_memory/feature_list.json
+
+Testing
+-------
+- Backend: `python -m py_compile backend/swing_framework_api.py scripts/compute_swing_snapshots.py`
+- Frontend: `cd frontend && npm run build` (passed; only build-size warnings)
+
+How to run init.sh
+------------------
+- `./init.sh` (sets up backend + frontend deps and runs basic smoke checks)
+
+Manual UI/API smoke test
+------------------------
+- Generate snapshots (requires network) then run backend:
+  - `python scripts/compute_swing_snapshots.py --pretty`
+  - `cd backend && uvicorn api:app --reload`
+  - Hit:
+    - `http://localhost:8000/api/swing-framework/current-state`
+    - `http://localhost:8000/api/swing-framework/current-state-enriched`
+  - Confirm requests return immediately and do not trigger multi-minute compute/log spam.
+
+Recommended next action
+-----------------------
+- Run the GitHub Action "Update Swing Snapshots" once (workflow_dispatch) to generate
+  the first real snapshot JSON files and trigger a Render redeploy with instant loads.
+
 NOTES FOR CODING AGENT
 =======================
 
