@@ -818,161 +818,147 @@ async def get_current_market_state(force_refresh: bool = False):
             _current_state_cache, _current_state_cache_timestamp, _current_state_cache_ttl_seconds
         ):
             return dict(_current_state_cache)
+        # NOTE: Keep the expensive work inside the lock to prevent a cache stampede
+        # (e.g., current-state and current-state-enriched arriving concurrently).
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
 
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
+        # Get cached cohort stats (fast - uses cache after first call)
+        print("Fetching cohort statistics...")
+        cohort_stats_cache = await get_cached_cohort_stats()
+        print("✓ Cohort stats ready")
 
-    # Get cached cohort stats (fast - uses cache after first call)
-    print("Fetching cohort statistics...")
-    cohort_stats_cache = await get_cached_cohort_stats()
-    print("✓ Cohort stats ready")
+        current_states = []
 
-    current_states = []
+        print("Fetching current percentiles...")
+        for ticker in tickers:
+            try:
+                ticker_cohort_data = cohort_stats_cache.get(ticker, {})
+                if not ticker_cohort_data:
+                    print(f"  No cohort data for {ticker}, skipping")
+                    continue
 
-    # Parallel processing: fetch current percentiles for all tickers
-    print("Fetching current percentiles...")
-    for ticker in tickers:
-        try:
-            # Get cached cohort data for this ticker
-            ticker_cohort_data = cohort_stats_cache.get(ticker, {})
-            if not ticker_cohort_data:
-                print(f"  No cohort data for {ticker}, skipping")
+                backtester = EnhancedPerformanceMatrixBacktester(
+                    tickers=[ticker],
+                    lookback_period=500,
+                    rsi_length=14,
+                    ma_length=14,
+                    max_horizon=21
+                )
+
+                # Only need enough bars to fill the 500-bar percentile window.
+                # "2y" is typically ~504 trading days and materially faster than "5y".
+                data = backtester.fetch_data(ticker, period="2y")
+                if data.empty or len(data) < backtester.lookback_period + 3:
+                    data = backtester.fetch_data(ticker, period="5y")
+                if data.empty:
+                    continue
+
+                indicator = backtester.calculate_rsi_ma_indicator(data)
+                percentile_ranks = backtester.calculate_percentile_ranks(indicator)
+
+                current_percentile = float(percentile_ranks.iloc[-1])
+                current_price = float(data['Close'].iloc[-1])
+                current_date = data.index[-1].strftime("%Y-%m-%d")
+
+                metadata = STOCK_METADATA.get(ticker)
+                if not metadata:
+                    continue
+
+                regime = "mean_reversion" if metadata.is_mean_reverter else "momentum"
+
+                in_extreme_low = current_percentile <= 5.0
+                in_low = 5.0 < current_percentile <= 15.0
+                in_entry_zone = in_extreme_low or in_low
+
+                if current_percentile <= 5.0:
+                    percentile_cohort = "extreme_low"
+                    zone_label = "≤5th percentile (Extreme Low)"
+                elif current_percentile <= 15.0:
+                    percentile_cohort = "low"
+                    zone_label = "5-15th percentile (Low)"
+                elif current_percentile <= 30.0:
+                    percentile_cohort = "medium_low"
+                    zone_label = "15-30th percentile (Medium Low)"
+                elif current_percentile <= 50.0:
+                    percentile_cohort = "medium"
+                    zone_label = "30-50th percentile (Medium)"
+                elif current_percentile <= 70.0:
+                    percentile_cohort = "medium_high"
+                    zone_label = "50-70th percentile (Medium High)"
+                elif current_percentile <= 85.0:
+                    percentile_cohort = "high"
+                    zone_label = "70-85th percentile (High)"
+                else:
+                    percentile_cohort = "extreme_high"
+                    zone_label = "85-100th percentile (Extreme High)"
+
+                cohort_performance = ticker_cohort_data.get(f'cohort_{percentile_cohort}')
+                if not cohort_performance:
+                    cohort_performance = ticker_cohort_data.get('cohort_all')
+
+                if cohort_performance:
+                    expected_win_rate = cohort_performance['win_rate']
+                    expected_return = cohort_performance['avg_return']
+                    expected_holding_days = cohort_performance['avg_holding_days']
+                    expected_return_per_day = expected_return / expected_holding_days if expected_holding_days > 0 else 0
+
+                    volatility_multiplier = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(metadata.volatility_level, 1.5)
+                    risk_adjusted_expectancy = expected_return / volatility_multiplier
+
+                    live_expectancy = {
+                        "expected_win_rate": expected_win_rate,
+                        "expected_return_pct": expected_return,
+                        "expected_holding_days": expected_holding_days,
+                        "expected_return_per_day_pct": expected_return_per_day,
+                        "risk_adjusted_expectancy_pct": risk_adjusted_expectancy,
+                        "sample_size": cohort_performance['count']
+                    }
+                else:
+                    live_expectancy = {
+                        "expected_win_rate": 0.0,
+                        "expected_return_pct": 0.0,
+                        "expected_holding_days": 0.0,
+                        "expected_return_per_day_pct": 0.0,
+                        "risk_adjusted_expectancy_pct": 0.0,
+                        "sample_size": 0
+                    }
+
+                current_states.append({
+                    "ticker": ticker,
+                    "name": metadata.name,
+                    "current_date": current_date,
+                    "current_price": current_price,
+                    "current_percentile": current_percentile,
+                    "percentile_cohort": percentile_cohort,
+                    "zone_label": zone_label,
+                    "in_entry_zone": in_entry_zone,
+                    "regime": regime,
+                    "is_mean_reverter": metadata.is_mean_reverter,
+                    "is_momentum": metadata.is_momentum,
+                    "volatility_level": metadata.volatility_level,
+                    "live_expectancy": live_expectancy  # Expected performance if entering NOW
+                })
+
+            except Exception as e:
+                print(f"  Error getting current state for {ticker}: {e}")
                 continue
 
-            metadata_dict = ticker_cohort_data.get('metadata', {})
+        current_states.sort(key=lambda x: x['current_percentile'])
+        print(f"✓ Current market state ready: {len(current_states)} tickers processed")
 
-            # Initialize backtester ONLY to get current percentile (fast)
-            backtester = EnhancedPerformanceMatrixBacktester(
-                tickers=[ticker],
-                lookback_period=500,
-                rsi_length=14,
-                ma_length=14,
-                max_horizon=21
-            )
-
-            # Fetch latest data (uses yfinance cache)
-            data = backtester.fetch_data(ticker)
-            if data.empty:
-                continue
-
-            # Calculate current RSI-MA indicator and percentile (fast operation)
-            indicator = backtester.calculate_rsi_ma_indicator(data)
-            percentile_ranks = backtester.calculate_percentile_ranks(indicator)
-
-            # Get MOST RECENT (current) percentile
-            current_percentile = float(percentile_ranks.iloc[-1])
-            current_price = float(data['Close'].iloc[-1])
-            current_date = data.index[-1].strftime("%Y-%m-%d")
-
-            # Get metadata for regime
-            metadata = STOCK_METADATA.get(ticker)
-            if not metadata:
-                continue
-
-            regime = "mean_reversion" if metadata.is_mean_reverter else "momentum"
-
-            # Determine entry zone and expected performance from historical data
-            in_extreme_low = current_percentile <= 5.0
-            in_low = 5.0 < current_percentile <= 15.0
-            in_entry_zone = in_extreme_low or in_low
-
-            # Determine percentile cohort for all ranges
-            if current_percentile <= 5.0:
-                percentile_cohort = "extreme_low"
-                zone_label = "≤5th percentile (Extreme Low)"
-            elif current_percentile <= 15.0:
-                percentile_cohort = "low"
-                zone_label = "5-15th percentile (Low)"
-            elif current_percentile <= 30.0:
-                percentile_cohort = "medium_low"
-                zone_label = "15-30th percentile (Medium Low)"
-            elif current_percentile <= 50.0:
-                percentile_cohort = "medium"
-                zone_label = "30-50th percentile (Medium)"
-            elif current_percentile <= 70.0:
-                percentile_cohort = "medium_high"
-                zone_label = "50-70th percentile (Medium High)"
-            elif current_percentile <= 85.0:
-                percentile_cohort = "high"
-                zone_label = "70-85th percentile (High)"
-            else:
-                percentile_cohort = "extreme_high"
-                zone_label = "85-100th percentile (Extreme High)"
-
-            # Get historical cohort performance from CACHE for ALL cohorts
-            cohort_performance = ticker_cohort_data.get(f'cohort_{percentile_cohort}')
-
-            # Fallback to 'cohort_all' if specific cohort has no data
-            if not cohort_performance:
-                cohort_performance = ticker_cohort_data.get('cohort_all')
-
-            # Calculate live risk-adjusted expectancy (ALWAYS show data, even if not in entry zone)
-            if cohort_performance:
-                expected_win_rate = cohort_performance['win_rate']
-                expected_return = cohort_performance['avg_return']
-                expected_holding_days = cohort_performance['avg_holding_days']
-                expected_return_per_day = expected_return / expected_holding_days if expected_holding_days > 0 else 0
-
-                # Simple risk-adjusted expectancy (return / volatility proxy)
-                volatility_multiplier = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(metadata.volatility_level, 1.5)
-                risk_adjusted_expectancy = expected_return / volatility_multiplier
-
-                live_expectancy = {
-                    "expected_win_rate": expected_win_rate,
-                    "expected_return_pct": expected_return,
-                    "expected_holding_days": expected_holding_days,
-                    "expected_return_per_day_pct": expected_return_per_day,
-                    "risk_adjusted_expectancy_pct": risk_adjusted_expectancy,
-                    "sample_size": cohort_performance['count']
-                }
-            else:
-                # No data for this cohort - return zeros
-                live_expectancy = {
-                    "expected_win_rate": 0.0,
-                    "expected_return_pct": 0.0,
-                    "expected_holding_days": 0.0,
-                    "expected_return_per_day_pct": 0.0,
-                    "risk_adjusted_expectancy_pct": 0.0,
-                    "sample_size": 0
-                }
-
-            current_states.append({
-                "ticker": ticker,
-                "name": metadata.name,
-                "current_date": current_date,
-                "current_price": current_price,
-                "current_percentile": current_percentile,
-                "percentile_cohort": percentile_cohort,
-                "zone_label": zone_label,
-                "in_entry_zone": in_entry_zone,
-                "regime": regime,
-                "is_mean_reverter": metadata.is_mean_reverter,
-                "is_momentum": metadata.is_momentum,
-                "volatility_level": metadata.volatility_level,
-                "live_expectancy": live_expectancy  # Expected performance if entering NOW
-            })
-
-        except Exception as e:
-            print(f"  Error getting current state for {ticker}: {e}")
-            continue
-
-    # Sort by current percentile (lowest first = best buy opportunities)
-    current_states.sort(key=lambda x: x['current_percentile'])
-
-    print(f"✓ Current market state ready: {len(current_states)} tickers processed")
-
-    response = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "market_state": current_states,
-        "summary": {
-            "total_tickers": len(current_states),
-            "in_entry_zone": sum(1 for s in current_states if s['in_entry_zone']),
-            "extreme_low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'extreme_low'),
-            "low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'low')
+        response = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "market_state": current_states,
+            "summary": {
+                "total_tickers": len(current_states),
+                "in_entry_zone": sum(1 for s in current_states if s['in_entry_zone']),
+                "extreme_low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'extreme_low'),
+                "low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'low')
+            }
         }
-    }
-    _current_state_cache = response
-    _current_state_cache_timestamp = datetime.now(timezone.utc)
-    return response
+        _current_state_cache = response
+        _current_state_cache_timestamp = datetime.now(timezone.utc)
+        return response
 
 
 @router.get("/current-state-4h")
@@ -993,137 +979,140 @@ async def get_current_market_state_4h(force_refresh: bool = False):
             _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
         ):
             return dict(_current_state_4h_cache)
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
+        current_states = []
 
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
-    current_states = []
+        print("Fetching 4H current percentiles...")
+        # Daily cohort cache as a final fallback if 4H data is unavailable
+        daily_cohort_cache = await get_cached_cohort_stats()
 
-    print("Fetching 4H current percentiles...")
-    # Daily cohort cache as a final fallback if 4H data is unavailable
-    daily_cohort_cache = await get_cached_cohort_stats()
-
-    for ticker in tickers:
-        try:
-            metadata = STOCK_METADATA.get(ticker)
-            if not metadata:
-                print(f"  No metadata for {ticker}, skipping")
-                continue
-
-            data_for_current = None
-            data_source = "4h"
-
-            backtester = EnhancedPerformanceMatrixBacktester(
-                tickers=[ticker],
-                lookback_period=252,  # 4H: use ~42 days of bars so percentile ranks fill
-                rsi_length=14,
-                ma_length=14,
-                max_horizon=21
-            )
-
+        for ticker in tickers:
             try:
-                data_for_current = fetch_4h_data(ticker, lookback_days=365)
-                if data_for_current.empty:
-                    raise ValueError("empty 4H data")
-            except Exception as e:
-                print(f"  4H data fetch failed for {ticker}: {e}. Falling back to daily data.")
-                data_source = "daily_fallback"
-                data_for_current = backtester.fetch_data(ticker)
-                if data_for_current.empty:
-                    print(f"  Fallback daily data also empty for {ticker}, skipping")
+                metadata = STOCK_METADATA.get(ticker)
+                if not metadata:
+                    print(f"  No metadata for {ticker}, skipping")
                     continue
 
-            indicator = calculate_rsi_ma_4h(data_for_current) if data_source == "4h" else backtester.calculate_rsi_ma_indicator(data_for_current)
-            percentile_ranks = backtester.calculate_percentile_ranks(indicator)
-            valid_percentiles = percentile_ranks.dropna()
+                data_for_current = None
+                data_source = "4h"
 
-            if valid_percentiles.empty:
-                print(f"  Insufficient {data_source} percentile data for {ticker}, skipping")
+                backtester = EnhancedPerformanceMatrixBacktester(
+                    tickers=[ticker],
+                    lookback_period=252,  # Keep existing behavior for current 4H percentile path
+                    rsi_length=14,
+                    ma_length=14,
+                    max_horizon=21
+                )
+
+                try:
+                    data_for_current = fetch_4h_data(ticker, lookback_days=365)
+                    if data_for_current.empty:
+                        raise ValueError("empty 4H data")
+                except Exception as e:
+                    print(f"  4H data fetch failed for {ticker}: {e}. Falling back to daily data.")
+                    data_source = "daily_fallback"
+                    data_for_current = backtester.fetch_data(ticker, period="2y")
+                    if data_for_current.empty or len(data_for_current) < backtester.lookback_period + 3:
+                        data_for_current = backtester.fetch_data(ticker, period="5y")
+                    if data_for_current.empty:
+                        print(f"  Fallback daily data also empty for {ticker}, skipping")
+                        continue
+
+                indicator = (
+                    calculate_rsi_ma_4h(data_for_current)
+                    if data_source == "4h"
+                    else backtester.calculate_rsi_ma_indicator(data_for_current)
+                )
+                percentile_ranks = backtester.calculate_percentile_ranks(indicator)
+                valid_percentiles = percentile_ranks.dropna()
+
+                if valid_percentiles.empty:
+                    print(f"  Insufficient {data_source} percentile data for {ticker}, skipping")
+                    continue
+
+                current_percentile = float(valid_percentiles.iloc[-1])
+                current_price = float(data_for_current['Close'].iloc[-1])
+                current_date = data_for_current.index[-1].strftime("%Y-%m-%d %H:%M")
+
+                percentile_cohort, zone_label = get_percentile_cohort(current_percentile)
+                in_entry_zone = percentile_cohort in ["extreme_low", "low"]
+                regime = "mean_reversion" if metadata.is_mean_reverter else "momentum"
+
+                cohort_stats = get_4h_cohort_stats_from_bins(ticker)
+                if not cohort_stats and data_source == "4h":
+                    cohort_stats = compute_4h_cohort_stats_from_data(backtester, data_for_current, percentile_ranks)
+                if not cohort_stats and data_source == "daily_fallback":
+                    cohort_stats = daily_cohort_cache.get(ticker, {})
+
+                cohort_performance = cohort_stats.get(f'cohort_{percentile_cohort}') if cohort_stats else None
+                if not cohort_performance and cohort_stats:
+                    cohort_performance = cohort_stats.get('cohort_all')
+
+                if cohort_performance:
+                    expected_win_rate = cohort_performance.get('win_rate', 0.0)
+                    expected_return = cohort_performance.get('avg_return', 0.0)
+                    expected_holding_days = cohort_performance.get('avg_holding_days', FOUR_H_DEFAULT_HOLDING_DAYS)
+                    expected_return_per_day = expected_return / expected_holding_days if expected_holding_days > 0 else 0
+
+                    volatility_multiplier = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(metadata.volatility_level, 1.5)
+                    risk_adjusted_expectancy = expected_return / volatility_multiplier
+
+                    live_expectancy = {
+                        "expected_win_rate": expected_win_rate,
+                        "expected_return_pct": expected_return,
+                        "expected_holding_days": expected_holding_days,
+                        "expected_return_per_day_pct": expected_return_per_day,
+                        "risk_adjusted_expectancy_pct": risk_adjusted_expectancy,
+                        "sample_size": cohort_performance.get('count', 0)
+                    }
+                else:
+                    live_expectancy = {
+                        "expected_win_rate": 0.0,
+                        "expected_return_pct": 0.0,
+                        "expected_holding_days": FOUR_H_DEFAULT_HOLDING_DAYS,
+                        "expected_return_per_day_pct": 0.0,
+                        "risk_adjusted_expectancy_pct": 0.0,
+                        "sample_size": 0
+                    }
+
+                current_states.append({
+                    "ticker": ticker,
+                    "name": metadata.name,
+                    "current_date": current_date,
+                    "current_price": current_price,
+                    "current_percentile": current_percentile,
+                    "percentile_cohort": percentile_cohort,
+                    "zone_label": zone_label,
+                    "in_entry_zone": in_entry_zone,
+                    "regime": regime,
+                    "is_mean_reverter": metadata.is_mean_reverter,
+                    "is_momentum": metadata.is_momentum,
+                    "volatility_level": metadata.volatility_level,
+                    "live_expectancy": live_expectancy,
+                    "data_source": data_source
+                })
+
+            except Exception as e:
+                print(f"  Error getting 4H state for {ticker}: {e}")
                 continue
 
-            current_percentile = float(valid_percentiles.iloc[-1])
-            current_price = float(data_for_current['Close'].iloc[-1])
-            current_date = data_for_current.index[-1].strftime("%Y-%m-%d %H:%M")
+        current_states.sort(key=lambda x: x['current_percentile'])
+        print(f"✓ 4H market state ready: {len(current_states)} tickers processed")
 
-            percentile_cohort, zone_label = get_percentile_cohort(current_percentile)
-            in_entry_zone = percentile_cohort in ["extreme_low", "low"]
-            regime = "mean_reversion" if metadata.is_mean_reverter else "momentum"
-
-            # Prefer pre-computed 4H bin stats; fall back to derived stats from raw data
-            cohort_stats = get_4h_cohort_stats_from_bins(ticker)
-            if not cohort_stats and data_source == "4h":
-                cohort_stats = compute_4h_cohort_stats_from_data(backtester, data_for_current, percentile_ranks)
-            if not cohort_stats and data_source == "daily_fallback":
-                # Use daily cohort cache so we still render data if 4H fetch failed
-                cohort_stats = daily_cohort_cache.get(ticker, {})
-
-            cohort_performance = cohort_stats.get(f'cohort_{percentile_cohort}') if cohort_stats else None
-            if not cohort_performance and cohort_stats:
-                cohort_performance = cohort_stats.get('cohort_all')
-
-            if cohort_performance:
-                expected_win_rate = cohort_performance.get('win_rate', 0.0)
-                expected_return = cohort_performance.get('avg_return', 0.0)
-                expected_holding_days = cohort_performance.get('avg_holding_days', FOUR_H_DEFAULT_HOLDING_DAYS)
-                expected_return_per_day = expected_return / expected_holding_days if expected_holding_days > 0 else 0
-
-                volatility_multiplier = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(metadata.volatility_level, 1.5)
-                risk_adjusted_expectancy = expected_return / volatility_multiplier
-
-                live_expectancy = {
-                    "expected_win_rate": expected_win_rate,
-                    "expected_return_pct": expected_return,
-                    "expected_holding_days": expected_holding_days,
-                    "expected_return_per_day_pct": expected_return_per_day,
-                    "risk_adjusted_expectancy_pct": risk_adjusted_expectancy,
-                    "sample_size": cohort_performance.get('count', 0)
-                }
-            else:
-                live_expectancy = {
-                    "expected_win_rate": 0.0,
-                    "expected_return_pct": 0.0,
-                    "expected_holding_days": FOUR_H_DEFAULT_HOLDING_DAYS,
-                    "expected_return_per_day_pct": 0.0,
-                    "risk_adjusted_expectancy_pct": 0.0,
-                    "sample_size": 0
-                }
-
-            current_states.append({
-                "ticker": ticker,
-                "name": metadata.name,
-                "current_date": current_date,
-                "current_price": current_price,
-                "current_percentile": current_percentile,
-                "percentile_cohort": percentile_cohort,
-                "zone_label": zone_label,
-                "in_entry_zone": in_entry_zone,
-                "regime": regime,
-                "is_mean_reverter": metadata.is_mean_reverter,
-                "is_momentum": metadata.is_momentum,
-                "volatility_level": metadata.volatility_level,
-                "live_expectancy": live_expectancy,
-                "data_source": data_source
-            })
-
-        except Exception as e:
-            print(f"  Error getting 4H state for {ticker}: {e}")
-            continue
-
-    current_states.sort(key=lambda x: x['current_percentile'])
-    print(f"✓ 4H market state ready: {len(current_states)} tickers processed")
-
-    response = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "timeframe": "4h",
-        "market_state": current_states,
-        "summary": {
-            "total_tickers": len(current_states),
-            "in_entry_zone": sum(1 for s in current_states if s['in_entry_zone']),
-            "extreme_low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'extreme_low'),
-            "low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'low')
+        response = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timeframe": "4h",
+            "market_state": current_states,
+            "summary": {
+                "total_tickers": len(current_states),
+                "in_entry_zone": sum(1 for s in current_states if s['in_entry_zone']),
+                "extreme_low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'extreme_low'),
+                "low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'low')
+            }
         }
-    }
-    _current_state_4h_cache = response
-    _current_state_4h_cache_timestamp = datetime.now(timezone.utc)
-    return response
+        _current_state_4h_cache = response
+        _current_state_4h_cache_timestamp = datetime.now(timezone.utc)
+        return response
 
 
 @router.get("/current-state-enriched")
@@ -1160,146 +1149,140 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
             _current_state_enriched_cache_ttl_seconds,
         ):
             return dict(_current_state_enriched_cache)
+        from multi_timeframe_analyzer import MultiTimeframeAnalyzer
+        from percentile_threshold_analyzer import PercentileThresholdAnalyzer
 
-    from multi_timeframe_analyzer import MultiTimeframeAnalyzer
-    from percentile_threshold_analyzer import PercentileThresholdAnalyzer
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
 
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
-    
-    # First get base market state and 4H market state (run concurrently)
-    base_response, four_h_response = await asyncio.gather(
-        get_current_market_state(force_refresh=force_refresh),
-        get_current_market_state_4h(force_refresh=force_refresh),
-    )
-    base_market_state = base_response['market_state']
-    four_h_market_state = four_h_response['market_state']
-    
-    # Create lookup maps
-    base_lookup = {s['ticker']: s for s in base_market_state}
-    four_h_lookup = {s['ticker']: s for s in four_h_market_state}
-    
-    enriched_states = []
-    
-    for ticker in tickers:
-        try:
-            daily_state = base_lookup.get(ticker)
-            four_h_state = four_h_lookup.get(ticker)
-            
-            if not daily_state or not four_h_state:
+        # First get base market state and 4H market state (run concurrently)
+        base_response, four_h_response = await asyncio.gather(
+            get_current_market_state(force_refresh=force_refresh),
+            get_current_market_state_4h(force_refresh=force_refresh),
+        )
+        base_market_state = base_response['market_state']
+        four_h_market_state = four_h_response['market_state']
+
+        # Create lookup maps
+        base_lookup = {s['ticker']: s for s in base_market_state}
+        four_h_lookup = {s['ticker']: s for s in four_h_market_state}
+
+        enriched_states = []
+
+        for ticker in tickers:
+            try:
+                daily_state = base_lookup.get(ticker)
+                four_h_state = four_h_lookup.get(ticker)
+
+                if not daily_state or not four_h_state:
+                    continue
+
+                # Calculate divergence
+                daily_pct = daily_state['current_percentile']
+                four_h_pct = four_h_state['current_percentile']
+                divergence_pct = daily_pct - four_h_pct
+
+                p85_threshold = {
+                    'AAPL': 24.3, 'MSFT': 22.1, 'NVDA': 31.5, 'GOOGL': 28.4,
+                    'TSLA': 35.2, 'NFLX': 26.8, 'AMZN': 29.7, 'BRK-B': 18.9,
+                    'AVGO': 25.6, 'SPY': 19.2, 'QQQ': 27.3, 'CNX1': 21.4,
+                    'VIX': 33.5, 'IGLS': 23.8
+                }.get(ticker, 25.0)  # Default to 25.0 if not found
+
+                p95_threshold = {
+                    'AAPL': 36.8, 'MSFT': 33.9, 'NVDA': 47.3, 'GOOGL': 36.8,
+                    'TSLA': 52.1, 'NFLX': 40.2, 'AMZN': 44.5, 'BRK-B': 28.1,
+                    'AVGO': 38.4, 'SPY': 28.6, 'QQQ': 40.9, 'CNX1': 32.1,
+                    'VIX': 49.2, 'IGLS': 35.6
+                }.get(ticker, 38.0)  # Default to 38.0 if not found
+
+                abs_divergence = abs(divergence_pct)
+
+                # Determine divergence category - SMART LOGIC using divergence magnitude
+                # Priority 1: Check for clean convergence (both low or both high)
+                if daily_pct <= 15 and four_h_pct <= 15:
+                    divergence_category = "bullish_convergence"
+                    category_label = "🟢 Bullish Convergence"
+                    category_description = "Both timeframes low - Strong buy signal"
+                elif daily_pct >= 85 and four_h_pct >= 85:
+                    divergence_category = "bearish_convergence"
+                    category_label = "🔴 Bearish Convergence"
+                    category_description = "Both timeframes high - Avoid/Exit signal"
+                # Priority 2: Determine based on divergence magnitude AND direction
+                elif divergence_pct > 0:  # Daily > 4H (4H is lower = more extended)
+                    if abs_divergence > p85_threshold:
+                        divergence_category = "4h_overextended"
+                        category_label = "🟡 4H Overextended"
+                        category_description = "4H extended relative to daily - Profit-take opportunity"
+                    else:
+                        divergence_category = "neutral_divergence"
+                        category_label = "⚪ Neutral Divergence"
+                        category_description = "Mixed signals - Wait for clarity"
+                elif divergence_pct < 0:  # Daily < 4H (Daily is lower = more extended)
+                    if abs_divergence > p85_threshold:
+                        divergence_category = "daily_overextended"
+                        category_label = "🟠 Daily Overextended"
+                        category_description = "Daily extended relative to 4H - Exit signal"
+                    else:
+                        divergence_category = "neutral_divergence"
+                        category_label = "⚪ Neutral Divergence"
+                        category_description = "Mixed signals - Wait for clarity"
+                else:  # divergence_pct == 0 (rare)
+                    divergence_category = "neutral_divergence"
+                    category_label = "⚪ Neutral Divergence"
+                    category_description = "Both timeframes aligned - No significant divergence"
+
+                # Determine dislocation level
+                if abs_divergence <= p85_threshold:
+                    dislocation_level = "Normal"
+                    dislocation_color = "⚪"
+                elif abs_divergence <= p95_threshold:
+                    dislocation_level = "Significant (P85)"
+                    dislocation_color = "🟡"
+                else:
+                    dislocation_level = "Extreme (P95)"
+                    dislocation_color = "🔴"
+
+                enriched_state = {
+                    **daily_state,  # Include all daily state fields
+                    'four_h_percentile': four_h_pct,
+                    'divergence_pct': divergence_pct,
+                    'abs_divergence_pct': abs_divergence,
+                    'divergence_category': divergence_category,
+                    'category_label': category_label,
+                    'category_description': category_description,
+                    'p85_threshold': p85_threshold,
+                    'p95_threshold': p95_threshold,
+                    'dislocation_level': dislocation_level,
+                    'dislocation_color': dislocation_color,
+                    'thresholds_text': f"P85: {p85_threshold:.1f}% | P95: {p95_threshold:.1f}%"
+                }
+
+                enriched_states.append(enriched_state)
+
+            except Exception as e:
+                print(f"  Error enriching {ticker}: {e}")
                 continue
-            
-            # Calculate divergence
-            daily_pct = daily_state['current_percentile']
-            four_h_pct = four_h_state['current_percentile']
-            divergence_pct = daily_pct - four_h_pct
-            
-            # Get P85 and P95 thresholds (historical divergence metrics)
-            # These represent significant dislocation (P85) and extreme dislocation (P95)
-            # For demo purposes, using estimated values based on historical data
-            p85_threshold = {
-                'AAPL': 24.3, 'MSFT': 22.1, 'NVDA': 31.5, 'GOOGL': 28.4,
-                'TSLA': 35.2, 'NFLX': 26.8, 'AMZN': 29.7, 'BRK-B': 18.9,
-                'AVGO': 25.6, 'SPY': 19.2, 'QQQ': 27.3, 'CNX1': 21.4,
-                'VIX': 33.5, 'IGLS': 23.8
-            }.get(ticker, 25.0)  # Default to 25.0 if not found
 
-            p95_threshold = {
-                'AAPL': 36.8, 'MSFT': 33.9, 'NVDA': 47.3, 'GOOGL': 36.8,
-                'TSLA': 52.1, 'NFLX': 40.2, 'AMZN': 44.5, 'BRK-B': 28.1,
-                'AVGO': 38.4, 'SPY': 28.6, 'QQQ': 40.9, 'CNX1': 32.1,
-                'VIX': 49.2, 'IGLS': 35.6
-            }.get(ticker, 38.0)  # Default to 38.0 if not found
-            
-            abs_divergence = abs(divergence_pct)
-            
-            # Determine divergence category - SMART LOGIC using divergence magnitude
-            # Priority 1: Check for clean convergence (both low or both high)
-            if daily_pct <= 15 and four_h_pct <= 15:
-                divergence_category = "bullish_convergence"
-                category_label = "🟢 Bullish Convergence"
-                category_description = "Both timeframes low - Strong buy signal"
-            elif daily_pct >= 85 and four_h_pct >= 85:
-                divergence_category = "bearish_convergence"
-                category_label = "🔴 Bearish Convergence"
-                category_description = "Both timeframes high - Avoid/Exit signal"
-            # Priority 2: Determine based on divergence magnitude AND direction
-            elif divergence_pct > 0:  # Daily > 4H (4H is lower = more extended)
-                if abs_divergence > p85_threshold:
-                    divergence_category = "4h_overextended"
-                    category_label = "🟡 4H Overextended"
-                    category_description = "4H extended relative to daily - Profit-take opportunity"
-                else:
-                    divergence_category = "neutral_divergence"
-                    category_label = "⚪ Neutral Divergence"
-                    category_description = "Mixed signals - Wait for clarity"
-            elif divergence_pct < 0:  # Daily < 4H (Daily is lower = more extended)
-                if abs_divergence > p85_threshold:
-                    divergence_category = "daily_overextended"
-                    category_label = "🟠 Daily Overextended"
-                    category_description = "Daily extended relative to 4H - Exit signal"
-                else:
-                    divergence_category = "neutral_divergence"
-                    category_label = "⚪ Neutral Divergence"
-                    category_description = "Mixed signals - Wait for clarity"
-            else:  # divergence_pct == 0 (rare)
-                divergence_category = "neutral_divergence"
-                category_label = "⚪ Neutral Divergence"
-                category_description = "Both timeframes aligned - No significant divergence"
-            
-            # Determine dislocation level
-            if abs_divergence <= p85_threshold:
-                dislocation_level = "Normal"
-                dislocation_color = "⚪"
-            elif abs_divergence <= p95_threshold:
-                dislocation_level = "Significant (P85)"
-                dislocation_color = "🟡"
-            else:
-                dislocation_level = "Extreme (P95)"
-                dislocation_color = "🔴"
-            
-            # Create enriched state
-            enriched_state = {
-                **daily_state,  # Include all daily state fields
-                'four_h_percentile': four_h_pct,
-                'divergence_pct': divergence_pct,
-                'abs_divergence_pct': abs_divergence,
-                'divergence_category': divergence_category,
-                'category_label': category_label,
-                'category_description': category_description,
-                'p85_threshold': p85_threshold,
-                'p95_threshold': p95_threshold,
-                'dislocation_level': dislocation_level,
-                'dislocation_color': dislocation_color,
-                'thresholds_text': f"P85: {p85_threshold:.1f}% | P95: {p95_threshold:.1f}%"
+        enriched_states.sort(key=lambda x: x['abs_divergence_pct'], reverse=True)
+
+        print(f"✓ Enriched market state ready: {len(enriched_states)} tickers processed")
+
+        response = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "market_state": enriched_states,
+            "summary": {
+                "total_tickers": len(enriched_states),
+                "bullish_convergence": sum(1 for s in enriched_states if s['divergence_category'] == 'bullish_convergence'),
+                "bearish_convergence": sum(1 for s in enriched_states if s['divergence_category'] == 'bearish_convergence'),
+                "4h_overextended": sum(1 for s in enriched_states if s['divergence_category'] == '4h_overextended'),
+                "daily_overextended": sum(1 for s in enriched_states if s['divergence_category'] == 'daily_overextended'),
+                "extreme_dislocation": sum(1 for s in enriched_states if s['dislocation_level'] == 'Extreme (P95)'),
+                "significant_dislocation": sum(1 for s in enriched_states if s['dislocation_level'] == 'Significant (P85)')
             }
-            
-            enriched_states.append(enriched_state)
-        
-        except Exception as e:
-            print(f"  Error enriching {ticker}: {e}")
-            continue
-    
-    # Sort by divergence magnitude (highest first - most interesting trades)
-    enriched_states.sort(key=lambda x: x['abs_divergence_pct'], reverse=True)
-    
-    print(f"✓ Enriched market state ready: {len(enriched_states)} tickers processed")
-    
-    response = {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "market_state": enriched_states,
-        "summary": {
-            "total_tickers": len(enriched_states),
-            "bullish_convergence": sum(1 for s in enriched_states if s['divergence_category'] == 'bullish_convergence'),
-            "bearish_convergence": sum(1 for s in enriched_states if s['divergence_category'] == 'bearish_convergence'),
-            "4h_overextended": sum(1 for s in enriched_states if s['divergence_category'] == '4h_overextended'),
-            "daily_overextended": sum(1 for s in enriched_states if s['divergence_category'] == 'daily_overextended'),
-            "extreme_dislocation": sum(1 for s in enriched_states if s['dislocation_level'] == 'Extreme (P95)'),
-            "significant_dislocation": sum(1 for s in enriched_states if s['dislocation_level'] == 'Significant (P85)')
         }
-    }
-    _current_state_enriched_cache = response
-    _current_state_enriched_cache_timestamp = datetime.now(timezone.utc)
-    return response
+        _current_state_enriched_cache = response
+        _current_state_enriched_cache_timestamp = datetime.now(timezone.utc)
+        return response
 
 
 @router.get("/{ticker}")
