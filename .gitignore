@@ -46,6 +46,7 @@ cache/
 !package*.json
 !tsconfig*.json
 !vite.config.ts
+!backend/static_snapshots/**/*.json
 
 # Logs
 logs/

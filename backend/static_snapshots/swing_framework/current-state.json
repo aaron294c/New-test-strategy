@@ -1,0 +1,319 @@
+{
+  "timestamp": "2026-01-05T13:35:51.284155+00:00",
+  "market_state": [
+    {
+      "ticker": "TSLA",
+      "name": "Tesla, Inc.",
+      "current_date": "2026-01-02",
+      "current_price": 438.07000732421875,
+      "current_percentile": 3.006012024048096,
+      "percentile_cohort": "extreme_low",
+      "zone_label": "\u22645th percentile (Extreme Low)",
+      "in_entry_zone": true,
+      "regime": "momentum",
+      "is_mean_reverter": false,
+      "is_momentum": true,
+      "volatility_level": "High",
+      "live_expectancy": {
+        "expected_win_rate": 0.41379310344827586,
+        "expected_return_pct": 2.8823740365291646,
+        "expected_holding_days": 7.586206896551724,
+        "expected_return_per_day_pct": 0.37994930481520806,
+        "risk_adjusted_expectancy_pct": 1.4411870182645823,
+        "sample_size": 29
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "name": "Microsoft",
+      "current_date": "2026-01-02",
+      "current_price": 472.94000244140625,
+      "current_percentile": 7.8156312625250495,
+      "percentile_cohort": "low",
+      "zone_label": "5-15th percentile (Low)",
+      "in_entry_zone": true,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "Medium",
+      "live_expectancy": {
+        "expected_win_rate": 0.5352112676056338,
+        "expected_return_pct": 0.35592177404271536,
+        "expected_holding_days": 7.126760563380282,
+        "expected_return_per_day_pct": 0.04994159280046006,
+        "risk_adjusted_expectancy_pct": 0.23728118269514356,
+        "sample_size": 71
+      }
+    },
+    {
+      "ticker": "AMZN",
+      "name": "Amazon.com Inc.",
+      "current_date": "2026-01-02",
+      "current_price": 226.5,
+      "current_percentile": 16.432865731462925,
+      "percentile_cohort": "medium_low",
+      "zone_label": "15-30th percentile (Medium Low)",
+      "in_entry_zone": false,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "Medium",
+      "live_expectancy": {
+        "expected_win_rate": 0.6574074074074074,
+        "expected_return_pct": 0.7744301309765043,
+        "expected_holding_days": 4.324074074074074,
+        "expected_return_per_day_pct": 0.17909733221726434,
+        "risk_adjusted_expectancy_pct": 0.5162867539843362,
+        "sample_size": 108
+      }
+    },
+    {
+      "ticker": "QQQ",
+      "name": "Nasdaq 100 ETF",
+      "current_date": "2026-01-02",
+      "current_price": 613.1199951171875,
+      "current_percentile": 19.438877755511022,
+      "percentile_cohort": "medium_low",
+      "zone_label": "15-30th percentile (Medium Low)",
+      "in_entry_zone": false,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": true,
+      "volatility_level": "Medium",
+      "live_expectancy": {
+        "expected_win_rate": 0.7549019607843137,
+        "expected_return_pct": 0.7051803476561347,
+        "expected_holding_days": 4.676470588235294,
+        "expected_return_per_day_pct": 0.1507932818887332,
+        "risk_adjusted_expectancy_pct": 0.47012023177075646,
+        "sample_size": 102
+      }
+    },
+    {
+      "ticker": "BRK-B",
+      "name": "Berkshire Hathaway Inc. Class B",
+      "current_date": "2026-01-02",
+      "current_price": 496.8500061035156,
+      "current_percentile": 23.847695390781563,
+      "percentile_cohort": "medium_low",
+      "zone_label": "15-30th percentile (Medium Low)",
+      "in_entry_zone": false,
+      "regime": "momentum",
+      "is_mean_reverter": false,
+      "is_momentum": true,
+      "volatility_level": "Low",
+      "live_expectancy": {
+        "expected_win_rate": 0.7589285714285714,
+        "expected_return_pct": 0.2928615631069693,
+        "expected_holding_days": 5.910714285714286,
+        "expected_return_per_day_pct": 0.04954757563139058,
+        "risk_adjusted_expectancy_pct": 0.2928615631069693,
+        "sample_size": 112
+      }
+    },
+    {
+      "ticker": "SPY",
+      "name": "S&P 500 ETF",
+      "current_date": "2026-01-02",
+      "current_price": 683.1699829101562,
+      "current_percentile": 24.04809619238477,
+      "percentile_cohort": "medium_low",
+      "zone_label": "15-30th percentile (Medium Low)",
+      "in_entry_zone": false,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "Low",
+      "live_expectancy": {
+        "expected_win_rate": 0.7456140350877193,
+        "expected_return_pct": 0.35310862606811266,
+        "expected_holding_days": 5.131578947368421,
+        "expected_return_per_day_pct": 0.06881091174660657,
+        "risk_adjusted_expectancy_pct": 0.35310862606811266,
+        "sample_size": 114
+      }
+    },
+    {
+      "ticker": "AAPL",
+      "name": "Apple",
+      "current_date": "2026-01-02",
+      "current_price": 271.010009765625,
+      "current_percentile": 24.04809619238477,
+      "percentile_cohort": "medium_low",
+      "zone_label": "15-30th percentile (Medium Low)",
+      "in_entry_zone": false,
+      "regime": "momentum",
+      "is_mean_reverter": false,
+      "is_momentum": true,
+      "volatility_level": "Medium-High",
+      "live_expectancy": {
+        "expected_win_rate": 0.6534653465346535,
+        "expected_return_pct": 0.5244077192805564,
+        "expected_holding_days": 4.524752475247524,
+        "expected_return_per_day_pct": 0.11589754846244245,
+        "risk_adjusted_expectancy_pct": 0.3496051461870376,
+        "sample_size": 101
+      }
+    },
+    {
+      "ticker": "NFLX",
+      "name": "Netflix Inc.",
+      "current_date": "2026-01-02",
+      "current_price": 90.98999786376953,
+      "current_percentile": 39.879759519038075,
+      "percentile_cohort": "medium",
+      "zone_label": "30-50th percentile (Medium)",
+      "in_entry_zone": false,
+      "regime": "momentum",
+      "is_mean_reverter": false,
+      "is_momentum": true,
+      "volatility_level": "High",
+      "live_expectancy": {
+        "expected_win_rate": 0.6170212765957447,
+        "expected_return_pct": -0.3731435893045842,
+        "expected_holding_days": 3.0354609929078014,
+        "expected_return_per_day_pct": -0.12292814507464106,
+        "risk_adjusted_expectancy_pct": -0.1865717946522921,
+        "sample_size": 141
+      }
+    },
+    {
+      "ticker": "GOOGL",
+      "name": "Google",
+      "current_date": "2026-01-02",
+      "current_price": 315.1499938964844,
+      "current_percentile": 42.88577154308617,
+      "percentile_cohort": "medium",
+      "zone_label": "30-50th percentile (Medium)",
+      "in_entry_zone": false,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "Medium",
+      "live_expectancy": {
+        "expected_win_rate": 0.7214285714285714,
+        "expected_return_pct": 0.5305770855414812,
+        "expected_holding_days": 3.1214285714285714,
+        "expected_return_per_day_pct": 0.16997892900642417,
+        "risk_adjusted_expectancy_pct": 0.35371805702765413,
+        "sample_size": 140
+      }
+    },
+    {
+      "ticker": "CNX1",
+      "name": "CNX1 (LSE)",
+      "current_date": "2026-01-05",
+      "current_price": 108240.0,
+      "current_percentile": 51.10220440881763,
+      "percentile_cohort": "medium_high",
+      "zone_label": "50-70th percentile (Medium High)",
+      "in_entry_zone": false,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "Medium",
+      "live_expectancy": {
+        "expected_win_rate": 0.7160493827160493,
+        "expected_return_pct": 0.10466068308866962,
+        "expected_holding_days": 2.5864197530864197,
+        "expected_return_per_day_pct": 0.04046546696984362,
+        "risk_adjusted_expectancy_pct": 0.06977378872577975,
+        "sample_size": 162
+      }
+    },
+    {
+      "ticker": "AVGO",
+      "name": "Broadcom Inc.",
+      "current_date": "2026-01-02",
+      "current_price": 347.6199951171875,
+      "current_percentile": 53.707414829659314,
+      "percentile_cohort": "medium_high",
+      "zone_label": "50-70th percentile (Medium High)",
+      "in_entry_zone": false,
+      "regime": "momentum",
+      "is_mean_reverter": false,
+      "is_momentum": true,
+      "volatility_level": "High",
+      "live_expectancy": {
+        "expected_win_rate": 0.6170212765957447,
+        "expected_return_pct": -0.002424251504194044,
+        "expected_holding_days": 2.25531914893617,
+        "expected_return_per_day_pct": -0.0010749039688407553,
+        "risk_adjusted_expectancy_pct": -0.001212125752097022,
+        "sample_size": 141
+      }
+    },
+    {
+      "ticker": "NVDA",
+      "name": "NVIDIA",
+      "current_date": "2026-01-02",
+      "current_price": 188.85000610351562,
+      "current_percentile": 68.7374749498998,
+      "percentile_cohort": "medium_high",
+      "zone_label": "50-70th percentile (Medium High)",
+      "in_entry_zone": false,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "High",
+      "live_expectancy": {
+        "expected_win_rate": 0.6643835616438356,
+        "expected_return_pct": 0.6186204697701257,
+        "expected_holding_days": 2.0205479452054793,
+        "expected_return_per_day_pct": 0.3061647070726724,
+        "risk_adjusted_expectancy_pct": 0.3093102348850629,
+        "sample_size": 146
+      }
+    },
+    {
+      "ticker": "IGLS",
+      "name": "IGLS (London)",
+      "current_date": "2026-01-05",
+      "current_price": 128.89999389648438,
+      "current_percentile": 68.93787575150301,
+      "percentile_cohort": "medium_high",
+      "zone_label": "50-70th percentile (Medium High)",
+      "in_entry_zone": false,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "Medium",
+      "live_expectancy": {
+        "expected_win_rate": 0.6862745098039216,
+        "expected_return_pct": 0.03769824179800286,
+        "expected_holding_days": 4.137254901960785,
+        "expected_return_per_day_pct": 0.009111897306626282,
+        "risk_adjusted_expectancy_pct": 0.02513216119866857,
+        "sample_size": 153
+      }
+    },
+    {
+      "ticker": "VIX",
+      "name": "CBOE Volatility Index",
+      "current_date": "2026-01-05",
+      "current_price": 15.220000267028809,
+      "current_percentile": 82.76553106212425,
+      "percentile_cohort": "high",
+      "zone_label": "70-85th percentile (High)",
+      "in_entry_zone": false,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "High",
+      "live_expectancy": {
+        "expected_win_rate": 0.4396551724137931,
+        "expected_return_pct": 0.8141469599104554,
+        "expected_holding_days": 1.4137931034482758,
+        "expected_return_per_day_pct": 0.5758600448147123,
+        "risk_adjusted_expectancy_pct": 0.4070734799552277,
+        "sample_size": 116
+      }
+    }
+  ],
+  "summary": {
+    "total_tickers": 14,
+    "in_entry_zone": 2,
+    "extreme_low_opportunities": 1,
+    "low_opportunities": 1
+  }
+}
