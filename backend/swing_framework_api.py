@@ -88,8 +88,12 @@ def fetch_daily_batch(tickers: List[str], period: str = "2y") -> Dict[str, pd.Da
         frame = pd.DataFrame()
         if multi:
             try:
-                if yahoo_symbol in data.columns.get_level_values(0):
+                level0 = data.columns.get_level_values(0)
+                level1 = data.columns.get_level_values(1)
+                if yahoo_symbol in level0:
                     frame = data[yahoo_symbol].copy()
+                elif yahoo_symbol in level1:
+                    frame = data.xs(yahoo_symbol, level=1, axis=1).copy()
             except Exception:
                 frame = pd.DataFrame()
         else:
@@ -106,6 +110,27 @@ def fetch_daily_batch(tickers: List[str], period: str = "2y") -> Dict[str, pd.Da
         results[display_ticker] = frame
 
     return results
+
+
+def compute_latest_percentile(indicator: pd.Series, lookback_period: int) -> float | None:
+    """
+    Compute only the *latest* rolling percentile rank for the indicator.
+
+    This matches EnhancedPerformanceMatrixBacktester.calculate_percentile_ranks() for
+    the final timestamp, but avoids computing the full rolling series.
+    """
+    if indicator is None:
+        return None
+    series = indicator.dropna()
+    if len(series) < lookback_period:
+        return None
+
+    window = series.iloc[-lookback_period:]
+    if len(window) < 2:
+        return None
+    current_value = window.iloc[-1]
+    below_count = (window.iloc[:-1] < current_value).sum()
+    return float((below_count / (len(window) - 1)) * 100)
 
 
 def convert_bins_to_dict(bin_data: Dict) -> Dict:
@@ -917,9 +942,9 @@ async def get_current_market_state(force_refresh: bool = False):
                     continue
 
                 indicator = backtester.calculate_rsi_ma_indicator(data)
-                percentile_ranks = backtester.calculate_percentile_ranks(indicator)
-
-                current_percentile = float(percentile_ranks.iloc[-1])
+                current_percentile = compute_latest_percentile(indicator, backtester.lookback_period)
+                if current_percentile is None:
+                    continue
                 current_price = float(data['Close'].iloc[-1])
                 current_date = data.index[-1].strftime("%Y-%m-%d")
 
@@ -1056,7 +1081,7 @@ async def get_current_market_state_4h(force_refresh: bool = False):
                     print(f"  No metadata for {ticker}, skipping")
                     continue
 
-                data_for_current = None
+                data_for_current: pd.DataFrame
                 data_source = "4h"
 
                 backtester = EnhancedPerformanceMatrixBacktester(
@@ -1064,7 +1089,7 @@ async def get_current_market_state_4h(force_refresh: bool = False):
                     lookback_period=252,  # Keep existing behavior for current 4H percentile path
                     rsi_length=14,
                     ma_length=14,
-                    max_horizon=21
+                    max_horizon=21,
                 )
 
                 try:
@@ -1094,7 +1119,8 @@ async def get_current_market_state_4h(force_refresh: bool = False):
                     continue
 
                 current_percentile = float(valid_percentiles.iloc[-1])
-                current_price = float(data_for_current['Close'].iloc[-1])
+
+                current_price = float(data_for_current["Close"].iloc[-1])
                 current_date = data_for_current.index[-1].strftime("%Y-%m-%d %H:%M")
 
                 percentile_cohort, zone_label = get_percentile_cohort(current_percentile)
@@ -1103,21 +1129,29 @@ async def get_current_market_state_4h(force_refresh: bool = False):
 
                 cohort_stats = get_4h_cohort_stats_from_bins(ticker)
                 if not cohort_stats and data_source == "4h":
-                    cohort_stats = compute_4h_cohort_stats_from_data(backtester, data_for_current, percentile_ranks)
+                    cohort_stats = compute_4h_cohort_stats_from_data(
+                        backtester, data_for_current, percentile_ranks
+                    )
                 if not cohort_stats and data_source == "daily_fallback":
                     cohort_stats = daily_cohort_cache.get(ticker, {})
 
-                cohort_performance = cohort_stats.get(f'cohort_{percentile_cohort}') if cohort_stats else None
+                cohort_performance = cohort_stats.get(f"cohort_{percentile_cohort}") if cohort_stats else None
                 if not cohort_performance and cohort_stats:
-                    cohort_performance = cohort_stats.get('cohort_all')
+                    cohort_performance = cohort_stats.get("cohort_all")
 
                 if cohort_performance:
-                    expected_win_rate = cohort_performance.get('win_rate', 0.0)
-                    expected_return = cohort_performance.get('avg_return', 0.0)
-                    expected_holding_days = cohort_performance.get('avg_holding_days', FOUR_H_DEFAULT_HOLDING_DAYS)
-                    expected_return_per_day = expected_return / expected_holding_days if expected_holding_days > 0 else 0
+                    expected_win_rate = cohort_performance.get("win_rate", 0.0)
+                    expected_return = cohort_performance.get("avg_return", 0.0)
+                    expected_holding_days = cohort_performance.get(
+                        "avg_holding_days", FOUR_H_DEFAULT_HOLDING_DAYS
+                    )
+                    expected_return_per_day = (
+                        expected_return / expected_holding_days if expected_holding_days > 0 else 0
+                    )
 
-                    volatility_multiplier = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(metadata.volatility_level, 1.5)
+                    volatility_multiplier = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(
+                        metadata.volatility_level, 1.5
+                    )
                     risk_adjusted_expectancy = expected_return / volatility_multiplier
 
                     live_expectancy = {
@@ -1126,7 +1160,7 @@ async def get_current_market_state_4h(force_refresh: bool = False):
                         "expected_holding_days": expected_holding_days,
                         "expected_return_per_day_pct": expected_return_per_day,
                         "risk_adjusted_expectancy_pct": risk_adjusted_expectancy,
-                        "sample_size": cohort_performance.get('count', 0)
+                        "sample_size": cohort_performance.get("count", 0),
                     }
                 else:
                     live_expectancy = {
@@ -1135,25 +1169,27 @@ async def get_current_market_state_4h(force_refresh: bool = False):
                         "expected_holding_days": FOUR_H_DEFAULT_HOLDING_DAYS,
                         "expected_return_per_day_pct": 0.0,
                         "risk_adjusted_expectancy_pct": 0.0,
-                        "sample_size": 0
+                        "sample_size": 0,
                     }
 
-                current_states.append({
-                    "ticker": ticker,
-                    "name": metadata.name,
-                    "current_date": current_date,
-                    "current_price": current_price,
-                    "current_percentile": current_percentile,
-                    "percentile_cohort": percentile_cohort,
-                    "zone_label": zone_label,
-                    "in_entry_zone": in_entry_zone,
-                    "regime": regime,
-                    "is_mean_reverter": metadata.is_mean_reverter,
-                    "is_momentum": metadata.is_momentum,
-                    "volatility_level": metadata.volatility_level,
-                    "live_expectancy": live_expectancy,
-                    "data_source": data_source
-                })
+                current_states.append(
+                    {
+                        "ticker": ticker,
+                        "name": metadata.name,
+                        "current_date": current_date,
+                        "current_price": current_price,
+                        "current_percentile": current_percentile,
+                        "percentile_cohort": percentile_cohort,
+                        "zone_label": zone_label,
+                        "in_entry_zone": in_entry_zone,
+                        "regime": regime,
+                        "is_mean_reverter": metadata.is_mean_reverter,
+                        "is_momentum": metadata.is_momentum,
+                        "volatility_level": metadata.volatility_level,
+                        "live_expectancy": live_expectancy,
+                        "data_source": data_source,
+                    }
+                )
 
             except Exception as e:
                 print(f"  Error getting 4H state for {ticker}: {e}")
