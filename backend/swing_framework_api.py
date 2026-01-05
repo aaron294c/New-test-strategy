@@ -24,7 +24,19 @@ from stock_statistics import (
     AAPL_4H_DATA, AAPL_DAILY_DATA,
     TSLA_4H_DATA, TSLA_DAILY_DATA,
     NFLX_4H_DATA, NFLX_DAILY_DATA,
-    AVGO_4H_DATA, AVGO_DAILY_DATA
+    AVGO_4H_DATA, AVGO_DAILY_DATA,
+    XOM_4H_DATA, XOM_DAILY_DATA,
+    CVX_4H_DATA, CVX_DAILY_DATA,
+    JPM_4H_DATA, JPM_DAILY_DATA,
+    BAC_4H_DATA, BAC_DAILY_DATA,
+    LLY_4H_DATA, LLY_DAILY_DATA,
+    UNH_4H_DATA, UNH_DAILY_DATA,
+    OXY_4H_DATA, OXY_DAILY_DATA,
+    TSM_4H_DATA, TSM_DAILY_DATA,
+    WMT_4H_DATA, WMT_DAILY_DATA,
+    GLD_4H_DATA, GLD_DAILY_DATA,
+    SLV_4H_DATA, SLV_DAILY_DATA,
+    COST_4H_DATA, COST_DAILY_DATA
 )
 from percentile_forward_4h import fetch_4h_data, calculate_rsi_ma_4h
 from ticker_utils import resolve_yahoo_symbol
@@ -577,7 +589,7 @@ async def get_swing_framework_data():
     """
 
     # Include both stocks and market indices
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV"]
     results = {}
 
     bin_data_map = {
@@ -588,6 +600,18 @@ async def get_swing_framework_data():
         "TSLA": (TSLA_4H_DATA, TSLA_DAILY_DATA),
         "NFLX": (NFLX_4H_DATA, NFLX_DAILY_DATA),
         "AVGO": (AVGO_4H_DATA, AVGO_DAILY_DATA),
+        "XOM": (XOM_4H_DATA, XOM_DAILY_DATA),
+        "CVX": (CVX_4H_DATA, CVX_DAILY_DATA),
+        "JPM": (JPM_4H_DATA, JPM_DAILY_DATA),
+        "BAC": (BAC_4H_DATA, BAC_DAILY_DATA),
+        "LLY": (LLY_4H_DATA, LLY_DAILY_DATA),
+        "UNH": (UNH_4H_DATA, UNH_DAILY_DATA),
+        "OXY": (OXY_4H_DATA, OXY_DAILY_DATA),
+        "TSM": (TSM_4H_DATA, TSM_DAILY_DATA),
+        "WMT": (WMT_4H_DATA, WMT_DAILY_DATA),
+        "COST": (COST_4H_DATA, COST_DAILY_DATA),
+        "GLD": (GLD_4H_DATA, GLD_DAILY_DATA),
+        "SLV": (SLV_4H_DATA, SLV_DAILY_DATA),
         # Indices and stocks without pre-computed bin data - will use real-time calculation
         "SPY": (None, None),
         "QQQ": (None, None),
@@ -956,7 +980,7 @@ async def get_current_market_state(force_refresh: bool = False):
             return dict(_current_state_cache)
         # NOTE: Keep the expensive work inside the lock to prevent a cache stampede
         # (e.g., current-state and current-state-enriched arriving concurrently).
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV"]
 
         # Get cached cohort stats (fast when loaded from snapshot or in-memory cache).
         #
@@ -1142,7 +1166,7 @@ async def get_current_market_state_4h(force_refresh: bool = False):
             _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
         ):
             return dict(_current_state_4h_cache)
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV"]
         current_states = []
 
         print("Fetching 4H current percentiles...")
@@ -1336,7 +1360,7 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
         from multi_timeframe_analyzer import MultiTimeframeAnalyzer
         from percentile_threshold_analyzer import PercentileThresholdAnalyzer
 
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV"]
 
         # First get base market state and 4H market state (run concurrently)
         base_response, four_h_response = await asyncio.gather(

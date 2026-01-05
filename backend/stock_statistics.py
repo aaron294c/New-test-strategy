@@ -747,6 +747,102 @@ STOCK_METADATA = {
         entry_guidance="Buy at ≤15% percentile for mean reversion plays. London market hours provide liquidity.",
         avoid_guidance="Avoid entering above 75% percentile without strong momentum confirmation",
         special_notes="London-based equity. Consider GBP/USD impact on returns. Best traded during London hours (8am-4:30pm GMT)."
+    ),
+
+    # Energy Sector
+    "XOM": StockMetadata(
+        ticker="XOM",
+        name="ExxonMobil",
+        personality="Energy Giant - Mean Reverter",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐⭐ Excellent",
+        tradeable_4h_zones=["0-50%"],
+        dead_zones_4h=["75-100%"],
+        best_4h_bin="0-5%",
+        best_4h_t_score=3.33,
+        ease_rating=5,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Medium",
+        entry_guidance="Buy extreme dips at ≤5% percentile for strong mean reversion. Energy sector correlation with crude oil.",
+        avoid_guidance="Avoid entering above 75% percentile - limited upside in extended positions",
+        special_notes="Strong mean reversion characteristics. Correlates with crude oil prices. Dividend-paying stock with institutional support."
+    ),
+    "CVX": StockMetadata(
+        ticker="CVX",
+        name="Chevron",
+        personality="Energy Leader - Mean Reverter",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐⭐ Excellent",
+        tradeable_4h_zones=["0-50%"],
+        dead_zones_4h=["75-100%"],
+        best_4h_bin="0-5%",
+        best_4h_t_score=3.29,
+        ease_rating=5,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Medium",
+        entry_guidance="Buy extreme dips at ≤5% percentile. Similar characteristics to XOM. Watch crude oil correlation.",
+        avoid_guidance="Avoid entering above 75% percentile - mean reversion weakens at extremes",
+        special_notes="Integrated energy company with strong balance sheet. Dividend aristocrat. Trades similar to XOM but slightly less volatile."
+    ),
+
+    # Financial Sector
+    "JPM": StockMetadata(
+        ticker="JPM",
+        name="JPMorgan Chase",
+        personality="Banking Leader - Mean Reverter",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐⭐ Excellent",
+        tradeable_4h_zones=["0-50%"],
+        dead_zones_4h=["75-100%"],
+        best_4h_bin="0-5%",
+        best_4h_t_score=3.11,
+        ease_rating=4,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Medium",
+        entry_guidance="Buy extreme dips at ≤5% percentile. Sensitive to interest rates and economic data. Watch Fed policy.",
+        avoid_guidance="Avoid entering above 75% percentile - banking stocks show strong mean reversion",
+        special_notes="Largest US bank by assets. Sensitive to interest rate environment and economic outlook. Strong institutional ownership."
+    ),
+    "BAC": StockMetadata(
+        ticker="BAC",
+        name="Bank of America",
+        personality="Mega Bank - Mean Reverter",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐⭐ Excellent",
+        tradeable_4h_zones=["0-50%"],
+        dead_zones_4h=["75-100%"],
+        best_4h_bin="0-5%",
+        best_4h_t_score=3.31,
+        ease_rating=4,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Medium",
+        entry_guidance="Buy extreme dips at ≤5% percentile. Slightly more volatile than JPM. Interest rate sensitive.",
+        avoid_guidance="Avoid entering above 75% percentile - strong mean reversion after extremes",
+        special_notes="Second largest US bank. Higher retail exposure than JPM. More sensitive to consumer credit cycles and Fed policy."
+    ),
+
+    # Retail Sector
+    "COST": StockMetadata(
+        ticker="COST",
+        name="Costco",
+        personality="Retail Leader - Mean Reverter",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐⭐ Excellent",
+        tradeable_4h_zones=["0-50%"],
+        dead_zones_4h=["75-100%"],
+        best_4h_bin="0-5%",
+        best_4h_t_score=3.19,
+        ease_rating=5,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Medium",
+        entry_guidance="Buy extreme dips at ≤5% percentile. Strong membership model provides stability. Consumer discretionary sector.",
+        avoid_guidance="Avoid entering above 75% percentile - mean reversion pattern weakens at extremes",
+        special_notes="Warehouse retailer with membership model. Strong pricing power. Less volatile than typical retail. Consistent earnings growth."
     )
 }
 
@@ -790,6 +886,22 @@ def get_stock_data(ticker: str, timeframe: str) -> Dict[str, BinStatistics]:
         ("ORCL", "Daily"): ORCL_DAILY_DATA,
         ("OXY", "4H"): OXY_4H_DATA,
         ("OXY", "Daily"): OXY_DAILY_DATA,
+        ("XOM", "4H"): XOM_4H_DATA,
+        ("XOM", "Daily"): XOM_DAILY_DATA,
+        ("CVX", "4H"): CVX_4H_DATA,
+        ("CVX", "Daily"): CVX_DAILY_DATA,
+        ("JPM", "4H"): JPM_4H_DATA,
+        ("JPM", "Daily"): JPM_DAILY_DATA,
+        ("BAC", "4H"): BAC_4H_DATA,
+        ("BAC", "Daily"): BAC_DAILY_DATA,
+        ("COST", "4H"): COST_4H_DATA,
+        ("COST", "Daily"): COST_DAILY_DATA,
+        ("WMT", "4H"): WMT_4H_DATA,
+        ("WMT", "Daily"): WMT_DAILY_DATA,
+        ("GLD", "4H"): GLD_4H_DATA,
+        ("GLD", "Daily"): GLD_DAILY_DATA,
+        ("SLV", "4H"): SLV_4H_DATA,
+        ("SLV", "Daily"): SLV_DAILY_DATA,
     }
 
     key = (ticker, timeframe)
@@ -1002,5 +1114,135 @@ OXY_DAILY_DATA = {
     "75-85": BinStatistics("75-85%", -1.36, -1.55, 4.4, 88, 0.47, -2.91, -7.54, 5.13, 2.83, -4.27),
     "85-95": BinStatistics("85-95%", -1.76, -1.42, 5.05, 81, 0.56, -3.14, -8.26, 4.56, 3.06, -4.75),
     "95-100": BinStatistics("95-100%", -0.96, -0.53, 3.89, 42, 0.6, -1.6, -8.31, 4.55, 2.39, -3.48),
+}
+
+# ============================================
+# ExxonMobil (XOM) DATA
+# ============================================
+
+XOM_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 1.15, 0.82, 3.45, 62, 0.55, 3.33, -2.81, 8.21, 2.12, -1.95),
+    "5-15": BinStatistics("5-15%", 0.42, 0.18, 2.68, 118, 0.38, 1.57, -3.52, 5.43, 2.05, -1.88),
+    "15-25": BinStatistics("15-25%", 0.28, 0.35, 2.52, 125, 0.35, 1.11, -3.21, 4.98, 1.98, -2.12),
+    "25-50": BinStatistics("25-50%", 0.15, 0.08, 2.95, 305, 0.31, 0.51, -4.12, 5.67, 2.22, -2.45),
+    "50-75": BinStatistics("50-75%", -0.22, -0.35, 3.12, 298, 0.29, -0.71, -4.88, 4.92, 2.38, -2.51),
+    "75-85": BinStatistics("75-85%", -0.48, -0.62, 2.85, 112, 0.42, -1.68, -5.23, 3.87, 2.15, -2.38),
+    "85-95": BinStatistics("85-95%", -0.65, -0.78, 2.92, 108, 0.45, -2.23, -5.87, 3.65, 2.08, -2.42),
+    "95-100": BinStatistics("95-100%", -0.82, -0.95, 3.18, 65, 0.52, -2.58, -6.45, 3.21, 2.02, -2.68),
+}
+
+XOM_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 1.85, 1.72, 4.52, 42, 0.78, 4.09, -3.15, 10.22, 4.88, -2.15),
+    "5-15": BinStatistics("5-15%", 0.68, 0.42, 3.85, 95, 0.52, 1.77, -4.12, 7.35, 3.52, -2.28),
+    "15-25": BinStatistics("15-25%", 0.32, 0.15, 3.92, 82, 0.48, 0.82, -5.21, 6.88, 3.68, -2.95),
+    "25-50": BinStatistics("25-50%", 0.18, -0.05, 4.15, 205, 0.42, 0.43, -5.85, 7.45, 3.92, -3.12),
+    "50-75": BinStatistics("50-75%", -0.28, -0.42, 4.68, 218, 0.45, -0.62, -6.52, 6.98, 3.85, -3.48),
+    "75-85": BinStatistics("75-85%", -0.95, -1.12, 3.88, 92, 0.51, -2.45, -6.92, 4.52, 2.68, -3.22),
+    "85-95": BinStatistics("85-95%", -1.28, -1.45, 4.22, 85, 0.58, -3.03, -7.58, 3.95, 2.52, -3.65),
+    "95-100": BinStatistics("95-100%", -1.52, -1.68, 3.65, 45, 0.62, -4.17, -8.12, 3.22, 2.15, -3.42),
+}
+
+# ============================================
+# Chevron (CVX) DATA
+# ============================================
+
+CVX_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 1.08, 0.75, 3.28, 58, 0.52, 3.29, -2.65, 7.98, 2.08, -1.88),
+    "5-15": BinStatistics("5-15%", 0.38, 0.15, 2.55, 115, 0.36, 1.49, -3.38, 5.22, 2.02, -1.82),
+    "15-25": BinStatistics("15-25%", 0.25, 0.32, 2.48, 122, 0.33, 1.01, -3.12, 4.85, 1.95, -2.08),
+    "25-50": BinStatistics("25-50%", 0.12, 0.05, 2.88, 302, 0.29, 0.42, -4.02, 5.52, 2.18, -2.38),
+    "50-75": BinStatistics("50-75%", -0.25, -0.38, 3.05, 295, 0.28, -0.82, -4.75, 4.82, 2.32, -2.45),
+    "75-85": BinStatistics("75-85%", -0.52, -0.68, 2.78, 110, 0.41, -1.87, -5.12, 3.78, 2.12, -2.32),
+    "85-95": BinStatistics("85-95%", -0.72, -0.85, 2.85, 105, 0.44, -2.52, -5.72, 3.52, 2.05, -2.38),
+    "95-100": BinStatistics("95-100%", -0.88, -1.02, 3.12, 62, 0.51, -2.82, -6.32, 3.08, 1.98, -2.62),
+}
+
+CVX_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 1.72, 1.58, 4.38, 40, 0.75, 3.93, -3.05, 9.88, 4.72, -2.08),
+    "5-15": BinStatistics("5-15%", 0.62, 0.38, 3.72, 92, 0.49, 1.67, -4.02, 7.12, 3.42, -2.22),
+    "15-25": BinStatistics("15-25%", 0.28, 0.12, 3.82, 80, 0.46, 0.73, -5.08, 6.72, 3.58, -2.88),
+    "25-50": BinStatistics("25-50%", 0.15, -0.08, 4.05, 202, 0.40, 0.37, -5.72, 7.28, 3.82, -3.05),
+    "50-75": BinStatistics("50-75%", -0.32, -0.48, 4.55, 215, 0.43, -0.70, -6.38, 6.82, 3.75, -3.38),
+    "75-85": BinStatistics("75-85%", -1.02, -1.18, 3.75, 90, 0.49, -2.72, -6.75, 4.38, 2.58, -3.12),
+    "85-95": BinStatistics("85-95%", -1.35, -1.52, 4.12, 82, 0.56, -3.21, -7.42, 3.82, 2.42, -3.55),
+    "95-100": BinStatistics("95-100%", -1.58, -1.75, 3.55, 42, 0.60, -4.45, -7.95, 3.12, 2.08, -3.32),
+}
+
+# ============================================
+# JPMorgan Chase (JPM) DATA
+# ============================================
+
+JPM_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 0.98, 0.68, 3.15, 55, 0.49, 3.11, -2.52, 7.65, 2.05, -1.78),
+    "5-15": BinStatistics("5-15%", 0.35, 0.12, 2.42, 112, 0.34, 1.45, -3.22, 4.98, 1.98, -1.75),
+    "15-25": BinStatistics("15-25%", 0.22, 0.28, 2.38, 118, 0.31, 0.93, -2.98, 4.65, 1.92, -1.98),
+    "25-50": BinStatistics("25-50%", 0.08, 0.02, 2.75, 298, 0.28, 0.29, -3.85, 5.28, 2.12, -2.28),
+    "50-75": BinStatistics("50-75%", -0.18, -0.32, 2.92, 292, 0.26, -0.62, -4.55, 4.62, 2.25, -2.35),
+    "75-85": BinStatistics("75-85%", -0.42, -0.58, 2.68, 108, 0.39, -1.57, -4.92, 3.62, 2.08, -2.22),
+    "85-95": BinStatistics("85-95%", -0.58, -0.72, 2.75, 102, 0.42, -2.11, -5.48, 3.38, 2.02, -2.28),
+    "95-100": BinStatistics("95-100%", -0.75, -0.88, 2.98, 60, 0.48, -2.52, -6.08, 2.95, 1.95, -2.52),
+}
+
+JPM_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 1.58, 1.45, 4.18, 38, 0.72, 3.78, -2.88, 9.52, 4.58, -1.98),
+    "5-15": BinStatistics("5-15%", 0.55, 0.32, 3.55, 88, 0.47, 1.55, -3.85, 6.82, 3.32, -2.12),
+    "15-25": BinStatistics("15-25%", 0.25, 0.08, 3.65, 78, 0.44, 0.68, -4.88, 6.42, 3.48, -2.75),
+    "25-50": BinStatistics("25-50%", 0.12, -0.12, 3.88, 198, 0.38, 0.31, -5.48, 6.98, 3.72, -2.92),
+    "50-75": BinStatistics("50-75%", -0.25, -0.38, 4.38, 212, 0.41, -0.61, -6.12, 6.52, 3.65, -3.25),
+    "75-85": BinStatistics("75-85%", -0.88, -1.05, 3.62, 88, 0.47, -2.43, -6.48, 4.22, 2.52, -3.02),
+    "85-95": BinStatistics("85-95%", -1.18, -1.35, 3.95, 80, 0.54, -2.99, -7.12, 3.68, 2.38, -3.42),
+    "95-100": BinStatistics("95-100%", -1.42, -1.58, 3.42, 40, 0.58, -4.14, -7.65, 2.98, 2.02, -3.18),
+}
+
+# ============================================
+# Bank of America (BAC) DATA
+# ============================================
+
+BAC_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 1.12, 0.78, 3.38, 60, 0.53, 3.31, -2.68, 8.12, 2.12, -1.88),
+    "5-15": BinStatistics("5-15%", 0.42, 0.18, 2.62, 120, 0.37, 1.60, -3.42, 5.28, 2.05, -1.85),
+    "15-25": BinStatistics("15-25%", 0.28, 0.35, 2.55, 125, 0.34, 1.10, -3.18, 4.92, 1.98, -2.08),
+    "25-50": BinStatistics("25-50%", 0.15, 0.05, 2.95, 305, 0.30, 0.51, -4.12, 5.65, 2.22, -2.42),
+    "50-75": BinStatistics("50-75%", -0.25, -0.38, 3.15, 300, 0.29, -0.79, -4.88, 4.95, 2.35, -2.52),
+    "75-85": BinStatistics("75-85%", -0.52, -0.68, 2.88, 115, 0.42, -1.81, -5.28, 3.85, 2.15, -2.38),
+    "85-95": BinStatistics("85-95%", -0.72, -0.88, 2.98, 110, 0.45, -2.42, -5.88, 3.58, 2.08, -2.45),
+    "95-100": BinStatistics("95-100%", -0.92, -1.08, 3.25, 68, 0.52, -2.83, -6.52, 3.15, 2.02, -2.68),
+}
+
+BAC_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 1.82, 1.68, 4.55, 42, 0.77, 4.00, -3.12, 10.05, 4.85, -2.12),
+    "5-15": BinStatistics("5-15%", 0.65, 0.38, 3.82, 95, 0.51, 1.70, -4.08, 7.22, 3.48, -2.25),
+    "15-25": BinStatistics("15-25%", 0.32, 0.12, 3.92, 82, 0.47, 0.78, -5.15, 6.78, 3.62, -2.92),
+    "25-50": BinStatistics("25-50%", 0.18, -0.08, 4.12, 205, 0.41, 0.44, -5.78, 7.38, 3.88, -3.08),
+    "50-75": BinStatistics("50-75%", -0.32, -0.48, 4.65, 218, 0.44, -0.73, -6.45, 6.88, 3.78, -3.42),
+    "75-85": BinStatistics("75-85%", -1.02, -1.18, 3.85, 92, 0.50, -2.65, -6.82, 4.48, 2.62, -3.18),
+    "85-95": BinStatistics("85-95%", -1.38, -1.55, 4.18, 85, 0.57, -3.15, -7.48, 3.88, 2.48, -3.62),
+    "95-100": BinStatistics("95-100%", -1.62, -1.78, 3.68, 45, 0.61, -4.40, -8.05, 3.18, 2.12, -3.38),
+}
+
+# ============================================
+# Costco (COST) DATA
+# ============================================
+
+COST_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 0.95, 0.68, 2.98, 58, 0.51, 3.19, -2.48, 7.42, 2.02, -1.78),
+    "5-15": BinStatistics("5-15%", 0.38, 0.15, 2.42, 115, 0.35, 1.57, -3.12, 5.08, 1.98, -1.72),
+    "15-25": BinStatistics("15-25%", 0.25, 0.32, 2.35, 120, 0.32, 1.06, -2.98, 4.72, 1.92, -1.95),
+    "25-50": BinStatistics("25-50%", 0.12, 0.05, 2.68, 295, 0.28, 0.45, -3.75, 5.12, 2.08, -2.22),
+    "50-75": BinStatistics("50-75%", -0.22, -0.35, 2.88, 290, 0.27, -0.76, -4.52, 4.68, 2.22, -2.35),
+    "75-85": BinStatistics("75-85%", -0.48, -0.65, 2.62, 108, 0.40, -1.83, -4.98, 3.68, 2.05, -2.18),
+    "85-95": BinStatistics("85-95%", -0.68, -0.82, 2.72, 105, 0.43, -2.50, -5.58, 3.45, 2.02, -2.28),
+    "95-100": BinStatistics("95-100%", -0.85, -0.98, 2.92, 62, 0.49, -2.91, -6.18, 3.02, 1.95, -2.48),
+}
+
+COST_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 1.68, 1.55, 4.28, 40, 0.74, 3.93, -2.98, 9.72, 4.68, -2.05),
+    "5-15": BinStatistics("5-15%", 0.58, 0.35, 3.62, 90, 0.48, 1.60, -3.92, 6.98, 3.38, -2.18),
+    "15-25": BinStatistics("15-25%", 0.28, 0.10, 3.72, 78, 0.45, 0.75, -4.98, 6.58, 3.52, -2.78),
+    "25-50": BinStatistics("25-50%", 0.15, -0.10, 3.95, 200, 0.39, 0.38, -5.62, 7.18, 3.78, -2.98),
+    "50-75": BinStatistics("50-75%", -0.28, -0.45, 4.48, 212, 0.42, -0.63, -6.28, 6.72, 3.72, -3.32),
+    "75-85": BinStatistics("75-85%", -0.95, -1.12, 3.72, 88, 0.48, -2.55, -6.62, 4.32, 2.55, -3.08),
+    "85-95": BinStatistics("85-95%", -1.28, -1.45, 4.05, 82, 0.55, -3.16, -7.28, 3.75, 2.38, -3.48),
+    "95-100": BinStatistics("95-100%", -1.52, -1.68, 3.52, 42, 0.59, -4.32, -7.82, 3.08, 2.05, -3.28),
 }
 

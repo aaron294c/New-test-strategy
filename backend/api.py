@@ -180,7 +180,7 @@ CACHE_DIR = os.getenv("CACHE_DIR", str(default_cache_dir))
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # Default tickers
-DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY", "GLD", "SLV", "BRK-B", "AVGO"]
+DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "GOOGL", "AMZN", "META", "QQQ", "SPY", "GLD", "SLV", "BRK-B", "AVGO", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST"]
 
 # ============================================================================
 # Multi-timeframe response caching (performance)
