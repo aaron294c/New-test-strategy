@@ -5,6 +5,7 @@ Provides comprehensive data for all tickers including REAL historical trades
 from backtesting, not simulated/fake data.
 """
 
+import asyncio
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
@@ -30,6 +31,27 @@ router = APIRouter(prefix="/api/swing-framework", tags=["swing-framework"])
 _cohort_stats_cache: Dict = {}
 _cache_timestamp: datetime | None = None
 _cache_ttl_seconds = 3600  # 1 hour TTL
+
+_current_state_cache: Dict | None = None
+_current_state_cache_timestamp: datetime | None = None
+_current_state_cache_ttl_seconds = 60  # 1 minute TTL
+_current_state_lock = asyncio.Lock()
+
+_current_state_4h_cache: Dict | None = None
+_current_state_4h_cache_timestamp: datetime | None = None
+_current_state_4h_cache_ttl_seconds = 60  # 1 minute TTL
+_current_state_4h_lock = asyncio.Lock()
+
+_current_state_enriched_cache: Dict | None = None
+_current_state_enriched_cache_timestamp: datetime | None = None
+_current_state_enriched_cache_ttl_seconds = 60  # 1 minute TTL
+_current_state_enriched_lock = asyncio.Lock()
+
+
+def _is_cache_valid(cache: Dict | None, cache_timestamp: datetime | None, ttl_seconds: int) -> bool:
+    if cache is None or cache_timestamp is None:
+        return False
+    return (datetime.now(timezone.utc) - cache_timestamp).total_seconds() < ttl_seconds
 
 
 def convert_bins_to_dict(bin_data: Dict) -> Dict:
@@ -776,7 +798,7 @@ async def get_current_indices_state():
 
 
 @router.get("/current-state")
-async def get_current_market_state():
+async def get_current_market_state(force_refresh: bool = False):
     """
     Get CURRENT RSI-MA percentile and live risk-adjusted expectancy for all tickers (stocks + indices)
     Shows real-time buy opportunities based on current market state
@@ -785,6 +807,18 @@ async def get_current_market_state():
 
     OPTIMIZED: Uses cached cohort statistics, only fetches current percentiles
     """
+    global _current_state_cache, _current_state_cache_timestamp
+    if not force_refresh and _is_cache_valid(
+        _current_state_cache, _current_state_cache_timestamp, _current_state_cache_ttl_seconds
+    ):
+        return dict(_current_state_cache)
+
+    async with _current_state_lock:
+        if not force_refresh and _is_cache_valid(
+            _current_state_cache, _current_state_cache_timestamp, _current_state_cache_ttl_seconds
+        ):
+            return dict(_current_state_cache)
+
     tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
 
     # Get cached cohort stats (fast - uses cache after first call)
@@ -926,7 +960,7 @@ async def get_current_market_state():
 
     print(f"✓ Current market state ready: {len(current_states)} tickers processed")
 
-    return {
+    response = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "market_state": current_states,
         "summary": {
@@ -936,15 +970,30 @@ async def get_current_market_state():
             "low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'low')
         }
     }
+    _current_state_cache = response
+    _current_state_cache_timestamp = datetime.now(timezone.utc)
+    return response
 
 
 @router.get("/current-state-4h")
-async def get_current_market_state_4h():
+async def get_current_market_state_4h(force_refresh: bool = False):
     """
     Get CURRENT RSI-MA percentile and live expectancy for the 4-hour timeframe.
     Uses pre-computed 4H bin statistics when available and falls back to on-the-fly
     cohort calculations from 4H price data.
     """
+    global _current_state_4h_cache, _current_state_4h_cache_timestamp
+    if not force_refresh and _is_cache_valid(
+        _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
+    ):
+        return dict(_current_state_4h_cache)
+
+    async with _current_state_4h_lock:
+        if not force_refresh and _is_cache_valid(
+            _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
+        ):
+            return dict(_current_state_4h_cache)
+
     tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
     current_states = []
 
@@ -1061,7 +1110,7 @@ async def get_current_market_state_4h():
     current_states.sort(key=lambda x: x['current_percentile'])
     print(f"✓ 4H market state ready: {len(current_states)} tickers processed")
 
-    return {
+    response = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "timeframe": "4h",
         "market_state": current_states,
@@ -1072,10 +1121,13 @@ async def get_current_market_state_4h():
             "low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'low')
         }
     }
+    _current_state_4h_cache = response
+    _current_state_4h_cache_timestamp = datetime.now(timezone.utc)
+    return response
 
 
 @router.get("/current-state-enriched")
-async def get_current_market_state_enriched():
+async def get_current_market_state_enriched(force_refresh: bool = False):
     """
     Get CURRENT RSI-MA percentile WITH MULTI-TIMEFRAME DIVERGENCE AND P85/P95 THRESHOLDS
     
@@ -1093,17 +1145,33 @@ async def get_current_market_state_enriched():
     
     Returns enriched market state with divergence metrics for quick visualization
     """
+    global _current_state_enriched_cache, _current_state_enriched_cache_timestamp
+    if not force_refresh and _is_cache_valid(
+        _current_state_enriched_cache,
+        _current_state_enriched_cache_timestamp,
+        _current_state_enriched_cache_ttl_seconds,
+    ):
+        return dict(_current_state_enriched_cache)
+
+    async with _current_state_enriched_lock:
+        if not force_refresh and _is_cache_valid(
+            _current_state_enriched_cache,
+            _current_state_enriched_cache_timestamp,
+            _current_state_enriched_cache_ttl_seconds,
+        ):
+            return dict(_current_state_enriched_cache)
+
     from multi_timeframe_analyzer import MultiTimeframeAnalyzer
     from percentile_threshold_analyzer import PercentileThresholdAnalyzer
 
     tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS"]
     
-    # First get base market state
-    base_response = await get_current_market_state()
+    # First get base market state and 4H market state (run concurrently)
+    base_response, four_h_response = await asyncio.gather(
+        get_current_market_state(force_refresh=force_refresh),
+        get_current_market_state_4h(force_refresh=force_refresh),
+    )
     base_market_state = base_response['market_state']
-    
-    # Also get 4H market state for divergence calculation
-    four_h_response = await get_current_market_state_4h()
     four_h_market_state = four_h_response['market_state']
     
     # Create lookup maps
@@ -1216,7 +1284,7 @@ async def get_current_market_state_enriched():
     
     print(f"✓ Enriched market state ready: {len(enriched_states)} tickers processed")
     
-    return {
+    response = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "market_state": enriched_states,
         "summary": {
@@ -1229,6 +1297,9 @@ async def get_current_market_state_enriched():
             "significant_dislocation": sum(1 for s in enriched_states if s['dislocation_level'] == 'Significant (P85)')
         }
     }
+    _current_state_enriched_cache = response
+    _current_state_enriched_cache_timestamp = datetime.now(timezone.utc)
+    return response
 
 
 @router.get("/{ticker}")

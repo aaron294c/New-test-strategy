@@ -1,35 +1,56 @@
 # Next Task for Coding Agent
 
-## Selected Next Task: Swing Framework — Duration Tab Summary Table
+## Selected Next Task: Performance — TTL Cache for Swing “Current State” Endpoints
 
-**Why**: The Swing Framework already has rich “Live Market State” + “Divergence” tables, but the **Duration Analysis** view is currently single-ticker-first. Add a lightweight **multi-ticker summary table** so the Duration tab feels like the other Swing Framework panels (scan → click → drill in).
+Why: The worst latency comes from backend compute + repeated multi-ticker market data
+fetches. The most duplicated work is current-state being computed once directly and
+again inside current-state-enriched (which also computes 4H). A short TTL cache (e.g.,
+60s) makes repeat calls and “double fetch on initial load” dramatically faster without
+changing strategy logic.
 
 ### Goal (Single Feature)
-In `SwingDurationPanelV2`, add an optional **All Tickers Summary** table that lists every configured ticker with a few key duration metrics at the selected resolution (Daily vs Intraday/4H). Clicking a row should set the active ticker and keep the existing detailed panel behaviour unchanged.
+
+Add a small in-memory TTL cache for:
+
+- GET `/api/swing-framework/current-state`
+- GET `/api/swing-framework/current-state-4h`
+
+and ensure GET `/api/swing-framework/current-state-enriched` reuses the cached results
+rather than recomputing (via direct function calls).
 
 ### Scope / Guardrails
-- **Frontend-only** (reuse existing `GET /api/swing-duration/{ticker}` with its `timeframe` param).
-- **No strategy/logic changes**: purely UI aggregation + caching for convenience.
-- Keep changes localized to **one component** unless a small shared helper is clearly necessary.
+
+- Backend-only change in `backend/swing_framework_api.py`.
+- No strategy/logic changes: output values/structure stay the same; only reuse results
+  briefly.
+- Add `force_refresh: bool = False` query param (default False) to bypass cache when
+  needed.
+- TTL target: 60 seconds (tunable, keep small to preserve “live” feel).
+- Avoid cache stampede: use a lightweight lock so concurrent requests don’t all
+  recompute.
 
 ### Acceptance Criteria
-- Summary table can be loaded on demand (button) and shows progress without freezing the UI.
-- Summary respects the existing `Resolution` selector (`daily` vs `intraday`) and caches results per resolution.
-- Table supports sorting by at least: ticker, sample size, median time-to-profit (winners @ 5%), median escape (winners @ 5%), escape rate.
-- Clicking a row updates the selected ticker and reveals the existing detailed breakdown for that ticker.
-- Existing single-ticker flow still works if the user never uses the summary table.
+
+- First request may still be slow (does real work), but a second request within TTL
+  returns fast.
+- When frontend requests both current-state and current-state-enriched in quick
+  succession, the backend does not recompute daily state twice.
+- `force_refresh=true` forces a recompute regardless of TTL.
+- No changes required in frontend; existing requests keep working.
 
 ### Suggested Files
-- `frontend/src/components/TradingFramework/SwingDurationPanelV2.tsx`
+
+- `backend/swing_framework_api.py`
 
 ### Testing
-1. Frontend build: `cd frontend && npm run build`
-2. Frontend tests (if present): `cd frontend && npm test`
-3. Manual smoke test:
-   - Start backend + frontend
-   - Go to `Swing Framework` → `Duration Analysis`
-   - Switch `Resolution` between Daily and Intraday (4H bars)
-   - Load the summary table, click a few tickers, confirm detail panel updates and no console errors
+
+1. Start backend locally.
+2. Time the endpoints twice (second call should be much faster):
+   - `time curl -s http://localhost:8000/api/swing-framework/current-state >/dev/null`
+   - `time curl -s http://localhost:8000/api/swing-framework/current-state >/dev/null`
+   - Repeat for `current-state-4h` and `current-state-enriched`.
+3. Verify bypass works:
+   - `time curl -s "http://localhost:8000/api/swing-framework/current-state?force_refresh=true" >/dev/null`
 
 ## Recently Completed: LEAPS Options Scanner - Phase 1 ✅
 

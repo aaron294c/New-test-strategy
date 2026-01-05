@@ -533,3 +533,22 @@ Manual QA (recommended):
 - Start backend + frontend, go to Swing Framework → Duration Analysis, switch Resolution, click Load Summary, click rows to confirm the detail panel updates and no console errors.
 Next Actions:
 - Fix Jest setup (either add frontend/src/setupTests.ts or update Jest config) so npm test runs, then do the manual smoke test above to confirm UX end-to-end.
+
+Date: 2026-01-05
+Agent: Coding Agent
+Activity: Performance — TTL Cache for Swing “Current State” Endpoints
+Changes:
+- Added in-memory TTL caches (60s) + stampede-prevention locks for:
+  - GET /api/swing-framework/current-state
+  - GET /api/swing-framework/current-state-4h
+  - GET /api/swing-framework/current-state-enriched (also cached)
+- Added force_refresh query param (default false) to bypass caches.
+- Updated current-state-enriched to reuse cached daily/4H state and compute them concurrently (asyncio.gather) to avoid duplicate work.
+Files Edited:
+- backend/swing_framework_api.py
+Testing:
+- Local function-level timing with monkeypatched market-data fetchers (no network) verified:
+  - 2nd call within TTL returns ~0s vs first call seconds.
+  - force_refresh=true recomputes and changes timestamp.
+Recommended Next Action:
+- Validate in a real runtime with: time curl -s http://localhost:8000/api/swing-framework/current-state >/dev/null (twice) and confirm the 2nd call is fast within TTL.
