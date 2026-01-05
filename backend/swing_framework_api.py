@@ -934,12 +934,16 @@ async def get_current_market_state(force_refresh: bool = False):
 
     OPTIMIZED: Uses cached cohort statistics, only fetches current percentiles
     """
-    if not force_refresh:
+    global _current_state_cache, _current_state_cache_timestamp
+
+    # Static snapshots are a fast cold-start path, but once this process has produced
+    # a live baseline (e.g. via `force_refresh=true`), we should not "snap back" to an
+    # older repo snapshot on subsequent refreshes.
+    if not force_refresh and _current_state_cache is None:
         static_payload = _load_static_snapshot("current-state.json")
         if static_payload is not None:
             return static_payload
 
-    global _current_state_cache, _current_state_cache_timestamp
     if not force_refresh and _is_cache_valid(
         _current_state_cache, _current_state_cache_timestamp, _current_state_cache_ttl_seconds
     ):
@@ -1121,12 +1125,13 @@ async def get_current_market_state_4h(force_refresh: bool = False):
     Uses pre-computed 4H bin statistics when available and falls back to on-the-fly
     cohort calculations from 4H price data.
     """
-    if not force_refresh:
+    global _current_state_4h_cache, _current_state_4h_cache_timestamp
+
+    if not force_refresh and _current_state_4h_cache is None:
         static_payload = _load_static_snapshot("current-state-4h.json")
         if static_payload is not None:
             return static_payload
 
-    global _current_state_4h_cache, _current_state_4h_cache_timestamp
     if not force_refresh and _is_cache_valid(
         _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
     ):
@@ -1307,12 +1312,13 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
     
     Returns enriched market state with divergence metrics for quick visualization
     """
-    if not force_refresh:
+    global _current_state_enriched_cache, _current_state_enriched_cache_timestamp
+
+    if not force_refresh and _current_state_enriched_cache is None:
         static_payload = _load_static_snapshot("current-state-enriched.json")
         if static_payload is not None:
             return static_payload
 
-    global _current_state_enriched_cache, _current_state_enriched_cache_timestamp
     if not force_refresh and _is_cache_valid(
         _current_state_enriched_cache,
         _current_state_enriched_cache_timestamp,
