@@ -8,7 +8,9 @@ on:
         required: false
         default: "false"
   schedule:
-    - cron: "41 */12 * * *" # every 12 hours
+    # US Market hours (EST/EDT timezone)
+    - cron: "45 14 * * 1-5" # 9:45 AM ET - After Market Open
+    - cron: "15 21 * * 1-5" # 4:15 PM ET - After Market Close
 
 permissions:
   contents: write
