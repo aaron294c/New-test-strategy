@@ -43,5 +43,10 @@ jobs:
 
           git add backend/static_snapshots/swing_framework
           git commit -m "chore: update swing snapshots"
+
+          # Pull latest changes with rebase to avoid merge commits
+          git pull --rebase origin main
+
+          # Push changes
           git push
 
