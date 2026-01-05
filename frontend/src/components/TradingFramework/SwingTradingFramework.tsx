@@ -13,9 +13,10 @@
  * Exit: 50%+ percentile (strategy stops working)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
+  Button,
   Container,
   Grid,
   Paper,
@@ -224,26 +225,24 @@ interface AllocationDecision {
 }
 
 const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
-  const [loading, setLoading] = useState(true);
+  const [frameworkLoaded, setFrameworkLoaded] = useState(false);
+  const [frameworkLoading, setFrameworkLoading] = useState(false);
+  const [frameworkError, setFrameworkError] = useState<string | null>(null);
   const [stocksMetadata, setStocksMetadata] = useState<Map<string, StockMetadata>>(new Map());
   const [binStatistics4H, setBinStatistics4H] = useState<Map<string, BinStatistic[]>>(new Map());
   const [binStatisticsDaily, setBinStatisticsDaily] = useState<Map<string, BinStatistic[]>>(new Map());
   const [riskMetrics, setRiskMetrics] = useState<RiskMetrics[]>([]);
   const [allocations, setAllocations] = useState<AllocationDecision[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState<'daily' | '4hour'>('daily');
   const [viewMode, setViewMode] = useState<'framework' | 'duration'>('framework');
 
   const TICKERS = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'TSLA', 'NFLX', 'AMZN', 'BRK-B', 'AVGO', 'CNX1', 'VIX', 'IGLS'];
 
-  useEffect(() => {
-    fetchAllData();
-  }, []);
-
   const fetchAllData = async () => {
-    setLoading(true);
-    setError(null);
+    if (frameworkLoading) return;
+    setFrameworkLoading(true);
+    setFrameworkError(null);
 
     try {
       console.log('🔄 Fetching REAL data from /api/swing-framework/all-tickers...');
@@ -310,12 +309,13 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
       }
 
       console.log('✅ Framework loaded with REAL data');
+      setFrameworkLoaded(true);
 
     } catch (err: any) {
       console.error('❌ Error fetching real data:', err);
-      setError(err.message || 'Failed to fetch framework data. Make sure backend is running!');
+      setFrameworkError(err.message || 'Failed to fetch framework data. Make sure backend is running!');
     } finally {
-      setLoading(false);
+      setFrameworkLoading(false);
     }
   };
 
@@ -711,41 +711,6 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
   const selectedMetrics = selectedTicker ? riskMetrics.find(m => m.ticker === selectedTicker) : null;
   const selectedMeta = selectedTicker ? stocksMetadata.get(selectedTicker) : null;
 
-  if (loading) {
-    return (
-      <Container maxWidth="xl" sx={{ mt: 4, textAlign: 'center' }}>
-        <CircularProgress size={60} />
-        <Typography sx={{ mt: 2 }}>
-          Analyzing {TICKERS.length} stocks for mean reversion opportunities in low percentile zones...
-        </Typography>
-      </Container>
-    );
-  }
-
-  if (error) {
-    return (
-      <Container maxWidth="xl" sx={{ mt: 4 }}>
-        <Alert severity="error">
-          <Typography variant="h6">Error Loading Framework Data</Typography>
-          <Typography>{error}</Typography>
-          <Typography variant="body2" sx={{ mt: 1 }}>
-            Make sure the backend is running: <code>cd backend && python api.py</code>
-          </Typography>
-        </Alert>
-      </Container>
-    );
-  }
-
-  if (riskMetrics.length === 0) {
-    return (
-      <Container maxWidth="xl" sx={{ mt: 4 }}>
-        <Alert severity="warning">
-          No stocks with valid data found. Make sure backend has data for: {TICKERS.join(', ')}
-        </Alert>
-      </Container>
-    );
-  }
-
   if (viewMode === 'duration') {
     return (
       <Container maxWidth="xl" sx={{ mt: 2 }}>
@@ -822,20 +787,76 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
         </Typography>
       </Alert>
 
-      <Grid container spacing={3}>
-        {/* Strategic Allocation */}
-        <Grid item xs={12}>
-          <Paper elevation={4} sx={{ p: 3, bgcolor: 'primary.dark' }}>
-            <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <AccountBalance /> Strategic Capital Allocation ($100k Portfolio)
+      {!frameworkLoaded && (
+        <Card elevation={2} sx={{ mb: 3 }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <AccountBalance /> Historical Trades & Allocations (Optional)
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Top {allocations.length} stocks with positive expectancy in low percentile entry zones
+              Loading historical trades for all tickers is slow (can take 1–3 minutes). The scan panels above still work without it.
             </Typography>
 
-            {allocations.length === 0 ? (
-              <Alert severity="warning">
-                No stocks currently meet strategy criteria (positive expectancy in 0-15% percentile zones)
+            {frameworkError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                <Typography variant="body2">{frameworkError}</Typography>
+                <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                  Ensure backend is running: <code>cd backend && python api.py</code>
+                </Typography>
+              </Alert>
+            )}
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Button variant="contained" onClick={fetchAllData} disabled={frameworkLoading}>
+                Load historical trades (slow)
+              </Button>
+              {frameworkLoading && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={18} />
+                  <Typography variant="body2" color="text.secondary">
+                    Loading…
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {frameworkLoading && <LinearProgress sx={{ mt: 2 }} />}
+          </CardContent>
+        </Card>
+      )}
+
+      {frameworkLoaded && (
+      <Grid container spacing={3}>
+	        {/* Strategic Allocation */}
+	        <Grid item xs={12}>
+	          <Paper elevation={4} sx={{ p: 3, bgcolor: 'primary.dark' }}>
+	            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, flexWrap: 'wrap' }}>
+	              <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+	                <AccountBalance /> Strategic Capital Allocation ($100k Portfolio)
+	              </Typography>
+	              <Button
+	                size="small"
+	                variant="outlined"
+	                color="inherit"
+	                onClick={fetchAllData}
+	                disabled={frameworkLoading}
+	              >
+	                Refresh historical trades
+	              </Button>
+	            </Box>
+	            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+	              Top {allocations.length} stocks with positive expectancy in low percentile entry zones
+	            </Typography>
+	            {frameworkLoading && <LinearProgress sx={{ mb: 2 }} />}
+	            {frameworkError && (
+	              <Alert severity="error" sx={{ mb: 2 }}>
+	                {frameworkError}
+	              </Alert>
+	            )}
+	
+	            {allocations.length === 0 ? (
+	              <Alert severity="warning">
+	                No stocks currently meet strategy criteria (positive expectancy in 0-15% percentile zones)
               </Alert>
             ) : (
               <TableContainer>
@@ -1268,6 +1289,7 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
           </Alert>
         </Grid>
       </Grid>
+      )}
     </Container>
   );
 };
