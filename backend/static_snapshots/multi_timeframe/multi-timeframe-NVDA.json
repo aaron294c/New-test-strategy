@@ -1,0 +1,5547 @@
+{
+  "ticker": "NVDA",
+  "analysis": {
+    "ticker": "NVDA",
+    "analysis_date": "2026-01-05T21:24:20.225806",
+    "current_daily_percentile": 60.95617529880478,
+    "current_4h_percentile": 39.36430317848411,
+    "current_divergence_pct": 21.591872120320673,
+    "current_signal": "daily_overextended_weak",
+    "divergence_events": [
+      {
+        "date": "2024-02-07",
+        "daily_percentile": 77.68924302788844,
+        "hourly_4h_percentile": 71.88264058679707,
+        "divergence_pct": 5.806602441091371,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 70.05996704101562,
+        "forward_returns": {
+          "D1": -0.6533774733471942,
+          "D3": 3.065665530496897,
+          "D5": 5.422361127748321,
+          "D7": 3.5863398272876656,
+          "D14": 10.790447462130693,
+          "D21": 24.869267878339095
+        }
+      },
+      {
+        "date": "2024-02-08",
+        "daily_percentile": 61.354581673306775,
+        "hourly_4h_percentile": 44.00977995110024,
+        "divergence_pct": 17.344801722206533,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 69.60221099853516,
+        "forward_returns": {
+          "D1": 3.5783902510835075,
+          "D3": 3.5712105173562714,
+          "D5": 4.332240369592966,
+          "D7": -0.2713610506131725,
+          "D14": 13.599774896165151,
+          "D21": 23.17175205562354
+        }
+      },
+      {
+        "date": "2024-02-09",
+        "daily_percentile": 72.11155378486056,
+        "hourly_4h_percentile": 64.05867970660147,
+        "divergence_pct": 8.052874078259094,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 72.09284973144531,
+        "forward_returns": {
+          "D1": 0.15940772247500234,
+          "D3": 2.4496489389645104,
+          "D5": 0.6653999839565827,
+          "D7": -6.4616903970366675,
+          "D14": 14.06565993823492,
+          "D21": 27.427525733505178
+        }
+      },
+      {
+        "date": "2024-02-12",
+        "daily_percentile": 63.34661354581673,
+        "hourly_4h_percentile": 44.743276283618584,
+        "divergence_pct": 18.603337262198146,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 72.20777130126953,
+        "forward_returns": {
+          "D1": -0.16607467739429005,
+          "D3": 0.567494014686809,
+          "D5": -3.8699900902506745,
+          "D7": 8.706135834885554,
+          "D14": 17.978360420932415,
+          "D21": 25.80592127333359
+        }
+      },
+      {
+        "date": "2024-02-13",
+        "daily_percentile": 51.39442231075697,
+        "hourly_4h_percentile": 31.05134474327628,
+        "divergence_pct": 20.34307756748069,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 72.08785247802734,
+        "forward_returns": {
+          "D1": 2.456750924121942,
+          "D3": 0.672378281920083,
+          "D5": -6.455206161186844,
+          "D7": 9.27377409313177,
+          "D14": 19.188133731426937,
+          "D21": 21.93336881617247
+        }
+      },
+      {
+        "date": "2024-02-20",
+        "daily_percentile": 3.9840637450199203,
+        "hourly_4h_percentile": 2.2004889975550124,
+        "divergence_pct": 1.783574747464908,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 69.41333770751953,
+        "forward_returns": {
+          "D1": -2.8508998262832708,
+          "D3": 13.48412231284508,
+          "D5": 13.317088263596588,
+          "D7": 13.908879227578819,
+          "D14": 23.506901681606518,
+          "D21": 30.12761392569585
+        }
+      },
+      {
+        "date": "2024-02-21",
+        "daily_percentile": 0.398406374501992,
+        "hourly_4h_percentile": 2.444987775061125,
+        "divergence_pct": -2.0465814005591327,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 67.43443298339844,
+        "forward_returns": {
+          "D1": 16.40088673011595,
+          "D3": 17.221951571067716,
+          "D5": 15.104031490368675,
+          "D7": 21.94539373482678,
+          "D14": 36.23030635724489,
+          "D21": 35.52181379165371
+        }
+      },
+      {
+        "date": "2024-02-28",
+        "daily_percentile": 29.880478087649404,
+        "hourly_4h_percentile": 23.227383863080682,
+        "divergence_pct": 6.653094224568722,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 77.6197509765625,
+        "forward_returns": {
+          "D1": 1.8657674397391855,
+          "D3": 9.752406579425376,
+          "D5": 14.216756885545735,
+          "D7": 12.707612198263462,
+          "D14": 15.115577539745328,
+          "D21": 16.349160822884244
+        }
+      },
+      {
+        "date": "2024-03-06",
+        "daily_percentile": 72.11155378486056,
+        "hourly_4h_percentile": 67.48166259168704,
+        "divergence_pct": 4.6298911931735205,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 88.6547622680664,
+        "forward_returns": {
+          "D1": 4.474638337502679,
+          "D3": -3.29875061068452,
+          "D5": 2.4667480826636057,
+          "D7": -0.9729300559364162,
+          "D14": 4.352884388739331,
+          "D21": -0.7801357589230506
+        }
+      },
+      {
+        "date": "2024-03-07",
+        "daily_percentile": 85.2589641434263,
+        "hourly_4h_percentile": 78.72860635696821,
+        "divergence_pct": 6.530357786458083,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 92.62174224853516,
+        "forward_returns": {
+          "D1": -5.54769776930486,
+          "D3": -0.8157993864474244,
+          "D5": -5.098797647502085,
+          "D7": -4.547361446351794,
+          "D14": -2.6103619923926624,
+          "D21": -5.973953957774869
+        }
+      },
+      {
+        "date": "2024-03-11",
+        "daily_percentile": 21.51394422310757,
+        "hourly_4h_percentile": 9.7799511002445,
+        "divergence_pct": 11.733993122863069,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 85.73026275634766,
+        "forward_returns": {
+          "D1": 7.15718311122604,
+          "D3": 2.529893421075702,
+          "D5": 3.125657157792716,
+          "D7": 5.360601030343326,
+          "D14": 5.350099854612123,
+          "D21": 1.474801138434234
+        }
+      },
+      {
+        "date": "2024-03-14",
+        "daily_percentile": 20.717131474103585,
+        "hourly_4h_percentile": 18.581907090464547,
+        "divergence_pct": 2.135224383639038,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 87.8991470336914,
+        "forward_returns": {
+          "D1": -0.12165487079074389,
+          "D3": 1.6533466329696989,
+          "D5": 3.969571700382879,
+          "D7": 8.025575992327827,
+          "D14": -2.318525191611198,
+          "D21": -2.2093604292014346
+        }
+      },
+      {
+        "date": "2024-03-15",
+        "daily_percentile": 18.725099601593627,
+        "hourly_4h_percentile": 19.80440097799511,
+        "divergence_pct": -1.0793013764014816,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 87.7922134399414,
+        "forward_returns": {
+          "D1": 0.703574253845507,
+          "D3": 2.8860266369435728,
+          "D5": 7.345420884026299,
+          "D7": 5.378139985040531,
+          "D14": 0.19468847974828396,
+          "D21": -0.4804337773692935
+        }
+      },
+      {
+        "date": "2024-03-18",
+        "daily_percentile": 23.50597609561753,
+        "hourly_4h_percentile": 27.139364303178482,
+        "divergence_pct": -3.6333882075609516,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 88.40989685058594,
+        "forward_returns": {
+          "D1": 1.066088531455911,
+          "D3": 3.3689326135811104,
+          "D5": 7.401505100680339,
+          "D7": 2.029278062198836,
+          "D14": -1.4945553449748572,
+          "D21": -4.996892491600402
+        }
+      },
+      {
+        "date": "2024-03-26",
+        "daily_percentile": 26.693227091633464,
+        "hourly_4h_percentile": 22.73838630806846,
+        "divergence_pct": 3.954840783565004,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 92.51380157470703,
+        "forward_returns": {
+          "D1": -2.49673242608488,
+          "D3": -2.374655584225882,
+          "D5": -3.8860729398203175,
+          "D7": -4.918905862286138,
+          "D14": -5.559572187591765,
+          "D21": -10.72697777802335
+        }
+      },
+      {
+        "date": "2024-03-27",
+        "daily_percentile": 9.163346613545817,
+        "hourly_4h_percentile": 10.513447432762836,
+        "divergence_pct": -1.350100819217019,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 90.2039794921875,
+        "forward_returns": {
+          "D1": 0.11745535224934045,
+          "D3": -0.8842179657379212,
+          "D5": -4.814417667747928,
+          "D7": -3.4537472714699646,
+          "D14": -6.8864258252576915,
+          "D21": -2.7866868033198378
+        }
+      },
+      {
+        "date": "2024-03-28",
+        "daily_percentile": 10.756972111553784,
+        "hourly_4h_percentile": 18.337408312958438,
+        "divergence_pct": -7.580436201404654,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 90.30992889404297,
+        "forward_returns": {
+          "D1": 0.007738379905952719,
+          "D3": -1.5405627542482314,
+          "D5": -2.5986003501025534,
+          "D7": -5.535898437311904,
+          "D14": -6.291784400287803,
+          "D21": -2.876396361508382
+        }
+      },
+      {
+        "date": "2024-04-01",
+        "daily_percentile": 11.952191235059761,
+        "hourly_4h_percentile": 25.91687041564792,
+        "divergence_pct": -13.96467918058816,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 90.3169174194336,
+        "forward_returns": {
+          "D1": -1.0081585440942398,
+          "D3": -4.933443678372196,
+          "D5": -3.574474749533685,
+          "D7": -3.6784955320649515,
+          "D14": -15.673441645937547,
+          "D21": -4.383419219043317
+        }
+      },
+      {
+        "date": "2024-04-02",
+        "daily_percentile": 7.171314741035857,
+        "hourly_4h_percentile": 21.026894865525673,
+        "divergence_pct": -13.855580124489816,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 89.40637969970703,
+        "forward_returns": {
+          "D1": -0.5455225177799616,
+          "D3": -1.614252740050004,
+          "D5": -4.581235435104302,
+          "D7": 1.3012650835124484,
+          "D14": -11.105387103130193,
+          "D21": -7.166980425172708
+        }
+      },
+      {
+        "date": "2024-04-03",
+        "daily_percentile": 6.374501992031872,
+        "hourly_4h_percentile": 20.293398533007334,
+        "divergence_pct": -13.918896540975462,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 88.91864776611328,
+        "forward_returns": {
+          "D1": -3.4384965093616326,
+          "D3": -2.0581574285838067,
+          "D5": -2.16381396589973,
+          "D7": -0.8745193481281666,
+          "D14": -7.3524216960559885,
+          "D21": -3.53740043218449
+        }
+      },
+      {
+        "date": "2024-04-04",
+        "daily_percentile": 0.398406374501992,
+        "hourly_4h_percentile": 3.1784841075794623,
+        "divergence_pct": -2.78007773307747,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 85.8611831665039,
+        "forward_returns": {
+          "D1": 2.4480813350136854,
+          "D3": -0.6414076705369642,
+          "D5": 5.483980491553364,
+          "D7": 0.1117558499438065,
+          "D14": -7.249859760936495,
+          "D21": 3.357207221576486
+        }
+      },
+      {
+        "date": "2024-04-05",
+        "daily_percentile": 9.56175298804781,
+        "hourly_4h_percentile": 26.65036674816626,
+        "divergence_pct": -17.08861376011845,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 87.963134765625,
+        "forward_returns": {
+          "D1": -0.9942491888636273,
+          "D3": -1.1010534364704672,
+          "D5": 0.2022463412129527,
+          "D7": -0.6738104258431243,
+          "D14": -6.108545519390951,
+          "D21": 4.695015501100475
+        }
+      },
+      {
+        "date": "2024-04-08",
+        "daily_percentile": 6.772908366533864,
+        "hourly_4h_percentile": 27.87286063569682,
+        "divergence_pct": -21.099952269162955,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 87.08856201171875,
+        "forward_returns": {
+          "D1": -2.041713652154842,
+          "D3": 3.997346619392661,
+          "D5": -1.299164808856379,
+          "D7": -3.5554756987200564,
+          "D14": 0.6909232096514062,
+          "D21": 3.926185068041055
+        }
+      },
+      {
+        "date": "2024-04-09",
+        "daily_percentile": 2.788844621513944,
+        "hourly_4h_percentile": 21.271393643031786,
+        "divergence_pct": -18.48254902151784,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 85.31046295166016,
+        "forward_returns": {
+          "D1": 1.9741431912696061,
+          "D3": 3.31796820426169,
+          "D5": 2.4146710376930836,
+          "D7": -0.8001832976459178,
+          "D14": 2.815357402238794,
+          "D21": 5.925935266490323
+        }
+      },
+      {
+        "date": "2024-04-10",
+        "daily_percentile": 17.131474103585656,
+        "hourly_4h_percentile": 51.1002444987775,
+        "divergence_pct": -33.96877039519184,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 86.99461364746094,
+        "forward_returns": {
+          "D1": 4.109656798062322,
+          "D3": -1.1925745082813854,
+          "D5": -3.4513220629967423,
+          "D7": -12.453030276188903,
+          "D14": -0.7318445562829012,
+          "D21": 1.9623491500766699
+        }
+      },
+      {
+        "date": "2024-04-12",
+        "daily_percentile": 29.482071713147413,
+        "hourly_4h_percentile": 56.234718826405874,
+        "divergence_pct": -26.752647113258462,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 88.14103698730469,
+        "forward_returns": {
+          "D1": -2.4777322804765745,
+          "D3": -4.707101000950242,
+          "D5": -13.591726765979772,
+          "D7": -6.53505264774269,
+          "D14": -2.6863739439593193,
+          "D21": 2.509473442938881
+        }
+      },
+      {
+        "date": "2024-04-15",
+        "daily_percentile": 13.545816733067728,
+        "hourly_4h_percentile": 29.095354523227385,
+        "divergence_pct": -15.549537790159658,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 85.95713806152344,
+        "forward_returns": {
+          "D1": 1.6441821622083186,
+          "D3": -1.546486092400401,
+          "D5": -7.538272060344164,
+          "D7": -7.353397758715296,
+          "D14": 3.2418284387072838,
+          "D21": 6.226684349652345
+        }
+      },
+      {
+        "date": "2024-04-16",
+        "daily_percentile": 29.880478087649404,
+        "hourly_4h_percentile": 55.256723716381416,
+        "divergence_pct": -25.37624562873201,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 87.37042999267578,
+        "forward_returns": {
+          "D1": -3.866617847630638,
+          "D3": -12.829605991782788,
+          "D5": -5.710692023807229,
+          "D7": -5.471603327227459,
+          "D14": 5.4052470450759005,
+          "D21": 8.253729517333364
+        }
+      },
+      {
+        "date": "2024-04-17",
+        "daily_percentile": 7.968127490039841,
+        "hourly_4h_percentile": 19.315403422982886,
+        "divergence_pct": -11.347275932943045,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 83.99214935302734,
+        "forward_returns": {
+          "D1": 0.756824926907651,
+          "D3": -5.375138329763985,
+          "D5": -5.1859389106331815,
+          "D7": 4.402944531206643,
+          "D14": 7.757475938591796,
+          "D21": 12.285354398970515
+        }
+      },
+      {
+        "date": "2024-04-18",
+        "daily_percentile": 17.928286852589643,
+        "hourly_4h_percentile": 38.63080684596577,
+        "divergence_pct": -20.70251999337613,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 84.62782287597656,
+        "forward_returns": {
+          "D1": -10.004599571343753,
+          "D3": -2.6549767956944748,
+          "D5": -2.4081397447499375,
+          "D7": 3.6447050207088827,
+          "D14": 6.7803739842763555,
+          "D21": 9.221581599839457
+        }
+      },
+      {
+        "date": "2024-04-19",
+        "daily_percentile": 0.0,
+        "hourly_4h_percentile": 0.0,
+        "divergence_pct": 0.0,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 76.16114807128906,
+        "forward_returns": {
+          "D1": 4.354329145310332,
+          "D3": 4.562982327038445,
+          "D5": 15.13780887011933,
+          "D7": 13.388453942933065,
+          "D14": 16.465880511618526,
+          "D21": 24.383201400357457
+        }
+      },
+      {
+        "date": "2024-04-22",
+        "daily_percentile": 5.9760956175298805,
+        "hourly_4h_percentile": 18.337408312958438,
+        "divergence_pct": -12.361312695428557,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 79.47745513916016,
+        "forward_returns": {
+          "D1": 3.653260753850174,
+          "D3": 3.9160935558062215,
+          "D5": 10.361180075123343,
+          "D7": 4.430422215265817,
+          "D14": 13.028491440510948,
+          "D21": 19.95523010877418
+        }
+      },
+      {
+        "date": "2024-04-23",
+        "daily_percentile": 25.099601593625497,
+        "hourly_4h_percentile": 59.41320293398533,
+        "divergence_pct": -34.31360134035984,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 82.38097381591797,
+        "forward_returns": {
+          "D1": -3.331601814029639,
+          "D3": 6.444817337987718,
+          "D5": 4.827540029074329,
+          "D7": 4.117777640507514,
+          "D14": 9.676917761044601,
+          "D21": 15.19842072103501
+        }
+      },
+      {
+        "date": "2024-04-24",
+        "daily_percentile": 17.131474103585656,
+        "hourly_4h_percentile": 29.095354523227385,
+        "divergence_pct": -11.963880419641729,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 79.63636779785156,
+        "forward_returns": {
+          "D1": 3.7087312267043204,
+          "D3": 10.140956714527881,
+          "D5": 4.2220335543889265,
+          "D7": 11.436173525100068,
+          "D14": 14.657938639779001,
+          "D21": 30.27475886890505
+        }
+      },
+      {
+        "date": "2024-04-25",
+        "daily_percentile": 42.23107569721115,
+        "hourly_4h_percentile": 67.72616136919315,
+        "divergence_pct": -25.495085671981997,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 82.5898666381836,
+        "forward_returns": {
+          "D1": 6.175588687859346,
+          "D3": 4.562401924616943,
+          "D5": 3.854434723214384,
+          "D7": 11.506436959843501,
+          "D14": 14.519798629478075,
+          "D21": 28.847176209552906
+        }
+      },
+      {
+        "date": "2024-05-03",
+        "daily_percentile": 71.31474103585657,
+        "hourly_4h_percentile": 76.77261613691931,
+        "divergence_pct": -5.45787510106274,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 88.74372100830078,
+        "forward_returns": {
+          "D1": 3.774122306085115,
+          "D3": 1.8279431321864825,
+          "D5": 1.2265065724469393,
+          "D7": 2.891130422701793,
+          "D14": 16.905269400300927,
+          "D21": 31.138995739014796
+        }
+      },
+      {
+        "date": "2024-05-06",
+        "daily_percentile": 82.07171314741036,
+        "hourly_4h_percentile": 85.57457212713936,
+        "divergence_pct": -3.502858979728998,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 92.093017578125,
+        "forward_returns": {
+          "D1": -1.7213003661061488,
+          "D3": -3.682435387963834,
+          "D5": -1.8895077184508446,
+          "D7": 2.702410508121411,
+          "D14": 15.551334723352594,
+          "D21": 32.88474449448986
+        }
+      },
+      {
+        "date": "2024-05-07",
+        "daily_percentile": 70.1195219123506,
+        "hourly_4h_percentile": 58.679706601467,
+        "divergence_pct": 11.43981531088361,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 90.50782012939453,
+        "forward_returns": {
+          "D1": -0.15679790704592467,
+          "D3": -0.7465117923810549,
+          "D5": 0.8856666684368797,
+          "D7": 4.201915849401505,
+          "D14": 25.782411103527323,
+          "D21": 33.6197270160324
+        }
+      },
+      {
+        "date": "2024-05-15",
+        "daily_percentile": 78.48605577689243,
+        "hourly_4h_percentile": 85.08557457212714,
+        "divergence_pct": -6.599518795234715,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 94.58174896240234,
+        "forward_returns": {
+          "D1": -0.2863833636134627,
+          "D3": 0.15851391370780288,
+          "D5": 0.3381538739272827,
+          "D7": 12.510830224588677,
+          "D14": 29.388145650176067,
+          "D21": 39.37529659347945
+        }
+      },
+      {
+        "date": "2024-05-16",
+        "daily_percentile": 72.50996015936255,
+        "hourly_4h_percentile": 66.25916870415648,
+        "divergence_pct": 6.25079145520607,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 94.31088256835938,
+        "forward_returns": {
+          "D1": -1.9923850763935436,
+          "D3": 1.0884021021369872,
+          "D5": 10.004363542465189,
+          "D7": 20.710267252010194,
+          "D14": 28.231545386504365,
+          "D21": 38.82169468534442
+        }
+      },
+      {
+        "date": "2024-05-22",
+        "daily_percentile": 57.76892430278885,
+        "hourly_4h_percentile": 37.65281173594132,
+        "divergence_pct": 20.116112566847526,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 94.90158081054688,
+        "forward_returns": {
+          "D1": 9.319660678482244,
+          "D3": 19.958927368409206,
+          "D5": 16.377046597218083,
+          "D7": 21.116381299371167,
+          "D14": 31.869701116011484,
+          "D21": 24.40199888414929
+        }
+      },
+      {
+        "date": "2024-05-23",
+        "daily_percentile": 94.02390438247012,
+        "hourly_4h_percentile": 97.06601466992664,
+        "divergence_pct": -3.0421102874565236,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 103.74608612060547,
+        "forward_returns": {
+          "D1": 2.572265593544798,
+          "D3": 10.622422500260509,
+          "D5": 5.620468933882239,
+          "D7": 12.175436070358403,
+          "D14": 24.876566447326475,
+          "D21": 21.485119324922763
+        }
+      },
+      {
+        "date": "2024-05-24",
+        "daily_percentile": 94.42231075697211,
+        "hourly_4h_percentile": 93.8875305623472,
+        "divergence_pct": 0.5347801946249149,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 106.41471099853516,
+        "forward_returns": {
+          "D1": 6.9804328064784205,
+          "D3": 3.7860798427644227,
+          "D5": 8.012660463096143,
+          "D7": 15.000614067017114,
+          "D14": 23.877227032513424,
+          "D21": 18.729760971276942
+        }
+      },
+      {
+        "date": "2024-05-28",
+        "daily_percentile": 99.20318725099602,
+        "hourly_4h_percentile": 98.53300733496333,
+        "divergence_pct": 0.6701799160326942,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 113.8429183959961,
+        "forward_returns": {
+          "D1": 0.8112189434671846,
+          "D3": -3.7471067985317186,
+          "D5": 2.226494323437689,
+          "D7": 6.230852027517919,
+          "D14": 15.004048823388395,
+          "D21": 8.866631697270911
+        }
+      },
+      {
+        "date": "2024-05-29",
+        "daily_percentile": 98.40637450199203,
+        "hourly_4h_percentile": 89.73105134474328,
+        "divergence_pct": 8.675323157248755,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 114.76643371582031,
+        "forward_returns": {
+          "D1": -3.7665863218660833,
+          "D3": 0.15241979048128407,
+          "D5": 6.63184970004651,
+          "D7": 5.28022093955951,
+          "D14": 18.085038915309305,
+          "D21": 7.598659705666533
+        }
+      },
+      {
+        "date": "2024-05-30",
+        "daily_percentile": 78.88446215139442,
+        "hourly_4h_percentile": 36.91931540342298,
+        "divergence_pct": 41.96514674797144,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "strong",
+        "daily_price": 110.44365692138672,
+        "forward_returns": {
+          "D1": -0.7846120677357793,
+          "D3": 5.372845988390074,
+          "D5": 9.500450778391457,
+          "D7": 10.217185312230104,
+          "D14": 18.36266898663319,
+          "D21": 12.497928477968912
+        }
+      },
+      {
+        "date": "2024-05-31",
+        "daily_percentile": 66.93227091633466,
+        "hourly_4h_percentile": 25.183374083129586,
+        "divergence_pct": 41.74889683320507,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "strong",
+        "daily_price": 109.57710266113281,
+        "forward_returns": {
+          "D1": 4.895418552075581,
+          "D3": 11.681700039477839,
+          "D5": 10.266061107788405,
+          "D7": 10.295192546696285,
+          "D14": 15.4582875253525,
+          "D21": 11.900673211956981
+        }
+      },
+      {
+        "date": "2024-06-03",
+        "daily_percentile": 82.47011952191235,
+        "hourly_4h_percentile": 58.924205378973106,
+        "divergence_pct": 23.545914142939246,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 114.94136047363281,
+        "forward_returns": {
+          "D1": 1.2495624135364425,
+          "D3": 5.215652300201379,
+          "D5": 5.904340711690481,
+          "D7": 8.87850157119594,
+          "D14": 2.712777206129413,
+          "D21": 11.556982087795543
+        }
+      },
+      {
+        "date": "2024-06-04",
+        "daily_percentile": 79.2828685258964,
+        "hourly_4h_percentile": 55.256723716381416,
+        "divergence_pct": 24.02614480951499,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 116.37762451171875,
+        "forward_returns": {
+          "D1": 5.155584348290354,
+          "D3": 3.822668221159664,
+          "D5": 3.8500973655958726,
+          "D7": 11.322559396160226,
+          "D14": 8.299217351582367,
+          "D21": 8.075909763883837
+        }
+      },
+      {
+        "date": "2024-06-05",
+        "daily_percentile": 90.0398406374502,
+        "hourly_4h_percentile": 79.21760391198043,
+        "divergence_pct": 10.822236725469764,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 122.37757110595703,
+        "forward_returns": {
+          "D1": -1.1777230973562647,
+          "D3": -0.5308824856035788,
+          "D5": 2.2625550076361023,
+          "D7": 7.7187526671148365,
+          "D14": 3.2427191232967223,
+          "D21": 4.712943476710163
+        }
+      },
+      {
+        "date": "2024-06-06",
+        "daily_percentile": 76.89243027888446,
+        "hourly_4h_percentile": 50.12224938875306,
+        "divergence_pct": 26.7701808901314,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 120.9363021850586,
+        "forward_returns": {
+          "D1": -0.09091331767495658,
+          "D3": -0.06451811115548711,
+          "D5": 7.126270466457685,
+          "D7": 8.25861473237348,
+          "D14": 2.4811809558584974,
+          "D21": 8.58923614328939
+        }
+      },
+      {
+        "date": "2024-06-07",
+        "daily_percentile": 65.73705179282868,
+        "hourly_4h_percentile": 32.27383863080684,
+        "divergence_pct": 33.46321316202184,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 120.82635498046875,
+        "forward_returns": {
+          "D1": 0.7461410503738275,
+          "D3": 3.575441789556466,
+          "D5": 9.101688254153961,
+          "D7": 12.16260553167048,
+          "D14": 2.202159860053876,
+          "D21": 11.60833220937969
+        }
+      },
+      {
+        "date": "2024-06-10",
+        "daily_percentile": 60.1593625498008,
+        "hourly_4h_percentile": 27.87286063569682,
+        "divergence_pct": 32.28650191410398,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 121.72789001464844,
+        "forward_returns": {
+          "D1": -0.7143914573367605,
+          "D3": 6.429635932495148,
+          "D5": 7.554616644013534,
+          "D7": 7.390393477503587,
+          "D14": 2.0693171933921173,
+          "D21": 4.61488909076071
+        }
+      },
+      {
+        "date": "2024-06-13",
+        "daily_percentile": 76.09561752988047,
+        "hourly_4h_percentile": 64.30317848410758,
+        "divergence_pct": 11.792439045772895,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 129.55455017089844,
+        "forward_returns": {
+          "D1": 1.751418970431251,
+          "D3": 4.6061197667460085,
+          "D5": -2.3455015006795255,
+          "D7": -2.715839503670403,
+          "D14": -2.9164345932100266,
+          "D21": -2.507524008929052
+        }
+      },
+      {
+        "date": "2024-06-14",
+        "daily_percentile": 76.09561752988047,
+        "hourly_4h_percentile": 63.56968215158925,
+        "divergence_pct": 12.525935378291223,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 131.82359313964844,
+        "forward_returns": {
+          "D1": -0.6824481597871856,
+          "D3": -0.8340943035059611,
+          "D5": -10.441324887943793,
+          "D7": -4.155296485515835,
+          "D14": -2.7904233162572734,
+          "D21": -10.532317204238218
+        }
+      },
+      {
+        "date": "2024-06-17",
+        "daily_percentile": 57.76892430278885,
+        "hourly_4h_percentile": 31.54034229828851,
+        "divergence_pct": 26.228582004500336,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 130.92396545410156,
+        "forward_returns": {
+          "D1": 3.511979220144723,
+          "D3": -3.3669307115552716,
+          "D5": -3.7333951187572656,
+          "D7": -5.33669656756407,
+          "D14": 0.3053996319214214,
+          "D21": -7.550773970823399
+        }
+      },
+      {
+        "date": "2024-06-18",
+        "daily_percentile": 72.11155378486056,
+        "hourly_4h_percentile": 56.47921760391198,
+        "divergence_pct": 15.632336180948585,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 135.52198791503906,
+        "forward_returns": {
+          "D1": -3.540331668875174,
+          "D3": -12.885380950145187,
+          "D5": -6.77089825007271,
+          "D7": -8.88036224230201,
+          "D14": -0.49416944235866067,
+          "D21": -13.018139024760156
+        }
+      },
+      {
+        "date": "2024-06-21",
+        "daily_percentile": 13.94422310756972,
+        "hourly_4h_percentile": 3.9119804400977993,
+        "divergence_pct": 10.03224266747192,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 126.5158462524414,
+        "forward_returns": {
+          "D1": -6.684050260859442,
+          "D3": -0.13430273806684934,
+          "D5": -2.393930777796238,
+          "D7": -3.081298354277373,
+          "D14": 2.1095075978347255,
+          "D21": -3.1444968049504696
+        }
+      },
+      {
+        "date": "2024-06-24",
+        "daily_percentile": 0.398406374501992,
+        "hourly_4h_percentile": 0.7334963325183375,
+        "divergence_pct": -0.33508995801634545,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 118.05946350097656,
+        "forward_returns": {
+          "D1": 6.7564198422027655,
+          "D3": 4.978412579834024,
+          "D5": 5.240886657804644,
+          "D7": 8.610617999274917,
+          "D14": 8.746081403411733,
+          "D21": -3.2681434818657262
+        }
+      },
+      {
+        "date": "2024-06-25",
+        "daily_percentile": 15.53784860557769,
+        "hourly_4h_percentile": 21.515892420537895,
+        "divergence_pct": -5.9780438149602055,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 126.03605651855469,
+        "forward_returns": {
+          "D1": 0.24586257047451987,
+          "D3": -2.022367343716913,
+          "D5": -2.7123515674949528,
+          "D7": -0.20619501521750294,
+          "D14": 0.21413094760602824,
+          "D21": -10.95250075091717
+        }
+      },
+      {
+        "date": "2024-06-26",
+        "daily_percentile": 18.725099601593627,
+        "hourly_4h_percentile": 28.361858190709043,
+        "divergence_pct": -9.636758589115416,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 126.34593200683594,
+        "forward_returns": {
+          "D1": -1.9066552321699182,
+          "D3": -1.6613956631760574,
+          "D5": 1.4873299665092876,
+          "D7": 1.4240465244407474,
+          "D14": -6.653493082962781,
+          "D21": -10.553806203154103
+        }
+      },
+      {
+        "date": "2024-06-27",
+        "daily_percentile": 11.155378486055776,
+        "hourly_4h_percentile": 22.249388753056234,
+        "divergence_pct": -11.094010267000458,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 123.93695068359375,
+        "forward_returns": {
+          "D1": -0.3629314832242714,
+          "D3": -1.0646018901960708,
+          "D5": 1.484001146468783,
+          "D7": 5.960172521881657,
+          "D14": -2.338897252660932,
+          "D21": -10.000810112169756
+        }
+      },
+      {
+        "date": "2024-06-28",
+        "daily_percentile": 12.350597609561753,
+        "hourly_4h_percentile": 24.938875305623473,
+        "divergence_pct": -12.58827769606172,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 123.48714447021484,
+        "forward_returns": {
+          "D1": 0.6151909212245066,
+          "D3": 3.8368110827657897,
+          "D5": 3.7720625981923384,
+          "D7": 9.203496640585417,
+          "D14": -4.541037348569333,
+          "D21": -16.035295832304385
+        }
+      },
+      {
+        "date": "2024-07-01",
+        "daily_percentile": 19.12350597609562,
+        "hourly_4h_percentile": 36.674816625916876,
+        "divergence_pct": -17.551310649821257,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 124.246826171875,
+        "forward_returns": {
+          "D1": -1.3113498816108793,
+          "D3": 1.2308968590039493,
+          "D5": 5.695904522366213,
+          "D7": 2.493963874124372,
+          "D14": -0.6114294626804129,
+          "D21": -5.856810567580051
+        }
+      },
+      {
+        "date": "2024-07-02",
+        "daily_percentile": 12.749003984063744,
+        "hourly_4h_percentile": 28.606356968215156,
+        "divergence_pct": -15.857352984151412,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 122.61751556396484,
+        "forward_returns": {
+          "D1": 4.5732433292933194,
+          "D3": 4.508035635009389,
+          "D5": 9.97799053654671,
+          "D7": 5.355835214432214,
+          "D14": -0.0652076942839308,
+          "D21": -10.972526094433066
+        }
+      },
+      {
+        "date": "2024-07-03",
+        "daily_percentile": 42.62948207171315,
+        "hourly_4h_percentile": 74.32762836185819,
+        "divergence_pct": -31.69814629014504,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 128.22511291503906,
+        "forward_returns": {
+          "D1": -1.9098727283047845,
+          "D3": 2.416604499080788,
+          "D5": -0.6859933781257266,
+          "D7": 0.12472390511368836,
+          "D14": -10.937016748417683,
+          "D21": -16.378238421507774
+        }
+      },
+      {
+        "date": "2024-07-05",
+        "daily_percentile": 27.88844621513944,
+        "hourly_4h_percentile": 49.877750611246945,
+        "divergence_pct": -21.989304396107507,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 125.77617645263672,
+        "forward_returns": {
+          "D1": 1.883488967886482,
+          "D3": 7.2160749884673026,
+          "D5": 2.709997461441671,
+          "D7": 0.4211944447730209,
+          "D14": -10.768509866257103,
+          "D21": -20.17007430969866
+        }
+      },
+      {
+        "date": "2024-07-08",
+        "daily_percentile": 41.832669322709165,
+        "hourly_4h_percentile": 62.34718826405869,
+        "divergence_pct": -20.51451894134952,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 128.14515686035156,
+        "forward_returns": {
+          "D1": 2.4805072467996014,
+          "D3": -0.6240264935454043,
+          "D5": 0.1871966360094124,
+          "D7": -7.96412673739757,
+          "D14": -11.809677426652943,
+          "D21": -18.68175035820513
+        }
+      },
+      {
+        "date": "2024-07-09",
+        "daily_percentile": 48.20717131474104,
+        "hourly_4h_percentile": 77.26161369193154,
+        "divergence_pct": -29.054442377190504,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 131.3238067626953,
+        "forward_returns": {
+          "D1": 2.6868493895906065,
+          "D3": -1.6288738301343475,
+          "D5": -3.820988871469111,
+          "D7": -7.832253928077327,
+          "D14": -15.063190493348177,
+          "D21": -24.714577007883754
+        }
+      },
+      {
+        "date": "2024-07-11",
+        "daily_percentile": 24.701195219123505,
+        "hourly_4h_percentile": 22.00488997555012,
+        "divergence_pct": 2.6963052435733843,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 127.34549713134766,
+        "forward_returns": {
+          "D1": 1.4442681929749623,
+          "D3": -0.8163291471329437,
+          "D5": -4.952907267556306,
+          "D7": -3.029830459692817,
+          "D14": -8.147576819216617,
+          "D21": -17.778645555152885
+        }
+      },
+      {
+        "date": "2024-07-16",
+        "daily_percentile": 23.50597609561753,
+        "hourly_4h_percentile": 24.938875305623473,
+        "divergence_pct": -1.4328992100059423,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 126.30593872070312,
+        "forward_returns": {
+          "D1": -6.62393601226251,
+          "D3": -6.6714136222806975,
+          "D5": -2.983532880238271,
+          "D7": -11.142771576157596,
+          "D14": -20.504903241114015,
+          "D21": -6.552707516418432
+        }
+      },
+      {
+        "date": "2024-07-17",
+        "daily_percentile": 2.788844621513944,
+        "hourly_4h_percentile": 3.9119804400977993,
+        "divergence_pct": -1.1231358185838554,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 117.93951416015625,
+        "forward_returns": {
+          "D1": 2.6273455600803297,
+          "D3": 4.703792744580215,
+          "D5": -3.1697632018696686,
+          "D7": -4.178317163659662,
+          "D14": -11.645050175410809,
+          "D21": 4.127478043244359
+        }
+      },
+      {
+        "date": "2024-07-18",
+        "daily_percentile": 13.94422310756972,
+        "hourly_4h_percentile": 25.4278728606357,
+        "divergence_pct": -11.48364975306598,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 121.03819274902344,
+        "forward_returns": {
+          "D1": -2.60962722438558,
+          "D3": 1.2387550790376567,
+          "D5": -7.2755847283260895,
+          "D7": -7.845408913035834,
+          "D14": -18.316953380450883,
+          "D21": 2.8821564934214505
+        }
+      },
+      {
+        "date": "2024-07-19",
+        "daily_percentile": 7.569721115537849,
+        "hourly_4h_percentile": 18.82640586797066,
+        "divergence_pct": -11.256684752432811,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 117.87954711914062,
+        "forward_returns": {
+          "D1": 4.7570570876104945,
+          "D3": -3.120504251326217,
+          "D5": -4.129571279193156,
+          "D7": -12.041046921603849,
+          "D14": -10.989574070003783,
+          "D21": 10.234896679168347
+        }
+      },
+      {
+        "date": "2024-07-22",
+        "daily_percentile": 35.45816733067729,
+        "hourly_4h_percentile": 66.01466992665037,
+        "divergence_pct": -30.55650259597308,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 123.48714447021484,
+        "forward_returns": {
+          "D1": -0.7689747503769828,
+          "D3": -9.114461296006404,
+          "D5": -9.67298493664812,
+          "D7": -5.277650213240603,
+          "D14": -15.209641444763577,
+          "D21": 3.0030878478153555
+        }
+      },
+      {
+        "date": "2024-07-23",
+        "daily_percentile": 34.26294820717131,
+        "hourly_4h_percentile": 55.012224938875306,
+        "divergence_pct": -20.749276731703993,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 122.53755950927734,
+        "forward_returns": {
+          "D1": -6.80317830942474,
+          "D3": -7.773887737082363,
+          "D5": -15.384624963335646,
+          "D7": -10.91443545185139,
+          "D14": -11.069423456204476,
+          "D21": 4.82094069556136
+        }
+      },
+      {
+        "date": "2024-07-24",
+        "daily_percentile": 6.772908366533864,
+        "hourly_4h_percentile": 10.757946210268948,
+        "divergence_pct": -3.9850378437350837,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 114.20111083984375,
+        "forward_returns": {
+          "D1": -1.724286518256124,
+          "D3": -2.3282253853541657,
+          "D5": 2.424507140562815,
+          "D7": -6.109408729011356,
+          "D14": 1.6542731408909717,
+          "D21": 8.306352351140077
+        }
+      },
+      {
+        "date": "2024-07-25",
+        "daily_percentile": 7.968127490039841,
+        "hourly_4h_percentile": 11.7359413202934,
+        "divergence_pct": -3.7678138302535586,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 112.2319564819336,
+        "forward_returns": {
+          "D1": 0.6946958244085755,
+          "D3": -7.614890812099984,
+          "D5": -2.734229987396053,
+          "D7": -10.53615089174259,
+          "D14": 5.16566197388566,
+          "D21": 15.22088319833761
+        }
+      },
+      {
+        "date": "2024-07-26",
+        "daily_percentile": 21.51394422310757,
+        "hourly_4h_percentile": 29.82885085574572,
+        "divergence_pct": -8.314906632638152,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 113.01162719726562,
+        "forward_returns": {
+          "D1": -1.3001986138883925,
+          "D3": 3.5025579470534085,
+          "D5": -5.121180125649271,
+          "D7": -7.792320893073901,
+          "D14": 8.66797050631014,
+          "D21": 11.852111639637975
+        }
+      },
+      {
+        "date": "2024-07-29",
+        "daily_percentile": 22.31075697211155,
+        "hourly_4h_percentile": 33.98533007334964,
+        "divergence_pct": -11.674573101238085,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 111.54225158691406,
+        "forward_returns": {
+          "D1": -7.043641253055899,
+          "D3": -2.1328015892677965,
+          "D5": -9.98296450918894,
+          "D7": -11.363019838624533,
+          "D14": 11.640836641913932,
+          "D21": 14.97447412344104
+        }
+      },
+      {
+        "date": "2024-07-30",
+        "daily_percentile": 3.5856573705179287,
+        "hourly_4h_percentile": 5.623471882640587,
+        "divergence_pct": -2.037814512122658,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 103.68561553955078,
+        "forward_returns": {
+          "D1": 12.812104473777985,
+          "D3": 3.4127035342389256,
+          "D5": 0.5013067794551018,
+          "D7": 1.19541310440896,
+          "D14": 25.325385104252085,
+          "D21": 21.093228315146682
+        }
+      },
+      {
+        "date": "2024-07-31",
+        "daily_percentile": 47.808764940239044,
+        "hourly_4h_percentile": 83.61858190709046,
+        "divergence_pct": -35.809816966851415,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "strong",
+        "daily_price": 116.96992492675781,
+        "forward_returns": {
+          "D1": -6.674064516398348,
+          "D3": -14.159961835392043,
+          "D5": -15.475979425863716,
+          "D7": -10.485372516499059,
+          "D14": 8.742116385095722,
+          "D21": 0.4871022905678757
+        }
+      },
+      {
+        "date": "2024-08-01",
+        "daily_percentile": 28.286852589641438,
+        "hourly_4h_percentile": 45.965770171149146,
+        "divergence_pct": -17.678917581507708,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 109.16327667236328,
+        "forward_returns": {
+          "D1": -1.7764018504290768,
+          "D3": -4.5417087723312655,
+          "D5": -3.882431735707148,
+          "D7": -0.17397656414841478,
+          "D14": 17.663216512376877,
+          "D21": 9.303185875504404
+        }
+      },
+      {
+        "date": "2024-08-02",
+        "daily_percentile": 26.693227091633464,
+        "hourly_4h_percentile": 46.21026894865526,
+        "divergence_pct": -19.5170418570218,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 107.2240982055664,
+        "forward_returns": {
+          "D1": -6.357777888935711,
+          "D3": -7.793411121911453,
+          "D5": -2.3491973183297654,
+          "D7": 8.268860345649177,
+          "D14": 15.35378666275986,
+          "D21": 0.6805356196639689
+        }
+      },
+      {
+        "date": "2024-08-05",
+        "daily_percentile": 13.147410358565736,
+        "hourly_4h_percentile": 27.139364303178482,
+        "divergence_pct": -13.991953944612746,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 100.40702819824219,
+        "forward_returns": {
+          "D1": 3.7829725961300964,
+          "D3": 4.499743551751267,
+          "D5": 8.531603922328479,
+          "D7": 17.55101420533336,
+          "D14": 28.79043808959352,
+          "D21": 5.734198038835769
+        }
+      },
+      {
+        "date": "2024-08-06",
+        "daily_percentile": 33.46613545816733,
+        "hourly_4h_percentile": 54.034229828850854,
+        "divergence_pct": -20.568094370683525,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 104.20539855957031,
+        "forward_returns": {
+          "D1": -5.122301937048313,
+          "D3": 0.47962390937159594,
+          "D5": 11.405273381015801,
+          "D7": 17.851323836376267,
+          "D14": 21.304551554683158,
+          "D21": 2.8393275644822413
+        }
+      },
+      {
+        "date": "2024-08-07",
+        "daily_percentile": 23.50597609561753,
+        "hourly_4h_percentile": 32.51833740831296,
+        "divergence_pct": -9.012361312695429,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 98.86768341064453,
+        "forward_returns": {
+          "D1": 6.126778089149565,
+          "D3": 10.221413504429622,
+          "D5": 19.3812537209314,
+          "D7": 25.952888330194533,
+          "D14": 29.713889072162235,
+          "D21": 3.9631956236637844
+        }
+      },
+      {
+        "date": "2024-08-08",
+        "daily_percentile": 46.613545816733065,
+        "hourly_4h_percentile": 73.59413202933986,
+        "divergence_pct": -26.980586212606795,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 104.92508697509766,
+        "forward_returns": {
+          "D1": -0.20957276807583858,
+          "D3": 10.64113691954207,
+          "D5": 17.042973469797772,
+          "D7": 23.844926622263873,
+          "D14": 19.662763953745667,
+          "D21": 1.4289878650372234
+        }
+      },
+      {
+        "date": "2024-08-09",
+        "daily_percentile": 46.613545816733065,
+        "hourly_4h_percentile": 67.48166259168704,
+        "divergence_pct": -20.868116774953975,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 104.70519256591797,
+        "forward_returns": {
+          "D1": 4.076364775979813,
+          "D3": 12.725526870276639,
+          "D5": 18.930780631975463,
+          "D7": 21.479717273178302,
+          "D14": 12.257745036239287,
+          "D21": 3.1980733783112614
+        }
+      },
+      {
+        "date": "2024-08-13",
+        "daily_percentile": 80.47808764940238,
+        "hourly_4h_percentile": 91.19804400977995,
+        "divergence_pct": -10.719956360377566,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 116.0903091430664,
+        "forward_returns": {
+          "D1": 1.6703985472314997,
+          "D3": 7.267095591412542,
+          "D5": 9.566054943192404,
+          "D7": 6.543826446950685,
+          "D14": -7.00877861072835,
+          "D21": 2.591864493796714
+        }
+      },
+      {
+        "date": "2024-08-14",
+        "daily_percentile": 81.27490039840637,
+        "hourly_4h_percentile": 86.55256723716381,
+        "divergence_pct": -5.27766683875744,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 118.02947998046875,
+        "forward_returns": {
+          "D1": 4.048108770578063,
+          "D3": 10.094865277860364,
+          "D5": 8.824526384647813,
+          "D7": 9.56131596161951,
+          "D14": -10.052500394302399,
+          "D21": 0.8724489927836254
+        }
+      },
+      {
+        "date": "2024-08-15",
+        "daily_percentile": 86.85258964143426,
+        "hourly_4h_percentile": 89.24205378973105,
+        "divergence_pct": -2.3894641482967813,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 122.80744171142578,
+        "forward_returns": {
+          "D1": 1.399964974006651,
+          "D3": 3.5731793829722136,
+          "D5": 0.7162560928175132,
+          "D7": 2.9301560694399376,
+          "D14": -12.738080305942546,
+          "D21": -4.940597145350479
+        }
+      },
+      {
+        "date": "2024-08-16",
+        "daily_percentile": 84.86055776892431,
+        "hourly_4h_percentile": 80.92909535452323,
+        "divergence_pct": 3.931462414401082,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 124.52670288085938,
+        "forward_returns": {
+          "D1": 4.350628392514522,
+          "D3": 3.1465698613230675,
+          "D5": 3.8449171925633463,
+          "D7": 2.9860377096775803,
+          "D14": -17.458664900866093,
+          "D21": -7.208311450754334
+        }
+      },
+      {
+        "date": "2024-08-19",
+        "daily_percentile": 89.64143426294821,
+        "hourly_4h_percentile": 87.04156479217605,
+        "divergence_pct": 2.5998694707721626,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 129.94439697265625,
+        "forward_returns": {
+          "D1": -2.1153856089852097,
+          "D3": -4.815397680329204,
+          "D5": -2.7230920583238505,
+          "D7": -3.376934996517156,
+          "D14": -18.100005683395416,
+          "D21": -12.784856710328608
+        }
+      },
+      {
+        "date": "2024-08-20",
+        "daily_percentile": 76.89243027888446,
+        "hourly_4h_percentile": 58.924205378973106,
+        "divergence_pct": 17.968224899911355,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 127.19557189941406,
+        "forward_returns": {
+          "D1": 0.9823067461670831,
+          "D3": 1.6660010707916006,
+          "D5": 0.8251429451615833,
+          "D7": -7.5913678792987715,
+          "D14": -15.049132731973758,
+          "D21": -7.3634017919384505
+        }
+      },
+      {
+        "date": "2024-08-21",
+        "daily_percentile": 75.69721115537848,
+        "hourly_4h_percentile": 55.99022004889975,
+        "divergence_pct": 19.706991106478732,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 128.4450225830078,
+        "forward_returns": {
+          "D1": -3.704281405545151,
+          "D3": -1.5875517194393285,
+          "D5": -2.2490271476790835,
+          "D7": -7.105050231219112,
+          "D14": -9.019452056975164,
+          "D21": -9.719904540072532
+        }
+      },
+      {
+        "date": "2024-08-22",
+        "daily_percentile": 54.581673306772906,
+        "hourly_4h_percentile": 13.691931540342297,
+        "divergence_pct": 40.88974176643061,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "strong",
+        "daily_price": 123.68705749511719,
+        "forward_returns": {
+          "D1": 4.549864883286414,
+          "D3": 3.685154926223988,
+          "D5": -4.9700991431608,
+          "D7": -12.720216186741718,
+          "D14": -3.7092359876165104,
+          "D21": -6.0368889291884775
+        }
+      },
+      {
+        "date": "2024-08-23",
+        "daily_percentile": 70.5179282868526,
+        "hourly_4h_percentile": 51.58924205378973,
+        "divergence_pct": 18.928686233062862,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 129.3146514892578,
+        "forward_returns": {
+          "D1": -2.249366206614578,
+          "D3": -2.906393274621777,
+          "D5": -7.729760058243507,
+          "D7": -17.90213651941971,
+          "D14": -7.930597485593993,
+          "D21": -6.562305857448559
+        }
+      },
+      {
+        "date": "2024-08-26",
+        "daily_percentile": 56.573705179282875,
+        "hourly_4h_percentile": 26.161369193154034,
+        "divergence_pct": 30.41233598612884,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 126.40589141845703,
+        "forward_returns": {
+          "D1": 1.4550158607357533,
+          "D3": -7.014074430086947,
+          "D5": -14.597496069747285,
+          "D7": -15.222202096742365,
+          "D14": -7.646693170736629,
+          "D21": -2.324394340918934
+        }
+      },
+      {
+        "date": "2024-08-27",
+        "daily_percentile": 58.964143426294825,
+        "hourly_4h_percentile": 38.63080684596577,
+        "divergence_pct": 20.333336580329053,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 128.2451171875,
+        "forward_returns": {
+          "D1": -2.09665528886791,
+          "D3": -6.960247824067379,
+          "D5": -17.21745952727245,
+          "D7": -19.851916886227084,
+          "D14": -9.898768208919995,
+          "D21": -3.312080471433032
+        }
+      },
+      {
+        "date": "2024-09-03",
+        "daily_percentile": 5.179282868525896,
+        "hourly_4h_percentile": 1.2224938875305624,
+        "divergence_pct": 3.956788980995334,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 107.95379638671875,
+        "forward_returns": {
+          "D1": -1.6574038214183795,
+          "D3": -4.787041722380369,
+          "D5": 0.09258133729854734,
+          "D7": 10.324246698874617,
+          "D14": 7.657360004296909,
+          "D21": 10.055711349765218
+        }
+      },
+      {
+        "date": "2024-09-04",
+        "daily_percentile": 7.171314741035857,
+        "hourly_4h_percentile": 2.689486552567237,
+        "divergence_pct": 4.48182818846862,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 106.16456604003906,
+        "forward_returns": {
+          "D1": 0.9415242408985502,
+          "D3": 0.2447970212721362,
+          "D5": 10.074377648272726,
+          "D7": 12.145917824261554,
+          "D14": 13.812577064996967,
+          "D21": 15.676962504748392
+        }
+      },
+      {
+        "date": "2024-09-05",
+        "daily_percentile": 20.717131474103585,
+        "hourly_4h_percentile": 15.892420537897312,
+        "divergence_pct": 4.824710936206273,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 107.16413116455078,
+        "forward_returns": {
+          "D1": -4.085441653079968,
+          "D3": 0.8301381076484926,
+          "D5": 11.137198008545646,
+          "D7": 8.935722693163584,
+          "D14": 15.213662155440154,
+          "D21": 16.528955803544832
+        }
+      },
+      {
+        "date": "2024-09-06",
+        "daily_percentile": 11.952191235059761,
+        "hourly_4h_percentile": 11.7359413202934,
+        "divergence_pct": 0.21624991476636168,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 102.78600311279297,
+        "forward_returns": {
+          "D1": 3.539830825570589,
+          "D3": 13.692508525042403,
+          "D5": 15.832139964714443,
+          "D7": 12.418448814525318,
+          "D14": 20.6365963753808,
+          "D21": 24.215633377564604
+        }
+      },
+      {
+        "date": "2024-09-09",
+        "daily_percentile": 31.47410358565737,
+        "hourly_4h_percentile": 55.74572127139364,
+        "divergence_pct": -24.27161768573627,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 106.42445373535156,
+        "forward_returns": {
+          "D1": 1.5309335989434958,
+          "D3": 11.909630227138823,
+          "D5": 9.692854089957127,
+          "D7": 6.489803836273533,
+          "D14": 14.032480275306236,
+          "D21": 24.825162843693715
+        }
+      },
+      {
+        "date": "2024-09-10",
+        "daily_percentile": 43.02788844621514,
+        "hourly_4h_percentile": 77.01711491442543,
+        "divergence_pct": -33.9892264682103,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 108.05374145507812,
+        "forward_returns": {
+          "D1": 8.149874106992815,
+          "D3": 10.18519616855964,
+          "D5": 6.937926203962208,
+          "D7": 9.047266010582632,
+          "D14": 12.350040458044376,
+          "D21": 22.720955289977553
+        }
+      },
+      {
+        "date": "2024-09-24",
+        "daily_percentile": 74.10358565737052,
+        "hourly_4h_percentile": 81.90709046454768,
+        "divergence_pct": -7.803504807177163,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 120.82862854003906,
+        "forward_returns": {
+          "D1": 2.1841607602330004,
+          "D3": 0.438485216814799,
+          "D5": -3.2017995548469624,
+          "D7": 1.638118991617854,
+          "D14": 14.23017253626735,
+          "D21": 15.462886549116806
+        }
+      },
+      {
+        "date": "2024-09-25",
+        "daily_percentile": 77.68924302788844,
+        "hourly_4h_percentile": 85.81907090464547,
+        "divergence_pct": -8.129827876757034,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 123.46772003173828,
+        "forward_returns": {
+          "D1": 0.4291127054844246,
+          "D3": -1.6759828317842285,
+          "D5": -3.772971176644657,
+          "D7": 1.1416125687682355,
+          "D14": 6.550086228518648,
+          "D21": 13.683105544089935
+        }
+      },
+      {
+        "date": "2024-09-26",
+        "daily_percentile": 74.9003984063745,
+        "hourly_4h_percentile": 76.77261613691931,
+        "divergence_pct": -1.8722177305448042,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 123.9975357055664,
+        "forward_returns": {
+          "D1": -2.128341887346674,
+          "D3": -5.67559477388394,
+          "D5": -0.9593662062174046,
+          "D7": 2.9667920927137548,
+          "D14": 9.416305878349963,
+          "D21": 14.10835370699035
+        }
+      },
+      {
+        "date": "2024-10-04",
+        "daily_percentile": 70.91633466135458,
+        "hourly_4h_percentile": 76.77261613691931,
+        "divergence_pct": -5.856281475564728,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 124.87724304199219,
+        "forward_returns": {
+          "D1": 2.241434611993842,
+          "D3": 6.187949469419118,
+          "D5": 7.909061083547009,
+          "D7": 5.347426763710206,
+          "D14": 12.39993377285189,
+          "D21": 8.909701971723937
+        }
+      },
+      {
+        "date": "2024-10-07",
+        "daily_percentile": 78.48605577689243,
+        "hourly_4h_percentile": 80.68459657701712,
+        "divergence_pct": -2.1985408001246896,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 127.67628479003906,
+        "forward_returns": {
+          "D1": 4.047903570443023,
+          "D3": 5.551203343741595,
+          "D5": 8.103671000035483,
+          "D7": 6.263683324065217,
+          "D14": 10.820538726936825,
+          "D21": 9.544310874366712
+        }
+      },
+      {
+        "date": "2024-10-08",
+        "daily_percentile": 90.43824701195219,
+        "hourly_4h_percentile": 90.70904645476773,
+        "divergence_pct": -0.27079944281554447,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 132.84449768066406,
+        "forward_returns": {
+          "D1": -0.18059757432061785,
+          "D3": 1.4372915900201955,
+          "D5": -0.9707105261979043,
+          "D7": 3.040110855645195,
+          "D14": 5.741608438316281,
+          "D21": 9.57184373204203
+        }
+      },
+      {
+        "date": "2024-10-09",
+        "daily_percentile": 82.86852589641434,
+        "hourly_4h_percentile": 76.28361858190709,
+        "divergence_pct": 6.584907314507248,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 132.60458374023438,
+        "forward_returns": {
+          "D1": 1.6283533942267558,
+          "D3": 4.085957635425119,
+          "D5": 2.31435378960676,
+          "D7": 4.033175096952091,
+          "D14": 6.483230756236735,
+          "D21": 12.23522716053418
+        }
+      },
+      {
+        "date": "2024-10-10",
+        "daily_percentile": 85.2589641434263,
+        "hourly_4h_percentile": 74.57212713936431,
+        "divergence_pct": 10.686837004061985,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 134.76385498046875,
+        "forward_returns": {
+          "D1": -0.007416311174379686,
+          "D3": -2.3811227593116047,
+          "D5": 1.572575002117338,
+          "D7": 6.60188698130546,
+          "D14": 3.3602796413539915,
+          "D21": 9.50965841489766
+        }
+      },
+      {
+        "date": "2024-10-11",
+        "daily_percentile": 77.68924302788844,
+        "hourly_4h_percentile": 56.47921760391198,
+        "divergence_pct": 21.21002542397646,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 134.7538604736328,
+        "forward_returns": {
+          "D1": 2.4258231781782547,
+          "D3": 0.6824757913083124,
+          "D5": 2.3738825026505372,
+          "D7": 6.520768513646291,
+          "D14": -1.51335674796792,
+          "D21": 7.759633455320891
+        }
+      },
+      {
+        "date": "2024-10-14",
+        "daily_percentile": 82.86852589641434,
+        "hourly_4h_percentile": 68.21515892420538,
+        "divergence_pct": 14.653366972208957,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 138.0227508544922,
+        "forward_returns": {
+          "D1": -4.68603085813556,
+          "D3": -0.8256850205169197,
+          "D5": 4.084878390361402,
+          "D7": 1.07914921730341,
+          "D14": -1.933810102947786,
+          "D21": 7.402012435189853
+        }
+      },
+      {
+        "date": "2024-10-16",
+        "daily_percentile": 59.76095617529881,
+        "hourly_4h_percentile": 42.053789731051346,
+        "divergence_pct": 17.707166444247463,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 135.67352294921875,
+        "forward_returns": {
+          "D1": 0.8915481077433451,
+          "D3": 5.887139402800434,
+          "D5": 2.8293651239948314,
+          "D7": 4.2882528257324415,
+          "D14": 3.0872518697632634,
+          "D21": 8.134409267277732
+        }
+      },
+      {
+        "date": "2024-10-17",
+        "daily_percentile": 60.95617529880478,
+        "hourly_4h_percentile": 42.053789731051346,
+        "divergence_pct": 18.902385567753434,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 136.88311767578125,
+        "forward_returns": {
+          "D1": 0.7814266152344596,
+          "D3": 4.86380659323411,
+          "D5": 2.5414535114703707,
+          "D7": 2.6217921935815625,
+          "D14": 6.339019651820377,
+          "D21": 3.6880103518404095
+        }
+      },
+      {
+        "date": "2024-10-18",
+        "daily_percentile": 58.964143426294825,
+        "hourly_4h_percentile": 42.298288508557455,
+        "divergence_pct": 16.66585491773737,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 137.9527587890625,
+        "forward_returns": {
+          "D1": 4.13768716114995,
+          "D3": 1.1304329936315805,
+          "D5": 2.5652171604686025,
+          "D7": 2.355071501952466,
+          "D14": 7.884073571664318,
+          "D21": 1.5579581261630615
+        }
+      },
+      {
+        "date": "2024-10-21",
+        "daily_percentile": 80.47808764940238,
+        "hourly_4h_percentile": 75.79462102689487,
+        "divergence_pct": 4.68346662250751,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 143.6608123779297,
+        "forward_returns": {
+          "D1": -0.08350544426394269,
+          "D3": -2.2962935032615706,
+          "D5": -2.219745075786339,
+          "D7": -3.0408536206492753,
+          "D14": 2.7276922725599784,
+          "D21": 2.2962828818618997
+        }
+      },
+      {
+        "date": "2024-10-22",
+        "daily_percentile": 71.31474103585657,
+        "hourly_4h_percentile": 57.94621026894865,
+        "divergence_pct": 13.368530766907924,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 143.5408477783203,
+        "forward_returns": {
+          "D1": -2.806605611319035,
+          "D3": -1.4276780297590386,
+          "D5": -1.629642653686958,
+          "D7": -7.542308766374484,
+          "D14": 1.1630266650919596,
+          "D21": 1.6017806988832817
+        }
+      },
+      {
+        "date": "2024-10-30",
+        "daily_percentile": 25.099601593625497,
+        "hourly_4h_percentile": 14.425427872860636,
+        "divergence_pct": 10.67417372076486,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 139.29229736328125,
+        "forward_returns": {
+          "D1": -4.722259345840463,
+          "D3": -2.3611241956650764,
+          "D5": 4.499795150657371,
+          "D7": 5.949460271277496,
+          "D14": 5.504520926401035,
+          "D21": -0.7822506260502626
+        }
+      },
+      {
+        "date": "2024-10-31",
+        "daily_percentile": 3.187250996015936,
+        "hourly_4h_percentile": 2.2004889975550124,
+        "divergence_pct": 0.9867619984609237,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 132.7145538330078,
+        "forward_returns": {
+          "D1": 1.988552909136465,
+          "D3": 5.385658380186409,
+          "D5": 12.142226671990763,
+          "D7": 9.415480005302634,
+          "D14": 9.890025743939601,
+          "D21": 4.421516741264031
+        }
+      },
+      {
+        "date": "2024-11-01",
+        "daily_percentile": 15.139442231075698,
+        "hourly_4h_percentile": 14.425427872860636,
+        "divergence_pct": 0.7140143582150618,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 135.35365295410156,
+        "forward_returns": {
+          "D1": 0.48006112820453417,
+          "D3": 7.540625781731136,
+          "D5": 9.032474584120443,
+          "D7": 9.519919707228542,
+          "D14": 8.323487067355684,
+          "D21": 3.5893655592665885
+        }
+      },
+      {
+        "date": "2024-11-04",
+        "daily_percentile": 20.717131474103585,
+        "hourly_4h_percentile": 27.628361858190708,
+        "divergence_pct": -6.911230384087123,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 136.00343322753906,
+        "forward_returns": {
+          "D1": 2.837188006311142,
+          "D3": 9.430366759297893,
+          "D5": 6.7695591701268265,
+          "D7": 7.51193661569276,
+          "D14": 4.336629111172163,
+          "D21": 6.681363351849479
+        }
+      },
+      {
+        "date": "2024-11-05",
+        "daily_percentile": 39.8406374501992,
+        "hourly_4h_percentile": 61.61369193154034,
+        "divergence_pct": -21.773054481341134,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 139.8621063232422,
+        "forward_returns": {
+          "D1": 4.074054961579221,
+          "D3": 5.5178140351906935,
+          "D5": 5.989546370429943,
+          "D7": 4.896005379880419,
+          "D14": -2.780361298157985,
+          "D21": 3.688085199186597
+        }
+      },
+      {
+        "date": "2024-11-06",
+        "daily_percentile": 75.2988047808765,
+        "hourly_4h_percentile": 87.04156479217605,
+        "divergence_pct": -11.742760011299552,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 145.56016540527344,
+        "forward_returns": {
+          "D1": 2.245731427796893,
+          "D3": -0.24038121351263042,
+          "D5": 0.4532555453254927,
+          "D7": -2.492978878928942,
+          "D14": -5.968007945127962,
+          "D21": -2.1703076420386047
+        }
+      },
+      {
+        "date": "2024-11-07",
+        "daily_percentile": 83.26693227091634,
+        "hourly_4h_percentile": 88.99755501222494,
+        "divergence_pct": -5.7306227413085935,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 148.8290557861328,
+        "forward_returns": {
+          "D1": -0.8396334463541488,
+          "D3": -0.3963229806736135,
+          "D5": -1.4239781349792646,
+          "D7": -5.863808471506237,
+          "D14": -9.094595352452783,
+          "D21": -6.757431901723876
+        }
+      },
+      {
+        "date": "2024-11-15",
+        "daily_percentile": 18.326693227091635,
+        "hourly_4h_percentile": 8.312958435207824,
+        "divergence_pct": 10.013734791883811,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 141.93138122558594,
+        "forward_returns": {
+          "D1": -1.2889159570676711,
+          "D3": 2.7539196150345946,
+          "D5": -0.02112536371372542,
+          "D7": -3.5638757355577533,
+          "D14": 0.33092102823004677,
+          "D21": -8.156787826630108
+        }
+      },
+      {
+        "date": "2024-11-18",
+        "daily_percentile": 11.952191235059761,
+        "hourly_4h_percentile": 9.535452322738386,
+        "divergence_pct": 2.4167389123213745,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 140.1020050048828,
+        "forward_returns": {
+          "D1": 4.894766506293746,
+          "D3": 4.6521759255477635,
+          "D5": -2.94683188616518,
+          "D7": -3.4320348300564407,
+          "D14": -0.9492878516836445,
+          "D21": -8.01362489074765
+        }
+      },
+      {
+        "date": "2024-11-19",
+        "daily_percentile": 48.20717131474104,
+        "hourly_4h_percentile": 78.72860635696821,
+        "divergence_pct": -30.521435042227175,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 146.9596710205078,
+        "forward_returns": {
+          "D1": -0.7618509484174751,
+          "D3": -3.4419465424115003,
+          "D5": -6.863480151745138,
+          "D7": -5.958769820714016,
+          "D14": -8.115563366323164,
+          "D21": -11.101977552211062
+        }
+      },
+      {
+        "date": "2024-11-20",
+        "daily_percentile": 39.44223107569721,
+        "hourly_4h_percentile": 61.12469437652812,
+        "divergence_pct": -21.68246330083091,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 145.84005737304688,
+        "forward_returns": {
+          "D1": 0.5346537802630502,
+          "D3": -6.765372355529642,
+          "D5": -7.231485071733235,
+          "D7": -4.976347002973702,
+          "D14": -4.503674181875406,
+          "D21": -7.663803308176154
+        }
+      },
+      {
+        "date": "2024-11-21",
+        "daily_percentile": 42.62948207171315,
+        "hourly_4h_percentile": 65.52567237163814,
+        "divergence_pct": -22.89619029992499,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 146.6197967529297,
+        "forward_returns": {
+          "D1": -3.218118666337111,
+          "D3": -6.647583614106756,
+          "D5": -5.7407761054233735,
+          "D7": -4.370355530694281,
+          "D14": -6.354781386998997,
+          "D21": -4.766073031442286
+        }
+      },
+      {
+        "date": "2024-11-22",
+        "daily_percentile": 21.115537848605577,
+        "hourly_4h_percentile": 26.405867970660147,
+        "divergence_pct": -5.29033012205457,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 141.90139770507812,
+        "forward_returns": {
+          "D1": -4.177522809998225,
+          "D3": -4.65657309683698,
+          "D5": -2.3388407090589425,
+          "D7": 2.2472781233702444,
+          "D14": -5.417924330485557,
+          "D21": -1.2119273305984612
+        }
+      },
+      {
+        "date": "2024-11-25",
+        "daily_percentile": 3.187250996015936,
+        "hourly_4h_percentile": 7.579462102689487,
+        "divergence_pct": -4.3922111066735505,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 135.9734344482422,
+        "forward_returns": {
+          "D1": 0.6616650703528348,
+          "D3": 1.6394732220458508,
+          "D5": 3.1171941235451417,
+          "D7": 6.653436058513185,
+          "D14": -2.9487647785275906,
+          "D21": 2.881669099011286
+        }
+      },
+      {
+        "date": "2024-11-26",
+        "daily_percentile": 9.9601593625498,
+        "hourly_4h_percentile": 23.71638141809291,
+        "divergence_pct": -13.75622205554311,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 136.8731231689453,
+        "forward_returns": {
+          "D1": -1.1539648813945202,
+          "D3": 1.2489134757105225,
+          "D5": 6.003511436918818,
+          "D7": 4.038732159234937,
+          "D14": -4.762646908618917,
+          "D21": 0.0726300448477879
+        }
+      },
+      {
+        "date": "2024-11-27",
+        "daily_percentile": 9.56175298804781,
+        "hourly_4h_percentile": 30.073349633251834,
+        "divergence_pct": -20.511596645204023,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 135.2936553955078,
+        "forward_returns": {
+          "D1": 2.1501578112479436,
+          "D3": 3.6353034786144267,
+          "D5": 7.189313158756927,
+          "D7": 2.570984046317615,
+          "D14": -4.744420214952627,
+          "D21": 1.5955938039418749
+        }
+      },
+      {
+        "date": "2024-11-29",
+        "daily_percentile": 27.88844621513944,
+        "hourly_4h_percentile": 66.25916870415648,
+        "divergence_pct": -38.37072248901704,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "strong",
+        "daily_price": 138.2026824951172,
+        "forward_returns": {
+          "D1": 0.2748626487220074,
+          "D3": 4.98371967388338,
+          "D5": 3.037842276867453,
+          "D7": -2.293455265841704,
+          "D14": -5.469098736470923,
+          "D21": -2.857688276498027
+        }
+      },
+      {
+        "date": "2024-12-02",
+        "daily_percentile": 33.46613545816733,
+        "hourly_4h_percentile": 64.30317848410758,
+        "divergence_pct": -30.837043025940247,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 138.58255004882812,
+        "forward_returns": {
+          "D1": 1.175790391389886,
+          "D3": 4.645454939834703,
+          "D5": 0.13672979932275453,
+          "D7": 0.49742648929007593,
+          "D14": -2.8281972124209465,
+          "D21": -0.22395588003100153
+        }
+      },
+      {
+        "date": "2024-12-03",
+        "daily_percentile": 44.223107569721115,
+        "hourly_4h_percentile": 79.46210268948656,
+        "divergence_pct": -35.23899511976544,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "strong",
+        "daily_price": 140.2119903564453,
+        "forward_returns": {
+          "D1": 3.4792505288698816,
+          "D3": 1.5612585269693335,
+          "D5": -3.693638858831594,
+          "D7": -2.075115794184157,
+          "D14": -0.41380212479511513,
+          "D21": 3.0086627032757773
+        }
+      },
+      {
+        "date": "2024-12-05",
+        "daily_percentile": 72.11155378486056,
+        "hourly_4h_percentile": 84.3520782396088,
+        "divergence_pct": -12.24052445474824,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 145.0203399658203,
+        "forward_returns": {
+          "D1": -1.806145230882028,
+          "D3": -6.886809238121883,
+          "D5": -5.321950540469422,
+          "D7": -9.003180011727629,
+          "D14": -3.536470177512685,
+          "D21": -3.391710883767163
+        }
+      },
+      {
+        "date": "2024-12-09",
+        "daily_percentile": 25.099601593625497,
+        "hourly_4h_percentile": 21.76039119804401,
+        "divergence_pct": 3.3392103955814854,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 138.77203369140625,
+        "forward_returns": {
+          "D1": -2.6943237740698733,
+          "D3": -1.0590062371324205,
+          "D5": -4.905985597550366,
+          "D7": -7.132040634383352,
+          "D14": -0.9509416834056039,
+          "D21": -2.089171069663154
+        }
+      },
+      {
+        "date": "2024-12-10",
+        "daily_percentile": 9.56175298804781,
+        "hourly_4h_percentile": 8.557457212713937,
+        "divergence_pct": 1.0042957753338726,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 135.03306579589844,
+        "forward_returns": {
+          "D1": 3.139105626775307,
+          "D3": -0.6070945938692507,
+          "D5": -3.4648744503519846,
+          "D7": -3.2501850098880958,
+          "D14": -0.5774771917188337,
+          "D21": -1.362253598412666
+        }
+      },
+      {
+        "date": "2024-12-11",
+        "daily_percentile": 36.65338645418327,
+        "hourly_4h_percentile": 56.234718826405874,
+        "divergence_pct": -19.581332372222604,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 139.2718963623047,
+        "forward_returns": {
+          "D1": -1.4141167130822474,
+          "D3": -5.2472888271840485,
+          "D5": -7.465354299393157,
+          "D7": -3.309163048135799,
+          "D14": -0.7178117833673725,
+          "D21": -5.419573734817973
+        }
+      },
+      {
+        "date": "2024-12-12",
+        "daily_percentile": 28.68525896414343,
+        "hourly_4h_percentile": 42.053789731051346,
+        "divergence_pct": -13.368530766907917,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 137.30242919921875,
+        "forward_returns": {
+          "D1": -2.2498814214138463,
+          "D3": -5.060427291878467,
+          "D5": -4.8492862836026385,
+          "D7": 1.6965183904607217,
+          "D14": 5.191508306279924,
+          "D21": -0.8009111102912025
+        }
+      },
+      {
+        "date": "2024-12-13",
+        "daily_percentile": 18.725099601593627,
+        "hourly_4h_percentile": 24.449877750611247,
+        "divergence_pct": -5.72477814901762,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 134.21328735351562,
+        "forward_returns": {
+          "D1": -1.6759813374607524,
+          "D3": -3.97764751866857,
+          "D5": 0.3351939936801607,
+          "D7": 4.446928205068734,
+          "D14": 11.307257712258645,
+          "D21": -0.5065143576447051
+        }
+      },
+      {
+        "date": "2024-12-16",
+        "daily_percentile": 11.553784860557768,
+        "hourly_4h_percentile": 23.227383863080682,
+        "divergence_pct": -11.673599002522915,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 131.96389770507812,
+        "forward_returns": {
+          "D1": -1.2196957906365435,
+          "D3": -1.0000131816503055,
+          "D5": 5.810598648117704,
+          "D7": 6.007583380297787,
+          "D14": 6.16666508641035,
+          "D21": 4.325766680626875
+        }
+      },
+      {
+        "date": "2024-12-17",
+        "daily_percentile": 10.358565737051793,
+        "hourly_4h_percentile": 25.183374083129586,
+        "divergence_pct": -14.824808346077793,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 130.35433959960938,
+        "forward_returns": {
+          "D1": -1.135047551757007,
+          "D3": 3.3054692655961615,
+          "D5": 7.538925297281884,
+          "D7": 5.077080364494413,
+          "D14": 7.454562864001013,
+          "D21": 8.00675227223724
+        }
+      },
+      {
+        "date": "2024-12-18",
+        "daily_percentile": 9.163346613545817,
+        "hourly_4h_percentile": 27.628361858190708,
+        "divergence_pct": -18.46501524464489,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 128.874755859375,
+        "forward_returns": {
+          "D1": 1.3730272168768431,
+          "D3": 8.346890149297836,
+          "D5": 8.548596626827386,
+          "D7": 6.655792797861593,
+          "D14": 5.430150074544726,
+          "D21": 14.08735514926942
+        }
+      },
+      {
+        "date": "2024-12-19",
+        "daily_percentile": 30.278884462151396,
+        "hourly_4h_percentile": 51.1002444987775,
+        "divergence_pct": -20.821360036626103,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 130.6442413330078,
+        "forward_returns": {
+          "D1": 3.0762327198130324,
+          "D3": 7.300294642509875,
+          "D5": 4.843912584366494,
+          "D7": 2.7624939835207085,
+          "D14": 1.9513540275693408,
+          "D21": 12.65689710731297
+        }
+      },
+      {
+        "date": "2024-12-20",
+        "daily_percentile": 70.5179282868526,
+        "hourly_4h_percentile": 78.72860635696821,
+        "divergence_pct": -8.21067807011562,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 134.6631622314453,
+        "forward_returns": {
+          "D1": 3.689671211751233,
+          "D3": 3.882707470636926,
+          "D5": 2.0712645540625685,
+          "D7": 2.6800380950870117,
+          "D14": -2.182637727846748,
+          "D21": 5.879742127308063
+        }
+      },
+      {
+        "date": "2024-12-23",
+        "daily_percentile": 95.2191235059761,
+        "hourly_4h_percentile": 90.2200488997555,
+        "divergence_pct": 4.999074606220603,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 139.6317901611328,
+        "forward_returns": {
+          "D1": 0.39379694410686117,
+          "D3": -1.9044774677575704,
+          "D5": -3.8519233444458956,
+          "D7": 3.4366859073781564,
+          "D14": -2.4557669626044776,
+          "D21": -15.214422960604246
+        }
+      },
+      {
+        "date": "2024-12-24",
+        "daily_percentile": 94.42231075697211,
+        "hourly_4h_percentile": 89.97555012224939,
+        "divergence_pct": 4.446760634722722,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 140.18165588378906,
+        "forward_returns": {
+          "D1": -0.20681521441567874,
+          "D3": -1.9469475434978678,
+          "D5": -1.3621394271980503,
+          "D7": 6.568244394627376,
+          "D14": -4.742544991833519,
+          "D21": -8.008842983167963
+        }
+      },
+      {
+        "date": "2024-12-26",
+        "daily_percentile": 89.64143426294821,
+        "hourly_4h_percentile": 77.99511002444987,
+        "divergence_pct": 11.646324238498337,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 139.89173889160156,
+        "forward_returns": {
+          "D1": -2.0867599009374516,
+          "D3": -4.03058700723008,
+          "D5": 3.244478451823163,
+          "D7": 0.1500663452933093,
+          "D14": -1.5865060272503784,
+          "D21": -11.598662513791258
+        }
+      },
+      {
+        "date": "2025-01-02",
+        "daily_percentile": 70.5179282868526,
+        "hourly_4h_percentile": 72.12713936430319,
+        "divergence_pct": -1.6092110774505954,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 138.27218627929688,
+        "forward_returns": {
+          "D1": 4.453758996826895,
+          "D3": 1.3231027016027408,
+          "D5": -1.7352280549815302,
+          "D7": -4.735755764358673,
+          "D14": 3.116188980430601,
+          "D21": -14.214451291497522
+        }
+      },
+      {
+        "date": "2025-01-03",
+        "daily_percentile": 95.61752988047809,
+        "hourly_4h_percentile": 93.8875305623472,
+        "divergence_pct": 1.7299993181308935,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 144.4304962158203,
+        "forward_returns": {
+          "D1": 3.4332315908144118,
+          "D3": -3.0179294117299027,
+          "D5": -7.780159670006448,
+          "D7": -5.696676008412538,
+          "D14": -18.031425411950497,
+          "D21": -13.59452223715497
+        }
+      },
+      {
+        "date": "2025-01-06",
+        "daily_percentile": 99.60159362549801,
+        "hourly_4h_percentile": 96.57701711491443,
+        "divergence_pct": 3.024576510583586,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 149.38912963867188,
+        "forward_returns": {
+          "D1": -6.216958589699306,
+          "D3": -9.047700566046258,
+          "D5": -11.824940967477616,
+          "D7": -10.613658365785305,
+          "D14": -13.678640818943844,
+          "D21": -13.886099865929424
+        }
+      },
+      {
+        "date": "2025-01-07",
+        "daily_percentile": 63.745019920318725,
+        "hourly_4h_percentile": 40.831295843520785,
+        "divergence_pct": 22.91372407679794,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 140.10166931152344,
+        "forward_returns": {
+          "D1": -0.02140125856826547,
+          "D3": -4.930773735547755,
+          "D5": -2.7829151084499237,
+          "D7": -1.733970266735918,
+          "D14": -11.731124389451498,
+          "D21": -7.349791209757061
+        }
+      },
+      {
+        "date": "2025-01-13",
+        "daily_percentile": 23.107569721115535,
+        "hourly_4h_percentile": 20.537897310513447,
+        "divergence_pct": 2.569672410602088,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 133.19357299804688,
+        "forward_returns": {
+          "D1": -1.1033713698769154,
+          "D3": 0.2551960860463165,
+          "D5": 5.704416120382527,
+          "D7": 10.50063844845912,
+          "D14": -12.437137514672402,
+          "D21": -1.568718156337734
+        }
+      },
+      {
+        "date": "2025-01-14",
+        "daily_percentile": 21.91235059760956,
+        "hourly_4h_percentile": 28.117359413202937,
+        "divergence_pct": -6.205008815593377,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 131.7239532470703,
+        "forward_returns": {
+          "D1": 3.4001451001029803,
+          "D3": 4.5158034121807855,
+          "D5": 11.619638486904549,
+          "D7": 8.2422789450437,
+          "D14": -9.94989841486883,
+          "D21": 2.6791159759429917
+        }
+      },
+      {
+        "date": "2025-01-21",
+        "daily_percentile": 84.06374501992032,
+        "hourly_4h_percentile": 85.33007334963325,
+        "divergence_pct": -1.266328329712934,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 140.79148864746094,
+        "forward_returns": {
+          "D1": 4.430886999993833,
+          "D3": 1.2710429308356863,
+          "D5": -8.407299040816586,
+          "D7": -11.489023791385867,
+          "D14": -5.155148890023975,
+          "D21": -0.5112545249433942
+        }
+      },
+      {
+        "date": "2025-01-22",
+        "daily_percentile": 97.21115537848605,
+        "hourly_4h_percentile": 96.57701711491443,
+        "divergence_pct": 0.6341382635716286,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 147.02980041503906,
+        "forward_returns": {
+          "D1": 0.10198484912167238,
+          "D3": -19.480527971630636,
+          "D5": -15.890405983138823,
+          "D7": -18.35861160709421,
+          "D14": -9.702861584651734,
+          "D21": -8.594561188574412
+        }
+      },
+      {
+        "date": "2025-01-23",
+        "daily_percentile": 94.42231075697211,
+        "hourly_4h_percentile": 87.53056234718827,
+        "divergence_pct": 6.891748409783844,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 147.17974853515625,
+        "forward_returns": {
+          "D1": -3.124573638556638,
+          "D3": -12.382832246755305,
+          "D5": -15.330796348832399,
+          "D7": -20.758048356282032,
+          "D14": -10.922431557195367,
+          "D21": -11.506585612548436
+        }
+      },
+      {
+        "date": "2025-01-24",
+        "daily_percentile": 67.72908366533864,
+        "hourly_4h_percentile": 46.69926650366748,
+        "divergence_pct": 21.029817161671154,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 142.5810089111328,
+        "forward_returns": {
+          "D1": -16.96817134156854,
+          "D3": -13.266030898989733,
+          "D5": -15.811249108938185,
+          "D7": -16.806905339778556,
+          "D14": -5.139547155991819,
+          "D21": -11.211615047598034
+        }
+      },
+      {
+        "date": "2025-01-27",
+        "daily_percentile": 0.0,
+        "hourly_4h_percentile": 0.24449877750611246,
+        "divergence_pct": -0.24449877750611246,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 118.38761901855469,
+        "forward_returns": {
+          "D1": 8.925855796323345,
+          "D3": 5.260940336148634,
+          "D5": -1.4862313049008091,
+          "D7": 5.4129319645902285,
+          "D14": 17.25214860160613,
+          "D21": 10.859658463823152
+        }
+      },
+      {
+        "date": "2025-01-28",
+        "daily_percentile": 13.147410358565736,
+        "hourly_4h_percentile": 14.91442542787286,
+        "divergence_pct": -1.7670150693071243,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 128.95472717285156,
+        "forward_returns": {
+          "D1": -4.101097397439435,
+          "D3": -6.915261625688352,
+          "D5": -8.016126037828819,
+          "D7": -0.24033338788195246,
+          "D14": 8.07039066866071,
+          "D21": -6.853240678783557
+        }
+      },
+      {
+        "date": "2025-01-29",
+        "daily_percentile": 5.179282868525896,
+        "hourly_4h_percentile": 12.469437652811736,
+        "divergence_pct": -7.29015478428584,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 123.66616821289062,
+        "forward_returns": {
+          "D1": 0.7679972795649359,
+          "D3": -5.6911790435686616,
+          "D5": 0.9135013188829033,
+          "D7": 4.963621830899201,
+          "D14": 12.554570955259159,
+          "D21": 0.9862625925617818
+        }
+      },
+      {
+        "date": "2025-01-30",
+        "daily_percentile": 17.131474103585656,
+        "hourly_4h_percentile": 34.71882640586797,
+        "divergence_pct": -17.587352302282316,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 124.61592102050781,
+        "forward_returns": {
+          "D1": -3.674290229414623,
+          "D3": -4.813483911564697,
+          "D5": 3.233041857494512,
+          "D7": 7.156033265787731,
+          "D14": 12.402720811223066,
+          "D21": -8.49579438971968
+        }
+      },
+      {
+        "date": "2025-01-31",
+        "daily_percentile": 12.350597609561753,
+        "hourly_4h_percentile": 21.515892420537895,
+        "divergence_pct": -9.165294810976143,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 120.03717041015625,
+        "forward_returns": {
+          "D1": -2.840008003298944,
+          "D3": 3.9643469302975687,
+          "D5": 8.136911835068993,
+          "D7": 10.60215926361514,
+          "D14": 11.959681983272397,
+          "D21": -3.398020734340812
+        }
+      },
+      {
+        "date": "2025-02-03",
+        "daily_percentile": 9.163346613545817,
+        "hourly_4h_percentile": 24.205378973105134,
+        "divergence_pct": -15.042032359559316,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 116.62810516357422,
+        "forward_returns": {
+          "D1": 1.7058054270649547,
+          "D3": 10.30343477481277,
+          "D5": 14.49511041606879,
+          "D7": 12.41213346600658,
+          "D14": 11.67495569181507,
+          "D21": 0.5486018251577018
+        }
+      },
+      {
+        "date": "2025-02-04",
+        "daily_percentile": 24.302788844621514,
+        "hourly_4h_percentile": 50.36674816625917,
+        "divergence_pct": -26.063959321637657,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 118.6175537109375,
+        "forward_returns": {
+          "D1": 5.2085938263791265,
+          "D3": 9.431096051825904,
+          "D5": 11.925847599347538,
+          "D7": 14.024431031732565,
+          "D14": 6.7256667335586995,
+          "D21": -6.809944273783975
+        }
+      },
+      {
+        "date": "2025-02-07",
+        "daily_percentile": 74.5019920318725,
+        "hourly_4h_percentile": 86.3080684596577,
+        "divergence_pct": -11.8060764277852,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 129.8044891357422,
+        "forward_returns": {
+          "D1": 2.872773254830485,
+          "D3": 1.0012381761699052,
+          "D5": 6.939311499756617,
+          "D7": 7.23198093963382,
+          "D14": -3.789274006517318,
+          "D21": -16.2353660871858
+        }
+      },
+      {
+        "date": "2025-02-10",
+        "daily_percentile": 86.85258964143426,
+        "hourly_4h_percentile": 88.99755501222494,
+        "divergence_pct": -2.144965370790672,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 133.53347778320312,
+        "forward_returns": {
+          "D1": -0.5764662191115599,
+          "D3": 1.2877017568918792,
+          "D5": 4.364747893158127,
+          "D7": 4.896306241965442,
+          "D14": -14.606576203399513,
+          "D21": -13.340831309812884
+        }
+      },
+      {
+        "date": "2025-02-11",
+        "daily_percentile": 78.88446215139442,
+        "hourly_4h_percentile": 77.26161369193154,
+        "divergence_pct": 1.6228484594628725,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 132.76370239257812,
+        "forward_returns": {
+          "D1": -1.2500112058635549,
+          "D3": 4.555706473954935,
+          "D5": 4.841852509688183,
+          "D7": 1.2273926012797531,
+          "D14": -12.658143467694128,
+          "D21": -12.958868619237629
+        }
+      },
+      {
+        "date": "2025-02-13",
+        "daily_percentile": 84.06374501992032,
+        "hourly_4h_percentile": 77.01711491442543,
+        "divergence_pct": 7.046630105494884,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 135.25299072265625,
+        "forward_returns": {
+          "D1": 2.631391909241265,
+          "D3": 2.912271518083376,
+          "D5": -0.6356654038723208,
+          "D7": -6.4010530305936175,
+          "D14": -18.271852020658987,
+          "D21": -11.640912506176715
+        }
+      },
+      {
+        "date": "2025-02-14",
+        "daily_percentile": 92.03187250996015,
+        "hourly_4h_percentile": 86.55256723716381,
+        "divergence_pct": 5.4793052727963385,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 138.81202697753906,
+        "forward_returns": {
+          "D1": 0.3961115443953167,
+          "D3": 0.9074565373794252,
+          "D5": -6.172118078284661,
+          "D7": -5.451917268913409,
+          "D14": -18.84047098085836,
+          "D21": -16.859468066220483
+        }
+      },
+      {
+        "date": "2025-02-18",
+        "daily_percentile": 88.44621513944223,
+        "hourly_4h_percentile": 73.83863080684596,
+        "divergence_pct": 14.607584332596275,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 139.36187744140625,
+        "forward_returns": {
+          "D1": -0.12195041836285947,
+          "D3": -3.565281466996306,
+          "D5": -9.160684840614808,
+          "D7": -13.80917682920153,
+          "D14": -23.25681413564986,
+          "D21": -15.688081530938703
+        }
+      },
+      {
+        "date": "2025-02-19",
+        "daily_percentile": 82.07171314741036,
+        "hourly_4h_percentile": 56.234718826405874,
+        "divergence_pct": 25.83699432100449,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 139.19192504882812,
+        "forward_returns": {
+          "D1": 0.632048692392817,
+          "D3": -6.428203561423807,
+          "D5": -5.709968404142829,
+          "D7": -10.277955186107734,
+          "D14": -21.884653086872053,
+          "D21": -14.859655942579774
+        }
+      },
+      {
+        "date": "2025-02-20",
+        "daily_percentile": 80.0796812749004,
+        "hourly_4h_percentile": 55.012224938875306,
+        "divergence_pct": 25.06745633602509,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 140.07168579101562,
+        "forward_returns": {
+          "D1": -4.053961017188068,
+          "D3": -9.621009880674158,
+          "D5": -14.245945799324556,
+          "D7": -18.59253499391813,
+          "D14": -17.38587201508366,
+          "D21": -15.986850605104419
+        }
+      },
+      {
+        "date": "2025-02-25",
+        "daily_percentile": 13.94422310756972,
+        "hourly_4h_percentile": 1.7114914425427872,
+        "divergence_pct": 12.232731665026932,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 126.59537506103516,
+        "forward_returns": {
+          "D1": 3.6721207580809656,
+          "D3": -1.350391900637793,
+          "D5": -8.40243380550324,
+          "D7": -12.682620237111685,
+          "D14": -5.598203446985128,
+          "D21": -10.155203584813432
+        }
+      },
+      {
+        "date": "2025-02-27",
+        "daily_percentile": 3.5856573705179287,
+        "hourly_4h_percentile": 0.9779951100244498,
+        "divergence_pct": 2.6076622604934787,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 120.11714935302734,
+        "forward_returns": {
+          "D1": 3.970034289263946,
+          "D3": -3.4623423089247707,
+          "D5": -7.973370164307092,
+          "D7": -10.961303023787805,
+          "D14": -2.1799359057215195,
+          "D21": -8.714039860912049
+        }
+      },
+      {
+        "date": "2025-02-28",
+        "daily_percentile": 25.89641434262948,
+        "hourly_4h_percentile": 19.070904645476773,
+        "divergence_pct": 6.825509697152707,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 124.8858413696289,
+        "forward_returns": {
+          "D1": -8.693565785207769,
+          "D3": -6.099900684444659,
+          "D5": -9.790264387575153,
+          "D7": -12.936283301210693,
+          "D14": -5.106549640030744,
+          "D21": -13.232494984280386
+        }
+      },
+      {
+        "date": "2025-03-03",
+        "daily_percentile": 2.788844621513944,
+        "hourly_4h_percentile": 2.2004889975550124,
+        "divergence_pct": 0.5883556239589316,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 114.02880859375,
+        "forward_returns": {
+          "D1": 1.6920933409269034,
+          "D3": -3.059791847763249,
+          "D5": -6.20725942166136,
+          "D7": 1.4822510180661164,
+          "D14": 3.200792935413288,
+          "D21": -3.419132524161672
+        }
+      },
+      {
+        "date": "2025-03-04",
+        "daily_percentile": 15.936254980079681,
+        "hourly_4h_percentile": 14.425427872860636,
+        "divergence_pct": 1.5108271072190451,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 115.95828247070312,
+        "forward_returns": {
+          "D1": 1.1294118699767708,
+          "D3": -2.845070730193089,
+          "D5": -6.233299760692956,
+          "D7": -0.34430817420542104,
+          "D14": 4.682449053496307,
+          "D21": -4.793384830096736
+        }
+      },
+      {
+        "date": "2025-03-05",
+        "daily_percentile": 26.294820717131472,
+        "hourly_4h_percentile": 42.54278728606357,
+        "divergence_pct": -16.2479665689321,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 117.26792907714844,
+        "forward_returns": {
+          "D1": -5.7374294283181415,
+          "D3": -8.797959109054187,
+          "D5": -1.3208447691694936,
+          "D7": 3.7350276912811564,
+          "D14": 2.8994878645138167,
+          "D21": -13.205994947998578
+        }
+      },
+      {
+        "date": "2025-03-06",
+        "daily_percentile": 10.756972111553784,
+        "hourly_4h_percentile": 13.93643031784841,
+        "divergence_pct": -3.179458206294626,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 110.53976440429688,
+        "forward_returns": {
+          "D1": 1.9173398134321173,
+          "D3": -1.6369758765954145,
+          "D5": 4.540686555865592,
+          "D7": 8.11340973511161,
+          "D14": 2.894517287579501,
+          "D21": -14.697769318753107
+        }
+      },
+      {
+        "date": "2025-03-07",
+        "daily_percentile": 27.88844621513944,
+        "hourly_4h_percentile": 55.012224938875306,
+        "divergence_pct": -27.123778723735867,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 112.65918731689453,
+        "forward_returns": {
+          "D1": -5.067001479365574,
+          "D3": 2.7159919452624637,
+          "D5": 7.978693614213017,
+          "D7": 2.440875321209246,
+          "D14": -1.1090196604265135,
+          "D21": -13.3472567740485
+        }
+      },
+      {
+        "date": "2025-03-10",
+        "daily_percentile": 17.52988047808765,
+        "hourly_4h_percentile": 30.80684596577017,
+        "divergence_pct": -13.276965487682517,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 106.95074462890625,
+        "forward_returns": {
+          "D1": 1.6638598489625789,
+          "D3": 8.048830353122582,
+          "D5": 11.741445863990997,
+          "D7": 9.862416473156998,
+          "D14": 2.5239173968102158,
+          "D21": -9.974891298827071
+        }
+      },
+      {
+        "date": "2025-03-11",
+        "daily_percentile": 31.872509960159363,
+        "hourly_4h_percentile": 60.63569682151589,
+        "divergence_pct": -28.76318686135653,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 108.73025512695312,
+        "forward_returns": {
+          "D1": 6.4276007031404125,
+          "D3": 11.880468374819975,
+          "D5": 6.142542829901609,
+          "D7": 8.993107528671374,
+          "D14": -0.34022402707029054,
+          "D21": 5.131048735107879
+        }
+      },
+      {
+        "date": "2025-03-14",
+        "daily_percentile": 86.05577689243027,
+        "hourly_4h_percentile": 96.57701711491443,
+        "divergence_pct": -10.521240222484153,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 121.64791870117188,
+        "forward_returns": {
+          "D1": -1.7588548274165672,
+          "D3": -3.4108649454274165,
+          "D5": -3.2629280467738497,
+          "D7": -0.8054558285306768,
+          "D14": -16.331053277102093,
+          "D21": -9.007976099297599
+        }
+      },
+      {
+        "date": "2025-03-17",
+        "daily_percentile": 75.2988047808765,
+        "hourly_4h_percentile": 83.37408312958435,
+        "divergence_pct": -8.075278348707855,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 119.50830841064453,
+        "forward_returns": {
+          "D1": -3.4300969095567235,
+          "D3": -0.836615074903635,
+          "D5": 1.5728291907537217,
+          "D7": -4.8272387859368155,
+          "D14": -21.099305913812472,
+          "D21": -6.132355493832331
+        }
+      },
+      {
+        "date": "2025-03-20",
+        "daily_percentile": 70.5179282868526,
+        "hourly_4h_percentile": 71.88264058679707,
+        "divergence_pct": -1.3647122999444719,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 118.50848388671875,
+        "forward_returns": {
+          "D1": -0.7002445866722162,
+          "D3": 1.8223290790325475,
+          "D5": -5.990042968764087,
+          "D7": -8.563230985304715,
+          "D14": -3.54339726715982,
+          "D21": -18.240100008085935
+        }
+      },
+      {
+        "date": "2025-03-24",
+        "daily_percentile": 81.67330677290838,
+        "hourly_4h_percentile": 82.64058679706602,
+        "divergence_pct": -0.9672800241576454,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 121.38796997070312,
+        "forward_returns": {
+          "D1": -0.5930336599004327,
+          "D3": -8.220085724176718,
+          "D5": -10.732234256434904,
+          "D7": -9.051979552704736,
+          "D14": -8.631912734206026,
+          "D21": -15.402357829678447
+        }
+      },
+      {
+        "date": "2025-03-25",
+        "daily_percentile": 74.9003984063745,
+        "hourly_4h_percentile": 71.14914425427872,
+        "divergence_pct": 3.7512541520957825,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 120.66809844970703,
+        "forward_returns": {
+          "D1": -5.741982797521206,
+          "D3": -9.130835334813803,
+          "D5": -8.733116766476723,
+          "D7": -15.651664694112222,
+          "D14": -8.269124415338725,
+          "D21": -11.815404057950929
+        }
+      },
+      {
+        "date": "2025-04-03",
+        "daily_percentile": 16.334661354581673,
+        "hourly_4h_percentile": 10.757946210268948,
+        "divergence_pct": 5.576715144312725,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 101.78153228759766,
+        "forward_returns": {
+          "D1": -7.357569976228396,
+          "D3": -5.402756330267,
+          "D5": 5.667967122287121,
+          "D7": 8.752443367140383,
+          "D14": 4.548116595602236,
+          "D21": 11.807460907812327
+        }
+      },
+      {
+        "date": "2025-04-04",
+        "daily_percentile": 1.593625498007968,
+        "hourly_4h_percentile": 4.156479217603912,
+        "divergence_pct": -2.5628537195959438,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 94.29288482666016,
+        "forward_returns": {
+          "D1": 3.5309042518029354,
+          "D3": 21.227871771513218,
+          "D5": 17.622731064910013,
+          "D7": 18.96935203590342,
+          "D14": 17.70756694813409,
+          "D21": 20.390209461697097
+        }
+      },
+      {
+        "date": "2025-04-07",
+        "daily_percentile": 17.928286852589643,
+        "hourly_4h_percentile": 32.27383863080684,
+        "divergence_pct": -14.3455517782172,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 97.62227630615234,
+        "forward_returns": {
+          "D1": -1.372383689419454,
+          "D3": 10.170014615240763,
+          "D5": 13.38590683149381,
+          "D7": 7.015573464737379,
+          "D14": 11.358052922630035,
+          "D21": 19.889395896869445
+        }
+      },
+      {
+        "date": "2025-04-08",
+        "daily_percentile": 22.709163346613543,
+        "hourly_4h_percentile": 38.386308068459655,
+        "divergence_pct": -15.677144721846112,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 96.28252410888672,
+        "forward_returns": {
+          "D1": 18.72274700448331,
+          "D3": 15.192105067352513,
+          "D5": 16.510898662537542,
+          "D7": 5.389398351482244,
+          "D14": 13.208720514823247,
+          "D21": 21.87955207087702
+        }
+      },
+      {
+        "date": "2025-04-09",
+        "daily_percentile": 94.82071713147411,
+        "hourly_4h_percentile": 99.51100244498777,
+        "divergence_pct": -4.690285313513655,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 114.30925750732422,
+        "forward_returns": {
+          "D1": -5.912715715673689,
+          "D3": -3.166282702706702,
+          "D5": -8.606668351716372,
+          "D7": -15.236595862319735,
+          "D14": -4.731923920740011,
+          "D21": 2.0292078693467497
+        }
+      },
+      {
+        "date": "2025-04-10",
+        "daily_percentile": 74.9003984063745,
+        "hourly_4h_percentile": 84.84107579462102,
+        "divergence_pct": -9.940677388246513,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 107.55047607421875,
+        "forward_returns": {
+          "D1": 3.1235475484746367,
+          "D3": 4.304172504847892,
+          "D5": -5.6521397395277395,
+          "D7": -8.069168047116326,
+          "D14": 3.755695596237918,
+          "D21": 14.344155888376807
+        }
+      },
+      {
+        "date": "2025-04-11",
+        "daily_percentile": 83.26693227091634,
+        "hourly_4h_percentile": 87.53056234718827,
+        "divergence_pct": -4.263630076271923,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 110.90986633300781,
+        "forward_returns": {
+          "D1": -0.19832597495882398,
+          "D3": -5.805459629097198,
+          "D5": -12.63859464333449,
+          "D7": -7.410076426112411,
+          "D14": 3.2182518505311064,
+          "D21": 17.127918499725325
+        }
+      },
+      {
+        "date": "2025-04-14",
+        "daily_percentile": 78.88446215139442,
+        "hourly_4h_percentile": 78.72860635696821,
+        "divergence_pct": 0.155855794426202,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 110.68990325927734,
+        "forward_returns": {
+          "D1": 1.3458597316427623,
+          "D3": -8.328067973560326,
+          "D5": -10.67654364759817,
+          "D7": -3.8659607465964196,
+          "D14": 2.809148416425389,
+          "D21": 22.247310462039536
+        }
+      },
+      {
+        "date": "2025-04-15",
+        "daily_percentile": 81.67330677290838,
+        "hourly_4h_percentile": 77.26161369193154,
+        "divergence_pct": 4.411693080976832,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 112.17963409423828,
+        "forward_returns": {
+          "D1": -6.871653075105577,
+          "D3": -13.627443439226383,
+          "D5": -8.458107121863756,
+          "D7": -1.06059675553124,
+          "D14": 1.19430542528709,
+          "D21": 20.169340738046017
+        }
+      },
+      {
+        "date": "2025-04-21",
+        "daily_percentile": 27.88844621513944,
+        "hourly_4h_percentile": 20.293398533007334,
+        "divergence_pct": 7.595047682132105,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 96.89241790771484,
+        "forward_returns": {
+          "D1": 2.043121184659724,
+          "D3": 9.823531445132216,
+          "D5": 12.196876144449508,
+          "D7": 12.392933068753464,
+          "D14": 20.369408127618183,
+          "D21": 38.66474202951318
+        }
+      },
+      {
+        "date": "2025-04-24",
+        "daily_percentile": 80.87649402390437,
+        "hourly_4h_percentile": 80.440097799511,
+        "divergence_pct": 0.436396224393377,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 106.41067504882812,
+        "forward_returns": {
+          "D1": 4.303314008428782,
+          "D3": 2.433532700577734,
+          "D5": 4.867058231391241,
+          "D7": 6.943543842391375,
+          "D14": 27.163397493163632,
+          "D21": 23.35808813934581
+        }
+      },
+      {
+        "date": "2025-04-25",
+        "daily_percentile": 94.02390438247012,
+        "hourly_4h_percentile": 88.26405867970661,
+        "divergence_pct": 5.7598457027635135,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 110.98986053466797,
+        "forward_returns": {
+          "D1": -2.053876282396694,
+          "D3": -1.8827216440193917,
+          "D5": 3.1438589139712647,
+          "D7": 2.2790739653510084,
+          "D14": 21.45751520364474,
+          "D21": 22.06106231633218
+        }
+      },
+      {
+        "date": "2025-04-28",
+        "daily_percentile": 81.27490039840637,
+        "hourly_4h_percentile": 70.90464547677261,
+        "divergence_pct": 10.370254921633759,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 108.71026611328125,
+        "forward_returns": {
+          "D1": 0.2667158495072375,
+          "D3": 2.6487640565512782,
+          "D5": 4.68132494979252,
+          "D7": 7.661181881625434,
+          "D14": 24.52865040825687,
+          "D21": 23.986024999031507
+        }
+      },
+      {
+        "date": "2025-04-29",
+        "daily_percentile": 78.08764940239044,
+        "hourly_4h_percentile": 65.03667481662592,
+        "divergence_pct": 13.050974585764521,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 109.00021362304688,
+        "forward_returns": {
+          "D1": -0.09172754071639089,
+          "D3": 5.026606236380848,
+          "D5": 4.146035844365126,
+          "D7": 7.659155157502595,
+          "D14": 24.353329587237972,
+          "D21": 27.673831564017213
+        }
+      },
+      {
+        "date": "2025-04-30",
+        "daily_percentile": 73.30677290836654,
+        "hourly_4h_percentile": 61.12469437652812,
+        "divergence_pct": 12.182078531838421,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 108.90023040771484,
+        "forward_returns": {
+          "D1": 2.469704747259849,
+          "D3": 4.498720064935879,
+          "D5": 7.473378969019473,
+          "D7": 7.096954266675559,
+          "D14": 23.374965172132868,
+          "D21": 24.063542843723628
+        }
+      },
+      {
+        "date": "2025-05-01",
+        "daily_percentile": 86.05577689243027,
+        "hourly_4h_percentile": 69.43765281173594,
+        "divergence_pct": 16.61812408069433,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 111.5897445678711,
+        "forward_returns": {
+          "D1": 2.5893782641135843,
+          "D3": 1.729242225523886,
+          "D5": 5.160836742548058,
+          "D7": 10.205184622677077,
+          "D14": 18.089774092420296,
+          "D21": 23.08933276385654
+        }
+      },
+      {
+        "date": "2025-05-02",
+        "daily_percentile": 92.82868525896414,
+        "hourly_4h_percentile": 72.6161369193154,
+        "divergence_pct": 20.212548339648748,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 114.4792251586914,
+        "forward_returns": {
+          "D1": -0.5938878725994412,
+          "D3": 2.2358049348947917,
+          "D5": 1.8777247962532106,
+          "D7": 13.475975808364415,
+          "D14": 16.008728011776864,
+          "D21": 23.336235250853687
+        }
+      },
+      {
+        "date": "2025-05-05",
+        "daily_percentile": 83.66533864541833,
+        "hourly_4h_percentile": 59.65770171149144,
+        "divergence_pct": 24.00763693392689,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 113.79934692382812,
+        "forward_returns": {
+          "D1": -0.24599910377565148,
+          "D3": 3.1189653355330416,
+          "D5": 8.065368866581913,
+          "D7": 18.907035361172774,
+          "D14": 15.348794052631586,
+          "D21": 24.68809810304542
+        }
+      },
+      {
+        "date": "2025-05-06",
+        "daily_percentile": 72.90836653386454,
+        "hourly_4h_percentile": 52.567237163814184,
+        "divergence_pct": 20.341129370050353,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 113.51940155029297,
+        "forward_returns": {
+          "D1": 3.1002240373568135,
+          "D3": 2.7391162773036104,
+          "D5": 14.435432245585545,
+          "D7": 18.751090027262872,
+          "D14": 19.34118836242369,
+          "D21": 23.29575182561714
+        }
+      },
+      {
+        "date": "2025-05-07",
+        "daily_percentile": 90.0398406374502,
+        "hourly_4h_percentile": 74.81662591687042,
+        "divergence_pct": 15.223214720579776,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 117.03875732421875,
+        "forward_returns": {
+          "D1": 0.26482832637049203,
+          "D3": 5.074324807059805,
+          "D5": 15.615914574905743,
+          "D7": 15.667177558181923,
+          "D14": 15.163165434460302,
+          "D21": 21.06611360356869
+        }
+      },
+      {
+        "date": "2025-05-08",
+        "daily_percentile": 85.2589641434263,
+        "hourly_4h_percentile": 62.10268948655256,
+        "divergence_pct": 23.156274656873734,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 117.34870910644531,
+        "forward_returns": {
+          "D1": -0.6134529777721109,
+          "D3": 10.70119035467485,
+          "D5": 14.876020162367777,
+          "D7": 15.506506999160653,
+          "D14": 18.590779741150353,
+          "D21": 21.521682737224126
+        }
+      },
+      {
+        "date": "2025-05-09",
+        "daily_percentile": 71.31474103585657,
+        "hourly_4h_percentile": 47.67726161369193,
+        "divergence_pct": 23.63747942216464,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 116.62882995605469,
+        "forward_returns": {
+          "D1": 5.443640365194113,
+          "D3": 16.022281744990806,
+          "D5": 16.07372490755734,
+          "D7": 15.199321975977398,
+          "D14": 15.842269925623299,
+          "D21": 23.411924582649025
+        }
+      },
+      {
+        "date": "2025-05-12",
+        "daily_percentile": 94.82071713147411,
+        "hourly_4h_percentile": 83.12958435207824,
+        "divergence_pct": 11.691132779395872,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 122.9776840209961,
+        "forward_returns": {
+          "D1": 5.634139137390681,
+          "D3": 9.617877264937725,
+          "D5": 10.21950525130979,
+          "D7": 7.154463282955925,
+          "D14": 11.691054450198957,
+          "D21": 16.13000886969489
+        }
+      },
+      {
+        "date": "2025-05-13",
+        "daily_percentile": 98.80478087649402,
+        "hourly_4h_percentile": 95.11002444987776,
+        "divergence_pct": 3.694756426616266,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 129.9064178466797,
+        "forward_returns": {
+          "D1": 4.163775685974369,
+          "D3": 4.209960901137921,
+          "D5": 3.4249297032129977,
+          "D7": 2.2319721732904085,
+          "D14": 8.689292488782874,
+          "D21": 11.606302285052283
+        }
+      },
+      {
+        "date": "2025-05-14",
+        "daily_percentile": 99.60159362549801,
+        "hourly_4h_percentile": 95.11002444987776,
+        "divergence_pct": 4.491569175620256,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 135.3154296875,
+        "forward_returns": {
+          "D1": -0.37682543319644823,
+          "D3": 0.16994751484884496,
+          "D5": -2.6156310667349914,
+          "D7": -2.9924564999314396,
+          "D14": 4.861834057432368,
+          "D21": 4.906060329958217
+        }
+      },
+      {
+        "date": "2025-05-15",
+        "daily_percentile": 97.21115537848605,
+        "hourly_4h_percentile": 70.17114914425427,
+        "divergence_pct": 27.040006234231782,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 134.80552673339844,
+        "forward_returns": {
+          "D1": 0.4227575282001572,
+          "D3": -0.33374402846078066,
+          "D5": -1.4833470388919023,
+          "D7": 0.4969203524997967,
+          "D14": 3.8270484905114754,
+          "D21": 7.320364271674551
+        }
+      },
+      {
+        "date": "2025-05-16",
+        "daily_percentile": 94.02390438247012,
+        "hourly_4h_percentile": 52.07823960880196,
+        "divergence_pct": 41.94566477366816,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "strong",
+        "daily_price": 135.37542724609375,
+        "forward_returns": {
+          "D1": 0.12555280882564634,
+          "D3": -2.6587912214251497,
+          "D5": -3.0354496479020887,
+          "D7": -0.43574342727269455,
+          "D14": 4.667647434096889,
+          "D21": 6.4475577222811165
+        }
+      },
+      {
+        "date": "2025-05-19",
+        "daily_percentile": 88.04780876494024,
+        "hourly_4h_percentile": 38.63080684596577,
+        "divergence_pct": 49.41700191897447,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "strong",
+        "daily_price": 135.54539489746094,
+        "forward_returns": {
+          "D1": -0.8777675999028678,
+          "D3": -2.0210955563613298,
+          "D5": -0.05163736140399999,
+          "D7": 2.6702155766965774,
+          "D14": 5.20765097511533,
+          "D21": 7.317319184523696
+        }
+      },
+      {
+        "date": "2025-05-20",
+        "daily_percentile": 63.745019920318725,
+        "hourly_4h_percentile": 23.4718826405868,
+        "divergence_pct": 40.27313727973193,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "strong",
+        "daily_price": 134.35562133789062,
+        "forward_returns": {
+          "D1": -1.919937581841491,
+          "D3": -2.299454976814652,
+          "D5": 0.31998391846570495,
+          "D7": 0.5581178244954854,
+          "D14": 7.129037277132766,
+          "D21": 7.054603395974857
+        }
+      },
+      {
+        "date": "2025-06-13",
+        "daily_percentile": 23.904382470119522,
+        "hourly_4h_percentile": 17.114914425427873,
+        "divergence_pct": 6.789468044691649,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 141.95408630371094,
+        "forward_returns": {
+          "D1": 1.9158983835823484,
+          "D3": 2.472347129769492,
+          "D5": 1.5496227441532229,
+          "D7": 8.691981589368613,
+          "D14": 11.460176244420817,
+          "D21": 20.708606579976596
+        }
+      },
+      {
+        "date": "2025-06-20",
+        "daily_percentile": 27.091633466135455,
+        "hourly_4h_percentile": 28.117359413202937,
+        "divergence_pct": -1.0257259470674818,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 143.83387756347656,
+        "forward_returns": {
+          "D1": 0.22245214637306443,
+          "D3": 7.271466197171583,
+          "D5": 9.662840031456676,
+          "D7": 6.569355919933351,
+          "D14": 14.64720451732,
+          "D21": 16.114015927993776
+        }
+      },
+      {
+        "date": "2025-06-23",
+        "daily_percentile": 29.482071713147413,
+        "hourly_4h_percentile": 32.76283618581907,
+        "divergence_pct": -3.280764472671656,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 144.15383911132812,
+        "forward_returns": {
+          "D1": 2.587214120995429,
+          "D3": 7.525838692379372,
+          "D5": 9.585916179347542,
+          "D7": 9.07262482076825,
+          "D14": 13.80315744258709,
+          "D21": 18.457382273347655
+        }
+      },
+      {
+        "date": "2025-06-25",
+        "daily_percentile": 90.83665338645417,
+        "hourly_4h_percentile": 97.06601466992664,
+        "divergence_pct": -6.229361283472471,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 154.29270935058594,
+        "forward_returns": {
+          "D1": 0.4601093364170028,
+          "D3": 2.384815175488808,
+          "D5": 1.9052531778201764,
+          "D7": 2.5468250873466047,
+          "D14": 11.055668334400238,
+          "D21": 12.436006233158793
+        }
+      },
+      {
+        "date": "2025-06-26",
+        "daily_percentile": 83.66533864541833,
+        "hourly_4h_percentile": 86.06356968215158,
+        "divergence_pct": -2.39823103673325,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 155.00262451171875,
+        "forward_returns": {
+          "D1": 1.76106085968335,
+          "D3": -1.1095215987947493,
+          "D5": 2.7867392933351054,
+          "D7": 3.2124916767175993,
+          "D14": 11.598511239925923,
+          "D21": 14.01754947603191
+        }
+      },
+      {
+        "date": "2025-06-27",
+        "daily_percentile": 88.84462151394422,
+        "hourly_4h_percentile": 84.84107579462102,
+        "divergence_pct": 4.003545719323199,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 157.73231506347656,
+        "forward_returns": {
+          "D1": 0.15215032777424753,
+          "D3": -0.3169540525938208,
+          "D5": 0.31062735407116904,
+          "D7": 3.2519907576028073,
+          "D14": 9.293194590962983,
+          "D21": 11.258321325665843
+        }
+      },
+      {
+        "date": "2025-06-30",
+        "daily_percentile": 75.69721115537848,
+        "hourly_4h_percentile": 63.81418092909536,
+        "divergence_pct": 11.883030226283125,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 157.97230529785156,
+        "forward_returns": {
+          "D1": -2.968538298499368,
+          "D3": 0.8544777860213237,
+          "D5": 1.272226559719214,
+          "D7": 3.8673322854438474,
+          "D14": 8.475222288537676,
+          "D21": 13.469208015977795
+        }
+      },
+      {
+        "date": "2025-07-15",
+        "daily_percentile": 82.47011952191235,
+        "hourly_4h_percentile": 77.99511002444987,
+        "divergence_pct": 4.47500949746248,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 170.6808624267578,
+        "forward_returns": {
+          "D1": 0.3925086411351808,
+          "D3": 1.0017664453342956,
+          "D5": -2.149960382597804,
+          "D7": 1.7809101784137527,
+          "D14": 5.448159402224673,
+          "D21": 6.3796220563304695
+        }
+      },
+      {
+        "date": "2025-07-16",
+        "daily_percentile": 72.50996015936255,
+        "hourly_4h_percentile": 62.8361858190709,
+        "divergence_pct": 9.67377434029165,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 171.35079956054688,
+        "forward_returns": {
+          "D1": 0.9511608825425233,
+          "D3": 0.005841680138440886,
+          "D5": -0.34428511815955964,
+          "D7": 1.2429243094573161,
+          "D14": 4.020536355286719,
+          "D21": 6.214621547286536
+        }
+      },
+      {
+        "date": "2025-07-17",
+        "daily_percentile": 70.1195219123506,
+        "hourly_4h_percentile": 57.701711491442545,
+        "divergence_pct": 12.417810420908062,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 172.98062133789062,
+        "forward_returns": {
+          "D1": -0.34104126703420334,
+          "D3": -3.4508662229419507,
+          "D5": 0.42774383321493303,
+          "D7": 2.167625902199788,
+          "D14": 3.7109739214841175,
+          "D21": 4.3063538893717945
+        }
+      },
+      {
+        "date": "2025-07-18",
+        "daily_percentile": 52.191235059760956,
+        "hourly_4h_percentile": 30.317848410757946,
+        "divergence_pct": 21.87338664900301,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 172.39068603515625,
+        "forward_returns": {
+          "D1": -0.5974085565007559,
+          "D3": -0.9454233374367904,
+          "D5": 0.6322118048511349,
+          "D7": 1.7980321117499365,
+          "D14": 4.848910353842473,
+          "D21": 5.568112577001738
+        }
+      },
+      {
+        "date": "2025-07-22",
+        "daily_percentile": 5.179282868525896,
+        "hourly_4h_percentile": 1.466992665036675,
+        "divergence_pct": 3.7122902034892213,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 167.01129150390625,
+        "forward_returns": {
+          "D1": 2.2451013462275737,
+          "D3": 3.8735517464559166,
+          "D5": 5.076922852027521,
+          "D7": 6.489846008113842,
+          "D14": 8.998376647700756,
+          "D21": 5.01106781278311
+        }
+      },
+      {
+        "date": "2025-07-23",
+        "daily_percentile": 23.107569721115535,
+        "hourly_4h_percentile": 24.449877750611247,
+        "divergence_pct": -1.3423080294957117,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 170.7608642578125,
+        "forward_returns": {
+          "D1": 1.7332256037538851,
+          "D3": 3.4957247727277707,
+          "D5": 4.971314408098526,
+          "D7": 1.7215108162070392,
+          "D14": 7.249094449603355,
+          "D21": 2.459301166010075
+        }
+      },
+      {
+        "date": "2025-07-24",
+        "daily_percentile": 39.8406374501992,
+        "hourly_4h_percentile": 55.74572127139364,
+        "divergence_pct": -15.905083821194438,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 173.7205352783203,
+        "forward_returns": {
+          "D1": -0.13813851954892487,
+          "D3": 1.0187573084429191,
+          "D5": 2.3771120977353455,
+          "D7": 3.603081577264855,
+          "D14": 4.518245975454094,
+          "D21": 2.446185749273
+        }
+      },
+      {
+        "date": "2025-07-25",
+        "daily_percentile": 29.880478087649404,
+        "hourly_4h_percentile": 33.98533007334964,
+        "divergence_pct": -4.104851985700233,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 173.48056030273438,
+        "forward_returns": {
+          "D1": 1.8731976559170027,
+          "D3": 3.325654121275834,
+          "D5": 0.1267984739852901,
+          "D7": 2.743512264955328,
+          "D14": 4.910661433121799,
+          "D21": 3.6368891380606394
+        }
+      },
+      {
+        "date": "2025-08-01",
+        "daily_percentile": 10.756972111553784,
+        "hourly_4h_percentile": 3.4229828850855744,
+        "divergence_pct": 7.33398922646821,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 173.70053100585938,
+        "forward_returns": {
+          "D1": 3.615013056458749,
+          "D3": 3.2811391226600817,
+          "D5": 5.169235002026595,
+          "D7": 5.434036113938268,
+          "D14": 0.725304160234197,
+          "D21": -1.6923763738797781
+        }
+      },
+      {
+        "date": "2025-08-05",
+        "daily_percentile": 25.89641434262948,
+        "hourly_4h_percentile": 29.82885085574572,
+        "divergence_pct": -3.93243651311624,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 178.24002075195312,
+        "forward_returns": {
+          "D1": 0.6507328309964366,
+          "D3": 2.490741912303407,
+          "D5": 2.7487989611971075,
+          "D7": 2.109280790964041,
+          "D14": 0.8695214455988864,
+          "D21": -3.7024474841406696
+        }
+      },
+      {
+        "date": "2025-08-06",
+        "daily_percentile": 28.68525896414343,
+        "hourly_4h_percentile": 40.09779951100245,
+        "divergence_pct": -11.41254054685902,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 179.39988708496094,
+        "forward_returns": {
+          "D1": 0.7524356878634952,
+          "D3": 1.4714108885732546,
+          "D5": 1.2094596726706985,
+          "D7": 0.5740761516118909,
+          "D14": 1.3097815958985404,
+          "D21": -6.911147096775405
+        }
+      },
+      {
+        "date": "2025-08-07",
+        "daily_percentile": 35.45816733067729,
+        "hourly_4h_percentile": 55.012224938875306,
+        "divergence_pct": -19.554057608198015,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 180.749755859375,
+        "forward_returns": {
+          "D1": 1.0676439283529016,
+          "D3": 1.32211781979088,
+          "D5": 0.691479446910992,
+          "D7": 0.6859415331376573,
+          "D14": 0.45914032668288307,
+          "D21": -6.892744117317329
+        }
+      },
+      {
+        "date": "2025-08-08",
+        "daily_percentile": 46.613545816733065,
+        "hourly_4h_percentile": 69.43765281173594,
+        "divergence_pct": -22.82410699500288,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 182.6795196533203,
+        "forward_returns": {
+          "D1": -0.3502982145549449,
+          "D3": -0.6075466387016171,
+          "D5": -1.2315231640938062,
+          "D7": -3.8642558919352865,
+          "D14": -1.3847796770570908,
+          "D21": -6.53530274801758
+        }
+      },
+      {
+        "date": "2025-08-11",
+        "daily_percentile": 29.880478087649404,
+        "hourly_4h_percentile": 35.2078239608802,
+        "divergence_pct": -5.327345873230794,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 182.0395965576172,
+        "forward_returns": {
+          "D1": 0.6042004344120722,
+          "D3": -0.02196955326703165,
+          "D5": -0.027468228178584297,
+          "D7": -3.6581359810570646,
+          "D14": -4.328245075270242,
+          "D21": -2.598040074443342
+        }
+      },
+      {
+        "date": "2025-08-13",
+        "daily_percentile": 21.115537848605577,
+        "hourly_4h_percentile": 19.559902200489,
+        "divergence_pct": 1.5556356481165778,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 181.5696563720703,
+        "forward_returns": {
+          "D1": 0.23679446665527681,
+          "D3": 0.2312815600248319,
+          "D5": -3.4087831191437434,
+          "D7": -1.9824866049394818,
+          "D14": -6.041078381682896,
+          "D21": -2.0705838613524152
+        }
+      },
+      {
+        "date": "2025-08-14",
+        "daily_percentile": 22.31075697211155,
+        "hourly_4h_percentile": 24.938875305623473,
+        "divergence_pct": -2.628118333511921,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 181.99960327148438,
+        "forward_returns": {
+          "D1": -0.8625426597267505,
+          "D3": -3.5051107832420603,
+          "D5": -3.867709028678701,
+          "D7": -1.2141495227090626,
+          "D14": -5.691674870379659,
+          "D21": -2.3403931376884013
+        }
+      },
+      {
+        "date": "2025-08-15",
+        "daily_percentile": 13.545816733067728,
+        "hourly_4h_percentile": 11.7359413202934,
+        "divergence_pct": 1.8098754127743284,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 180.42977905273438,
+        "forward_returns": {
+          "D1": 0.8644994530914607,
+          "D3": -2.798561580617298,
+          "D5": -1.3632543418213072,
+          "D7": 0.7315060425487685,
+          "D14": -7.44249764432694,
+          "D21": -3.081259261376623
+        }
+      },
+      {
+        "date": "2025-08-18",
+        "daily_percentile": 22.709163346613543,
+        "hourly_4h_percentile": 36.674816625916876,
+        "divergence_pct": -13.965653279303332,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 181.98959350585938,
+        "forward_returns": {
+          "D1": -3.4998033851295407,
+          "D3": -3.8624215741430934,
+          "D5": -1.2087161174725636,
+          "D7": -0.22525608143628695,
+          "D14": -7.527054457707683,
+          "D21": -6.433926084546915
+        }
+      },
+      {
+        "date": "2025-08-19",
+        "daily_percentile": 0.796812749003984,
+        "hourly_4h_percentile": 2.2004889975550124,
+        "divergence_pct": -1.4036762485510283,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 175.6203155517578,
+        "forward_returns": {
+          "D1": -0.13664420020655932,
+          "D3": 1.3379697540795377,
+          "D5": 3.4900963581848687,
+          "D7": 2.5791408158146067,
+          "D14": -2.778411797676228,
+          "D21": 0.3472710649237598
+        }
+      },
+      {
+        "date": "2025-08-20",
+        "daily_percentile": 2.788844621513944,
+        "hourly_4h_percentile": 6.356968215158925,
+        "divergence_pct": -3.5681235936449807,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 175.38034057617188,
+        "forward_returns": {
+          "D1": -0.23945237601801228,
+          "D3": 2.5142586485879415,
+          "D5": 3.534780627274392,
+          "D7": -0.6955533827759597,
+          "D14": 1.100348137757945,
+          "D21": 0.7297372496960497
+        }
+      },
+      {
+        "date": "2025-08-21",
+        "daily_percentile": 3.5856573705179287,
+        "hourly_4h_percentile": 14.66992665036675,
+        "divergence_pct": -11.08426927984882,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 174.96038818359375,
+        "forward_returns": {
+          "D1": 1.7202031291262632,
+          "D3": 3.880447269209575,
+          "D5": 2.966055723411176,
+          "D7": -2.4002712667592463,
+          "D14": 1.2572861951522851,
+          "D21": 4.937911448287502
+        }
+      },
+      {
+        "date": "2025-08-22",
+        "daily_percentile": 19.52191235059761,
+        "hourly_4h_percentile": 56.723716381418086,
+        "divergence_pct": -37.201804030820476,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "strong",
+        "daily_price": 177.97006225585938,
+        "forward_returns": {
+          "D1": 1.0225279904412465,
+          "D3": 2.028199899069283,
+          "D5": -2.140576635755853,
+          "D7": -4.140680207204628,
+          "D14": -0.08987909748113809,
+          "D21": 0.2528498009936264
+        }
+      },
+      {
+        "date": "2025-08-25",
+        "daily_percentile": 33.46613545816733,
+        "hourly_4h_percentile": 71.14914425427872,
+        "divergence_pct": -37.683008796111395,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "strong",
+        "daily_price": 179.78985595703125,
+        "forward_returns": {
+          "D1": 1.090038045583408,
+          "D3": 0.20020864473599964,
+          "D5": -5.02196948273691,
+          "D7": -4.53255737136149,
+          "D14": -1.1400859632607396,
+          "D21": -1.5738996502332014
+        }
+      },
+      {
+        "date": "2025-08-27",
+        "daily_percentile": 49.40239043824701,
+        "hourly_4h_percentile": 66.99266503667481,
+        "divergence_pct": -17.590274598427797,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 181.57965087890625,
+        "forward_returns": {
+          "D1": -0.787445113463825,
+          "D3": -5.958149257764955,
+          "D5": -5.473561185357589,
+          "D7": -7.318283254358571,
+          "D14": -6.22268698397076,
+          "D21": -1.872217858078029
+        }
+      },
+      {
+        "date": "2025-08-28",
+        "daily_percentile": 29.08366533864542,
+        "hourly_4h_percentile": 44.25427872860636,
+        "divergence_pct": -15.170613389960938,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 180.14981079101562,
+        "forward_returns": {
+          "D1": -3.324640797648848,
+          "D3": -5.300543828387183,
+          "D5": -7.298655344799865,
+          "D7": -5.222848008749226,
+          "D14": -2.1757539916407276,
+          "D21": 0.9381518237130626
+        }
+      },
+      {
+        "date": "2025-08-29",
+        "daily_percentile": 1.593625498007968,
+        "hourly_4h_percentile": 8.06845965770171,
+        "divergence_pct": -6.474834159693742,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 174.1604766845703,
+        "forward_returns": {
+          "D1": -1.9519999551419476,
+          "D3": -1.4467686036730543,
+          "D5": -3.370075174913556,
+          "D7": 1.8084804676031574,
+          "D14": 1.4352737274352823,
+          "D21": 7.12511480639062
+        }
+      },
+      {
+        "date": "2025-09-02",
+        "daily_percentile": 0.398406374501992,
+        "hourly_4h_percentile": 6.845965770171149,
+        "divergence_pct": -6.447559395669157,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 170.7608642578125,
+        "forward_returns": {
+          "D1": -0.09368255731577735,
+          "D3": -2.201656261862228,
+          "D5": -0.01171478754683486,
+          "D7": 3.7475078152198193,
+          "D14": 7.518650728121856,
+          "D21": 9.64431724681225
+        }
+      },
+      {
+        "date": "2025-09-03",
+        "daily_percentile": 1.1952191235059761,
+        "hourly_4h_percentile": 17.6039119804401,
+        "divergence_pct": -16.408692856934124,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 170.60089111328125,
+        "forward_returns": {
+          "D1": 0.6095434014578904,
+          "D3": -1.3538929385984555,
+          "D5": 3.9327132060283487,
+          "D7": 4.225777022494515,
+          "D14": 4.5833102276284565,
+          "D21": 10.714243549036272
+        }
+      },
+      {
+        "date": "2025-09-04",
+        "daily_percentile": 9.56175298804781,
+        "hourly_4h_percentile": 40.831295843520785,
+        "divergence_pct": -31.269542855472977,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 171.64077758789062,
+        "forward_returns": {
+          "D1": -2.7030176954567886,
+          "D3": -0.5243029163499613,
+          "D5": 3.215648099994217,
+          "D7": 3.553537535615381,
+          "D14": 3.099127450849659,
+          "D21": 9.303596431571792
+        }
+      },
+      {
+        "date": "2025-09-05",
+        "daily_percentile": 1.1952191235059761,
+        "hourly_4h_percentile": 19.80440097799511,
+        "divergence_pct": -18.609181854489133,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 167.0012969970703,
+        "forward_returns": {
+          "D1": 0.7723537011001813,
+          "D3": 6.17290887914832,
+          "D5": 6.472289477629922,
+          "D7": 4.711923152583863,
+          "D14": 6.394451983933269,
+          "D21": 11.094743826565745
+        }
+      },
+      {
+        "date": "2025-09-08",
+        "daily_percentile": 5.577689243027888,
+        "hourly_4h_percentile": 40.34229828850856,
+        "divergence_pct": -34.76460904548067,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 168.2911376953125,
+        "forward_returns": {
+          "D1": 1.4556454508461547,
+          "D3": 5.270035854149113,
+          "D5": 5.61465058706363,
+          "D7": 1.182106146560269,
+          "D14": 5.876094646829744,
+          "D21": 9.946189762236868
+        }
+      },
+      {
+        "date": "2025-09-09",
+        "daily_percentile": 25.89641434262948,
+        "hourly_4h_percentile": 76.03911980440098,
+        "divergence_pct": -50.1427054617715,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "strong",
+        "daily_price": 170.74085998535156,
+        "forward_returns": {
+          "D1": 3.8475118978007705,
+          "D3": 4.140335468248257,
+          "D5": 2.4185246521502446,
+          "D7": 3.2150090534370346,
+          "D14": 6.500511677150889,
+          "D21": 10.752324933892176
+        }
+      },
+      {
+        "date": "2025-09-10",
+        "daily_percentile": 88.44621513944223,
+        "hourly_4h_percentile": 96.82151589242054,
+        "divergence_pct": -8.375300752978305,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 177.3101348876953,
+        "forward_returns": {
+          "D1": -0.08459409078864777,
+          "D3": 0.2424915859860155,
+          "D5": -3.964588552156212,
+          "D7": -0.36657726198617846,
+          "D14": 5.222192016193872,
+          "D21": 8.600267276019501
+        }
+      },
+      {
+        "date": "2025-09-11",
+        "daily_percentile": 78.48605577689243,
+        "hourly_4h_percentile": 89.73105134474328,
+        "divergence_pct": -11.24499556785085,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 177.16014099121094,
+        "forward_returns": {
+          "D1": 0.3668790142465017,
+          "D3": -1.2925431211605942,
+          "D5": -0.5249188074761157,
+          "D7": 3.63492385727342,
+          "D14": 5.683808272382773,
+          "D21": 3.3809353313293267
+        }
+      },
+      {
+        "date": "2025-09-12",
+        "daily_percentile": 78.08764940239044,
+        "hourly_4h_percentile": 84.59657701711491,
+        "divergence_pct": -6.50892761472447,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 177.8101043701172,
+        "forward_returns": {
+          "D1": -0.03937196059062842,
+          "D3": -4.234622559086477,
+          "D5": -0.6467282183938994,
+          "D7": 0.34303721722963587,
+          "D14": 6.2253952063522355,
+          "D21": 5.90485012266837
+        }
+      },
+      {
+        "date": "2025-09-15",
+        "daily_percentile": 71.71314741035857,
+        "hourly_4h_percentile": 75.06112469437653,
+        "divergence_pct": -3.347977284017958,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 177.74009704589844,
+        "forward_returns": {
+          "D1": -1.6146200650305254,
+          "D3": -0.8495004668033102,
+          "D5": 3.2967688626095892,
+          "D7": -0.4388165731271543,
+          "D14": 5.5527401890821615,
+          "D21": 1.2827025228840938
+        }
+      },
+      {
+        "date": "2025-09-17",
+        "daily_percentile": 12.749003984063744,
+        "hourly_4h_percentile": 13.447432762836186,
+        "divergence_pct": -0.6984287787724419,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 170.280517578125,
+        "forward_returns": {
+          "D1": 3.494044179741329,
+          "D3": 7.821951584944986,
+          "D5": 3.922719145940534,
+          "D7": 4.639148836722495,
+          "D14": 8.66169320787018,
+          "D21": 6.76493328018879
+        }
+      },
+      {
+        "date": "2025-09-22",
+        "daily_percentile": 94.82071713147411,
+        "hourly_4h_percentile": 94.13202933985329,
+        "divergence_pct": 0.688687791620822,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 183.5997772216797,
+        "forward_returns": {
+          "D1": -2.821200600545448,
+          "D3": -3.22422094686885,
+          "D5": -0.9585456594468522,
+          "D7": 1.9770211998525689,
+          "D14": -0.24508005264122223,
+          "D21": -1.3343478168727052
+        }
+      },
+      {
+        "date": "2025-09-29",
+        "daily_percentile": 81.27490039840637,
+        "hourly_4h_percentile": 79.46210268948656,
+        "divergence_pct": 1.8127977089198168,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 181.8398895263672,
+        "forward_returns": {
+          "D1": 2.601036044211913,
+          "D3": 3.871315901012151,
+          "D5": 2.0291331946917346,
+          "D7": 3.9922937362314004,
+          "D14": 0.753365406682982,
+          "D21": 10.547149258890132
+        }
+      },
+      {
+        "date": "2025-09-30",
+        "daily_percentile": 95.2191235059761,
+        "hourly_4h_percentile": 93.15403422982885,
+        "divergence_pct": 2.0650892761472477,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 186.56961059570312,
+        "forward_returns": {
+          "D1": 0.35374096693667756,
+          "D3": 0.5573963775001411,
+          "D5": -0.8253846847140145,
+          "D7": 3.210420915110501,
+          "D14": -2.1116909377636106,
+          "D21": 10.965806402963407
+        }
+      },
+      {
+        "date": "2025-10-01",
+        "daily_percentile": 93.22709163346613,
+        "hourly_4h_percentile": 81.17359413202934,
+        "divergence_pct": 12.053497501436794,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 187.22958374023438,
+        "forward_returns": {
+          "D1": 0.8812188281308808,
+          "D3": -0.9079337892751949,
+          "D5": 0.9987141285633383,
+          "D7": -2.1790215348014175,
+          "D14": -3.2471717429711,
+          "D21": 8.358253985769526
+        }
+      },
+      {
+        "date": "2025-10-02",
+        "daily_percentile": 93.22709163346613,
+        "hourly_4h_percentile": 77.99511002444987,
+        "divergence_pct": 15.231981609016259,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 188.87948608398438,
+        "forward_returns": {
+          "D1": -0.6723563599384308,
+          "D3": -2.0382268928648806,
+          "D5": 1.9482233819120065,
+          "D7": -0.3017593703098731,
+          "D14": -4.5582120993607695,
+          "D21": 7.199957732845408
+        }
+      },
+      {
+        "date": "2025-10-03",
+        "daily_percentile": 76.89243027888446,
+        "hourly_4h_percentile": 51.83374083129584,
+        "divergence_pct": 25.05868944758862,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 187.6095428466797,
+        "forward_returns": {
+          "D1": -1.1086215174256564,
+          "D3": 0.7941649324503475,
+          "D5": -2.3771349729841296,
+          "D7": -4.04540674031667,
+          "D14": -2.910132499900975,
+          "D21": 10.265438185161834
+        }
+      },
+      {
+        "date": "2025-10-06",
+        "daily_percentile": 54.581673306772906,
+        "hourly_4h_percentile": 24.449877750611247,
+        "divergence_pct": 30.13179555616166,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 185.5296630859375,
+        "forward_returns": {
+          "D1": -0.26948223486520373,
+          "D3": 3.7889452245241095,
+          "D5": 1.4983380037227212,
+          "D7": -3.0774976494530093,
+          "D14": 0.3880540892280182,
+          "D21": 7.087425544080084
+        }
+      },
+      {
+        "date": "2025-10-08",
+        "daily_percentile": 75.2988047808765,
+        "hourly_4h_percentile": 63.08068459657702,
+        "divergence_pct": 12.218120184299472,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 189.09947204589844,
+        "forward_returns": {
+          "D1": 1.8296234844958237,
+          "D3": -0.41774178490243674,
+          "D5": -4.907195075730531,
+          "D7": -3.114584949692256,
+          "D14": 6.303212754672605,
+          "D21": -0.5446539501129055
+        }
+      },
+      {
+        "date": "2025-10-09",
+        "daily_percentile": 90.83665338645417,
+        "hourly_4h_percentile": 78.72860635696821,
+        "divergence_pct": 12.10804702948596,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 192.5592803955078,
+        "forward_returns": {
+          "D1": -4.88653135032785,
+          "D3": -6.511920181083896,
+          "D5": -5.587577701767055,
+          "D7": -5.156564429914978,
+          "D14": 7.514149655713176,
+          "D21": -2.29526929018552
+        }
+      },
+      {
+        "date": "2025-10-13",
+        "daily_percentile": 54.980079681274894,
+        "hourly_4h_percentile": 31.54034229828851,
+        "divergence_pct": 23.439737382986383,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 188.3095245361328,
+        "forward_returns": {
+          "D1": -4.402087893148177,
+          "D3": -3.456884918977332,
+          "D5": -3.01614457048357,
+          "D7": -4.269335850028355,
+          "D14": 7.524422753876836,
+          "D21": 2.5700886302003623
+        }
+      },
+      {
+        "date": "2025-10-14",
+        "daily_percentile": 14.741035856573706,
+        "hourly_4h_percentile": 4.400977995110025,
+        "divergence_pct": 10.34005786146368,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 180.0199737548828,
+        "forward_returns": {
+          "D1": -0.11108861160341599,
+          "D3": 1.7719337072395591,
+          "D5": 0.6276769316691411,
+          "D7": 1.1831369420151505,
+          "D14": 14.91418434420213,
+          "D21": 7.648729774706098
+        }
+      },
+      {
+        "date": "2025-10-15",
+        "daily_percentile": 16.733067729083665,
+        "hourly_4h_percentile": 11.246943765281173,
+        "divergence_pct": 5.486123963802491,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 179.8199920654297,
+        "forward_returns": {
+          "D1": 1.101039374584789,
+          "D3": 1.5625876402445504,
+          "D5": 0.250231592992356,
+          "D7": 3.575590450757149,
+          "D14": 10.487681340261767,
+          "D21": 3.9092438888682857
+        }
+      },
+      {
+        "date": "2025-10-16",
+        "daily_percentile": 28.68525896414343,
+        "hourly_4h_percentile": 32.02933985330073,
+        "divergence_pct": -3.344080889157304,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 181.7998809814453,
+        "forward_returns": {
+          "D1": 0.7755381139704642,
+          "D3": -0.35751584401344516,
+          "D5": 0.19250594887529893,
+          "D7": 5.324238149062355,
+          "D14": 7.3703356692389255,
+          "D21": 4.598203003633317
+        }
+      },
+      {
+        "date": "2025-10-22",
+        "daily_percentile": 28.68525896414343,
+        "hourly_4h_percentile": 35.69682151589242,
+        "divergence_pct": -7.0115625517489875,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 180.26995849609375,
+        "forward_returns": {
+          "D1": 1.0428238221011243,
+          "D3": 6.218108217825158,
+          "D5": 14.843579389228466,
+          "D7": 12.319729220126474,
+          "D14": 7.144444824402418,
+          "D21": 0.1996923694694841
+        }
+      },
+      {
+        "date": "2025-10-23",
+        "daily_percentile": 48.60557768924303,
+        "hourly_4h_percentile": 64.79217603911981,
+        "divergence_pct": -16.186598349876782,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 182.1498565673828,
+        "forward_returns": {
+          "D1": 2.2507632123081045,
+          "D3": 10.359029578785893,
+          "D5": 11.380108504609844,
+          "D7": 13.57048992269907,
+          "D14": 6.389990494558551,
+          "D21": -1.800613920667471
+        }
+      },
+      {
+        "date": "2025-10-27",
+        "daily_percentile": 95.2191235059761,
+        "hourly_4h_percentile": 98.53300733496333,
+        "divergence_pct": -3.3138838289872297,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 191.47933959960938,
+        "forward_returns": {
+          "D1": 4.981986311030795,
+          "D3": 5.953315020810779,
+          "D5": 8.036974082760162,
+          "D7": 1.9426653884557776,
+          "D14": -0.6893333938969404,
+          "D21": -7.138752023103423
+        }
+      },
+      {
+        "date": "2025-10-28",
+        "daily_percentile": 100.0,
+        "hourly_4h_percentile": 100.0,
+        "divergence_pct": 0.0,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 201.01881408691406,
+        "forward_returns": {
+          "D1": 2.9896001728863864,
+          "D3": 0.7262579713068984,
+          "D5": -1.164007597103045,
+          "D7": -6.441824783404304,
+          "D14": -7.178034197590721,
+          "D21": -10.331799019718357
+        }
+      },
+      {
+        "date": "2025-10-29",
+        "daily_percentile": 100.0,
+        "hourly_4h_percentile": 99.51100244498777,
+        "divergence_pct": 0.48899755501223297,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 207.02847290039062,
+        "forward_returns": {
+          "D1": -2.004441686938907,
+          "D3": -0.07727845405944844,
+          "D5": -5.713866444847648,
+          "D7": -9.123839957169233,
+          "D14": -12.403401932425684,
+          "D21": -14.509274814859696
+        }
+      },
+      {
+        "date": "2025-10-30",
+        "daily_percentile": 97.60956175298804,
+        "hourly_4h_percentile": 89.24205378973105,
+        "divergence_pct": 8.367507963256998,
+        "divergence_type": "bearish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 202.8787078857422,
+        "forward_returns": {
+          "D1": -0.19715160938454934,
+          "D3": -2.0700881379683733,
+          "D5": -7.299520850815277,
+          "D7": -1.8926494331806598,
+          "D14": -8.068414383756629,
+          "D21": -11.321404656893552
+        }
+      },
+      {
+        "date": "2025-10-31",
+        "daily_percentile": 93.22709163346613,
+        "hourly_4h_percentile": 65.03667481662592,
+        "divergence_pct": 28.190416816840212,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 202.47872924804688,
+        "forward_returns": {
+          "D1": 2.168008099085683,
+          "D3": -3.5952353212738264,
+          "D5": -7.081831723318011,
+          "D7": -4.607636104233681,
+          "D14": -10.790657113234214,
+          "D21": -10.385695292851072
+        }
+      },
+      {
+        "date": "2025-11-03",
+        "daily_percentile": 96.01593625498009,
+        "hourly_4h_percentile": 77.99511002444987,
+        "divergence_pct": 18.02082623053022,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "weak",
+        "daily_price": 206.8684844970703,
+        "forward_returns": {
+          "D1": -3.9588169738104084,
+          "D3": -9.087392040897724,
+          "D5": -3.7848004471085828,
+          "D7": -6.32250458110013,
+          "D14": -13.5344171305669,
+          "D21": -13.191222786959644
+        }
+      },
+      {
+        "date": "2025-11-04",
+        "daily_percentile": 58.56573705179283,
+        "hourly_4h_percentile": 13.202933985330073,
+        "divergence_pct": 45.36280306646276,
+        "divergence_type": "daily_overextended",
+        "signal_strength": "strong",
+        "daily_price": 198.67893981933594,
+        "forward_returns": {
+          "D1": -1.7514676525078765,
+          "D3": -5.304746170747743,
+          "D5": -2.7832308791983285,
+          "D7": -5.954000818547622,
+          "D14": -8.123205779016873,
+          "D21": -7.700330468058247
+        }
+      },
+      {
+        "date": "2025-11-06",
+        "daily_percentile": 5.577689243027888,
+        "hourly_4h_percentile": 3.6674816625916873,
+        "divergence_pct": 1.9102075804362006,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 188.0695343017578,
+        "forward_returns": {
+          "D1": 0.03721605718307597,
+          "D3": 2.700975430668162,
+          "D5": -0.6486644368404071,
+          "D7": -0.7869001425925837,
+          "D14": -4.157813282814038,
+          "D21": -1.3396806980748965
+        }
+      },
+      {
+        "date": "2025-11-07",
+        "daily_percentile": 12.749003984063744,
+        "hourly_4h_percentile": 10.513447432762836,
+        "divergence_pct": 2.235556551300908,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 188.1395263671875,
+        "forward_returns": {
+          "D1": 5.793253025650147,
+          "D3": 3.0029249194965857,
+          "D5": 1.0736086356496255,
+          "D7": -3.608825432006324,
+          "D14": -5.926125020194794,
+          "D21": -1.6846673358252628
+        }
+      },
+      {
+        "date": "2025-11-13",
+        "daily_percentile": 16.334661354581673,
+        "hourly_4h_percentile": 21.271393643031786,
+        "divergence_pct": -4.936732288450113,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 186.84959411621094,
+        "forward_returns": {
+          "D1": 1.7713789900268395,
+          "D3": -2.9433806641282922,
+          "D5": -3.3286934863162587,
+          "D7": -2.3065361411961693,
+          "D14": -1.8568888253728488,
+          "D21": -5.651390831232195
+        }
+      },
+      {
+        "date": "2025-11-14",
+        "daily_percentile": 30.278884462151396,
+        "hourly_4h_percentile": 45.72127139364303,
+        "divergence_pct": -15.442386931491633,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 190.15940856933594,
+        "forward_returns": {
+          "D1": -1.8772637799145508,
+          "D3": -1.9193347095922242,
+          "D5": -5.9367915375404205,
+          "D7": -6.494185216565784,
+          "D14": -4.075215086925854,
+          "D21": -6.541568172840185
+        }
+      },
+      {
+        "date": "2025-11-17",
+        "daily_percentile": 20.318725099601593,
+        "hourly_4h_percentile": 31.05134474327628,
+        "divergence_pct": -10.732619643674688,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 186.58961486816406,
+        "forward_returns": {
+          "D1": -2.8081496281955554,
+          "D3": -3.193999314870044,
+          "D5": -2.170417776350131,
+          "D7": -3.3976492469908193,
+          "D14": -0.557164886770789,
+          "D21": -8.387182983262564
+        }
+      },
+      {
+        "date": "2025-11-18",
+        "daily_percentile": 11.952191235059761,
+        "hourly_4h_percentile": 19.80440097799511,
+        "divergence_pct": -7.852209742935347,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 181.3498992919922,
+        "forward_returns": {
+          "D1": 2.8451704496452512,
+          "D3": -1.367444044975552,
+          "D5": -1.951914467939997,
+          "D7": -2.4040578388780376,
+          "D14": 1.996197374712727,
+          "D21": -3.9756845360774395
+        }
+      },
+      {
+        "date": "2025-11-19",
+        "daily_percentile": 33.067729083665334,
+        "hourly_4h_percentile": 63.81418092909536,
+        "divergence_pct": -30.746451845430023,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 186.50961303710938,
+        "forward_returns": {
+          "D1": -3.152475142545741,
+          "D3": -2.1284545467784133,
+          "D5": -3.3562124287025874,
+          "D7": -3.5384903364074627,
+          "D14": -1.4635247016835495,
+          "D21": -2.9594225488243864
+        }
+      },
+      {
+        "date": "2025-11-20",
+        "daily_percentile": 16.733067729083665,
+        "hourly_4h_percentile": 27.628361858190708,
+        "divergence_pct": -10.895294129107043,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 180.62994384765625,
+        "forward_returns": {
+          "D1": -0.9743140680959717,
+          "D3": -1.5611140752594843,
+          "D5": -2.0150596007827204,
+          "D7": 0.453945525523225,
+          "D14": 0.16611245164204202,
+          "D21": 1.6941037175601803
+        }
+      },
+      {
+        "date": "2025-11-21",
+        "daily_percentile": 17.131474103585656,
+        "hourly_4h_percentile": 25.91687041564792,
+        "divergence_pct": -8.785396312062264,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 178.8700408935547,
+        "forward_returns": {
+          "D1": 2.0516570501995846,
+          "D3": 0.7714614047074075,
+          "D5": 0.5813983742445128,
+          "D7": 0.3969143932395669,
+          "D14": -2.1524211667089066,
+          "D21": 5.780714181457469
+        }
+      },
+      {
+        "date": "2025-11-24",
+        "daily_percentile": 37.45019920318725,
+        "hourly_4h_percentile": 63.56968215158925,
+        "divergence_pct": -26.119482948401995,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "moderate",
+        "daily_price": 182.5398406982422,
+        "forward_returns": {
+          "D1": -2.591070699981468,
+          "D3": -3.0402666369972353,
+          "D5": -0.5970944745898765,
+          "D7": 0.4602634588463328,
+          "D14": -3.42382648533206,
+          "D21": 3.325389070621565
+        }
+      },
+      {
+        "date": "2025-11-25",
+        "daily_percentile": 22.31075697211155,
+        "hourly_4h_percentile": 37.163814180929094,
+        "divergence_pct": -14.853057208817543,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 177.8101043701172,
+        "forward_returns": {
+          "D1": 1.3721660319353957,
+          "D3": 1.1809700245336785,
+          "D5": 0.9953863236328742,
+          "D7": 2.586972944134458,
+          "D14": -0.05067380716818892,
+          "D21": 7.153639808175827
+        }
+      },
+      {
+        "date": "2025-11-26",
+        "daily_percentile": 41.03585657370518,
+        "hourly_4h_percentile": 62.34718826405869,
+        "divergence_pct": -21.311331690353505,
+        "divergence_type": "4h_overextended",
+        "signal_strength": "weak",
+        "daily_price": 180.2499542236328,
+        "forward_returns": {
+          "D1": -1.808494995412202,
+          "D3": 0.6657151049182852,
+          "D5": 1.7365056610756602,
+          "D7": 2.9403884461181695,
+          "D14": -5.165023104902355,
+          "D21": 4.421663812009635
+        }
+      },
+      {
+        "date": "2025-11-28",
+        "daily_percentile": 28.68525896414343,
+        "hourly_4h_percentile": 39.60880195599022,
+        "divergence_pct": -10.923542991846787,
+        "divergence_type": "bullish_convergence",
+        "signal_strength": "convergence",
+        "daily_price": 176.99014282226562,
+        "forward_returns": {
+          "D1": 1.649722145253496,
+          "D3": 1.4632786704906087,
+          "D5": 3.062238808003226,
+          "D7": 4.508645663081312,
+          "D14": -1.6103402071827921,
+          "D21": 5.96069944666997
+        }
+      }
+    ],
+    "divergence_stats": {
+      "4h_overextended": {
+        "count": 61,
+        "avg_divergence_pct": -24.27243209613748,
+        "avg_daily_percentile": 28.992227810071192,
+        "avg_4h_percentile": 53.264659906208664,
+        "avg_return_D1": 0.15324549990229253,
+        "median_return_D1": 0.2748626487220074,
+        "win_rate_D1": 50.81967213114754,
+        "max_return_D1": 18.72274700448331,
+        "min_return_D1": -10.004599571343753,
+        "mean_reversion_rate_D1": 49.18032786885246,
+        "avg_return_D3": 1.1493794366453793,
+        "median_return_D3": 1.0187573084429191,
+        "win_rate_D3": 55.73770491803278,
+        "max_return_D3": 15.192105067352513,
+        "min_return_D3": -14.159961835392043,
+        "mean_reversion_rate_D3": 44.26229508196721,
+        "avg_return_D5": 1.198482212910048,
+        "median_return_D5": 0.691479446910992,
+        "win_rate_D5": 55.73770491803278,
+        "max_return_D5": 18.930780631975463,
+        "min_return_D5": -15.475979425863716,
+        "mean_reversion_rate_D5": 44.26229508196721,
+        "avg_return_D7": 1.4220309277574015,
+        "median_return_D7": 0.6859415331376573,
+        "win_rate_D7": 57.377049180327866,
+        "max_return_D7": 23.844926622263873,
+        "min_return_D7": -12.453030276188903,
+        "mean_reversion_rate_D7": 42.62295081967213,
+        "avg_return_D14": 1.7874178051230165,
+        "median_return_D14": -0.0652076942839308,
+        "win_rate_D14": 49.18032786885246,
+        "max_return_D14": 21.304551554683158,
+        "min_return_D14": -15.209641444763577,
+        "mean_reversion_rate_D14": 50.81967213114754,
+        "avg_return_D21": 1.4266104509295834,
+        "median_return_D21": 1.9623491500766699,
+        "win_rate_D21": 62.295081967213115,
+        "max_return_D21": 28.847176209552906,
+        "min_return_D21": -24.714577007883754,
+        "mean_reversion_rate_D21": 37.704918032786885
+      },
+      "bullish_convergence": {
+        "count": 105,
+        "avg_divergence_pct": -3.2505395811097206,
+        "avg_daily_percentile": 14.75621324226902,
+        "avg_4h_percentile": 18.00675282337874,
+        "avg_return_D1": 0.6983835090209926,
+        "median_return_D1": 0.703574253845507,
+        "win_rate_D1": 61.904761904761905,
+        "max_return_D1": 16.40088673011595,
+        "min_return_D1": -8.693565785207769,
+        "mean_reversion_rate_D1": 61.904761904761905,
+        "avg_return_D3": 1.51758378812175,
+        "median_return_D3": 1.2387550790376567,
+        "win_rate_D3": 56.19047619047619,
+        "max_return_D3": 21.227871771513218,
+        "min_return_D3": -7.614890812099984,
+        "mean_reversion_rate_D3": 56.19047619047619,
+        "avg_return_D5": 2.2837719989234238,
+        "median_return_D5": 1.0736086356496255,
+        "win_rate_D5": 60.0,
+        "max_return_D5": 19.3812537209314,
+        "min_return_D5": -9.98296450918894,
+        "mean_reversion_rate_D5": 60.0,
+        "avg_return_D7": 2.8692750875317246,
+        "median_return_D7": 2.5791408158146067,
+        "win_rate_D7": 65.71428571428571,
+        "max_return_D7": 25.952888330194533,
+        "min_return_D7": -12.936283301210693,
+        "mean_reversion_rate_D7": 65.71428571428571,
+        "avg_return_D14": 3.4784742110923768,
+        "median_return_D14": 1.996197374712727,
+        "win_rate_D14": 60.952380952380956,
+        "max_return_D14": 36.23030635724489,
+        "min_return_D14": -20.504903241114015,
+        "mean_reversion_rate_D14": 60.952380952380956,
+        "avg_return_D21": 3.235074209208283,
+        "median_return_D21": 0.9862625925617818,
+        "win_rate_D21": 54.285714285714285,
+        "max_return_D21": 38.66474202951318,
+        "min_return_D21": -17.778645555152885,
+        "mean_reversion_rate_D21": 54.285714285714285
+      },
+      "daily_overextended": {
+        "count": 46,
+        "avg_divergence_pct": 25.40932263292953,
+        "avg_daily_percentile": 72.24146890698077,
+        "avg_4h_percentile": 46.83214627405124,
+        "avg_return_D1": 0.20613374088447048,
+        "median_return_D1": 0.05207577512869044,
+        "win_rate_D1": 50.0,
+        "max_return_D1": 9.319660678482244,
+        "min_return_D1": -16.96817134156854,
+        "mean_reversion_rate_D1": 50.0,
+        "avg_return_D3": 0.5264106849050256,
+        "median_return_D3": 0.6774270366141977,
+        "win_rate_D3": 54.347826086956516,
+        "max_return_D3": 19.958927368409206,
+        "min_return_D3": -13.266030898989733,
+        "mean_reversion_rate_D3": 45.65217391304348,
+        "avg_return_D5": 0.7803188329322349,
+        "median_return_D5": 0.7286773750063591,
+        "win_rate_D5": 54.347826086956516,
+        "max_return_D5": 16.377046597218083,
+        "min_return_D5": -17.21745952727245,
+        "mean_reversion_rate_D5": 45.65217391304348,
+        "avg_return_D7": 1.4203531969660839,
+        "median_return_D7": 1.178074968122711,
+        "win_rate_D7": 54.347826086956516,
+        "max_return_D7": 21.116381299371167,
+        "min_return_D7": -19.851916886227084,
+        "mean_reversion_rate_D7": 45.65217391304348,
+        "avg_return_D14": 3.3151210404646982,
+        "median_return_D14": 2.9000145379463382,
+        "win_rate_D14": 63.04347826086957,
+        "max_return_D14": 31.869701116011484,
+        "min_return_D14": -21.884653086872053,
+        "mean_reversion_rate_D14": 36.95652173913043,
+        "avg_return_D21": 5.868781718390923,
+        "median_return_D21": 7.143691638462746,
+        "win_rate_D21": 67.3913043478261,
+        "max_return_D21": 25.80592127333359,
+        "min_return_D21": -15.986850605104419,
+        "mean_reversion_rate_D21": 32.608695652173914
+      },
+      "bearish_convergence": {
+        "count": 90,
+        "avg_divergence_pct": 1.8834090424501404,
+        "avg_daily_percentile": 83.7361664453298,
+        "avg_4h_percentile": 81.85275740287966,
+        "avg_return_D1": 0.2143590698548944,
+        "median_return_D1": 0.04728426897364635,
+        "win_rate_D1": 50.0,
+        "max_return_D1": 6.9804328064784205,
+        "min_return_D1": -6.871653075105577,
+        "mean_reversion_rate_D1": 50.0,
+        "avg_return_D3": -0.4168230171361,
+        "median_return_D3": -0.15882983378603943,
+        "win_rate_D3": 48.888888888888886,
+        "max_return_D3": 10.622422500260509,
+        "min_return_D3": -19.480527971630636,
+        "mean_reversion_rate_D3": 51.11111111111111,
+        "avg_return_D5": -0.6710533376753663,
+        "median_return_D5": -0.4346019628178377,
+        "win_rate_D5": 48.888888888888886,
+        "max_return_D5": 10.21950525130979,
+        "min_return_D5": -15.890405983138823,
+        "mean_reversion_rate_D5": 51.11111111111111,
+        "avg_return_D7": -0.06895359135416193,
+        "median_return_D7": 1.440521650537585,
+        "win_rate_D7": 56.666666666666664,
+        "max_return_D7": 20.710267252010194,
+        "min_return_D7": -20.758048356282032,
+        "mean_reversion_rate_D7": 43.333333333333336,
+        "avg_return_D14": 2.260865108259211,
+        "median_return_D14": 2.962668698427995,
+        "win_rate_D14": 55.55555555555556,
+        "max_return_D14": 29.388145650176067,
+        "min_return_D14": -23.25681413564986,
+        "mean_reversion_rate_D14": 44.44444444444444,
+        "avg_return_D21": 4.456114623627464,
+        "median_return_D21": 4.509648683040979,
+        "win_rate_D21": 58.88888888888889,
+        "max_return_D21": 39.37529659347945,
+        "min_return_D21": -18.240100008085935,
+        "mean_reversion_rate_D21": 41.11111111111111
+      }
+    },
+    "optimal_thresholds": {
+      "bearish_divergence_threshold": 23,
+      "bullish_divergence_threshold": 22,
+      "bearish_sharpe": null,
+      "bullish_sharpe": null,
+      "dislocation_abs_p75": 18.207853183841657,
+      "dislocation_abs_p85": 22.27101374453288,
+      "dislocation_abs_p95": 30.880293008893506,
+      "dislocation_positive_p85": 22.94791494170019,
+      "dislocation_negative_p85": 21.837929455771043,
+      "dislocation_sample": {
+        "n_days": 479,
+        "start_date": "2024-02-07",
+        "end_date": "2026-01-05",
+        "lookback_days_hourly": 730,
+        "percentile_windows": {
+          "daily": 252,
+          "four_h": 410
+        }
+      },
+      "dislocation_stats": {
+        "abs_p85": {
+          "threshold": 22.27101374453288,
+          "horizons": {
+            "D1": {
+              "n_high": 72,
+              "n_low": 406,
+              "mean_high": 0.3475979039431471,
+              "mean_low": 0.243645431636869,
+              "median_high": 0.05207577512869044,
+              "median_low": 0.3063606425843801,
+              "win_rate_high": 50.0,
+              "win_rate_low": 54.187192118226605,
+              "delta_mean": 0.1039524723062781,
+              "delta_median": -0.2542848674556897,
+              "delta_win_rate": -4.187192118226605,
+              "p_value_mwu": 0.9553355459354761
+            },
+            "D3": {
+              "n_high": 71,
+              "n_low": 405,
+              "mean_high": 0.6041897500094936,
+              "mean_low": 0.790922947612621,
+              "median_high": 0.20020864473599964,
+              "median_low": 0.6824757913083124,
+              "win_rate_high": 50.70422535211267,
+              "win_rate_low": 57.77777777777777,
+              "delta_mean": -0.18673319760312745,
+              "delta_median": -0.48226714657231273,
+              "delta_win_rate": -7.073552425665099,
+              "p_value_mwu": 0.8773472086272596
+            },
+            "D7": {
+              "n_high": 71,
+              "n_low": 401,
+              "mean_high": 0.46358281072978436,
+              "mean_low": 1.960169112069451,
+              "median_high": -0.43574342727269455,
+              "median_low": 2.3556524247352106,
+              "win_rate_high": 49.29577464788733,
+              "win_rate_low": 64.08977556109726,
+              "delta_mean": -1.4965863013396667,
+              "delta_median": -2.791395852007905,
+              "delta_win_rate": -14.794000913209928,
+              "p_value_mwu": 0.06593641669945156
+            }
+          }
+        },
+        "abs_p95": {
+          "threshold": 30.880293008893506,
+          "horizons": {
+            "D1": {
+              "n_high": 24,
+              "n_low": 454,
+              "mean_high": 0.2988596210861329,
+              "mean_low": 0.2572124744986965,
+              "median_high": -0.006344976727840068,
+              "median_low": 0.3063606425843801,
+              "win_rate_high": 50.0,
+              "win_rate_low": 53.74449339207048,
+              "delta_mean": 0.0416471465874364,
+              "delta_median": -0.3127056193122202,
+              "delta_win_rate": -3.7444933920704813,
+              "p_value_mwu": 0.8041982870888504
+            },
+            "D3": {
+              "n_high": 24,
+              "n_low": 452,
+              "mean_high": 1.550545958517403,
+              "mean_low": 0.7212569978525838,
+              "median_high": 2.2224021990750353,
+              "median_low": 0.64968882530132,
+              "win_rate_high": 62.5,
+              "win_rate_low": 56.415929203539825,
+              "delta_mean": 0.8292889606648193,
+              "delta_median": 1.5727133737737153,
+              "delta_win_rate": 6.084070796460175,
+              "p_value_mwu": 0.28884275110238145
+            },
+            "D7": {
+              "n_high": 24,
+              "n_low": 448,
+              "mean_high": -0.6177939797199986,
+              "mean_low": 1.8610920736940728,
+              "median_high": 0.3414208648045869,
+              "median_low": 2.270841017418157,
+              "win_rate_high": 54.166666666666664,
+              "win_rate_low": 62.27678571428571,
+              "delta_mean": -2.4788860534140715,
+              "delta_median": -1.9294201526135701,
+              "delta_win_rate": -8.110119047619044,
+              "p_value_mwu": 0.17182971070359632
+            }
+          }
+        },
+        "positive_p85": {
+          "threshold": 22.94791494170019,
+          "horizons": {
+            "D1": {
+              "n_high": 36,
+              "n_low": 201,
+              "mean_high": 0.18406197628607465,
+              "mean_low": -0.021890157512195186,
+              "median_high": 0.01731974557534488,
+              "median_low": 0.23679446665527681,
+              "win_rate_high": 50.0,
+              "win_rate_low": 53.233830845771145,
+              "delta_mean": 0.20595213379826985,
+              "delta_median": -0.21947472107993193,
+              "delta_win_rate": -3.233830845771145,
+              "p_value_mwu": 0.9379307921435518
+            },
+            "D3": {
+              "n_high": 35,
+              "n_low": 200,
+              "mean_high": 0.633613743808967,
+              "mean_low": 0.3773825271411947,
+              "median_high": 0.7941649324503475,
+              "median_low": 0.582868845504203,
+              "win_rate_high": 51.42857142857142,
+              "win_rate_low": 58.5,
+              "delta_mean": 0.25623121666777227,
+              "delta_median": 0.21129608694614443,
+              "delta_win_rate": -7.0714285714285765,
+              "p_value_mwu": 0.9387729089868769
+            },
+            "D7": {
+              "n_high": 35,
+              "n_low": 196,
+              "mean_high": 1.006077156970132,
+              "mean_low": 1.893537899972431,
+              "median_high": 0.4969203524997967,
+              "median_low": 2.3291751796678195,
+              "win_rate_high": 51.42857142857142,
+              "win_rate_low": 64.28571428571429,
+              "delta_mean": -0.8874607430022992,
+              "delta_median": -1.8322548271680228,
+              "delta_win_rate": -12.857142857142868,
+              "p_value_mwu": 0.5632561810347674
+            }
+          }
+        },
+        "negative_p85": {
+          "threshold": 21.837929455771043,
+          "horizons": {
+            "D1": {
+              "n_high": 36,
+              "n_low": 203,
+              "mean_high": 0.5025112031752079,
+              "mean_low": 0.4743174985695751,
+              "median_high": 0.09066839378103486,
+              "median_low": 0.35523495291105434,
+              "win_rate_high": 50.0,
+              "win_rate_low": 54.679802955665025,
+              "delta_mean": 0.028193704605632808,
+              "delta_median": -0.2645665591300195,
+              "delta_win_rate": -4.679802955665025,
+              "p_value_mwu": 0.9801753874996313
+            },
+            "D3": {
+              "n_high": 36,
+              "n_low": 203,
+              "mean_high": 1.199421905481433,
+              "mean_low": 1.069457392495349,
+              "median_high": 1.0974605363268441,
+              "median_low": 0.7510526230377401,
+              "win_rate_high": 55.55555555555556,
+              "win_rate_low": 55.66502463054187,
+              "delta_mean": 0.12996451298608402,
+              "delta_median": 0.34640791328910403,
+              "delta_win_rate": -0.10946907498631475,
+              "p_value_mwu": 0.590905968612505
+            },
+            "D7": {
+              "n_high": 36,
+              "n_low": 203,
+              "mean_high": 0.26216299150882055,
+              "mean_low": 1.9517811219668337,
+              "median_high": 0.27295917494335464,
+              "median_low": 2.5468250873466047,
+              "win_rate_high": 52.77777777777778,
+              "win_rate_low": 63.05418719211823,
+              "delta_mean": -1.6896181304580131,
+              "delta_median": -2.27386591240325,
+              "delta_win_rate": -10.27640941434045,
+              "p_value_mwu": 0.09698423038708133
+            }
+          }
+        }
+      }
+    },
+    "current_recommendation": {
+      "current_daily_percentile": 60.95617529880478,
+      "current_4h_percentile": 39.36430317848411,
+      "divergence_pct": 21.591872120320673,
+      "dislocation_gap": 21.591872120320673,
+      "current_price": 188.1199951171875,
+      "signal": "daily_overextended_weak",
+      "action": "tighten_stops",
+      "reasoning": [
+        "Daily showing early signs of overextension",
+        "Monitor for reversal signals",
+        "Dislocation level: normal (gap 21.6% vs P85 22.3%, P95 30.9%)"
+      ],
+      "category": "daily_overextended",
+      "dislocation_p85": 22.27101374453288,
+      "dislocation_p95": 30.880293008893506,
+      "dislocation_level": "normal"
+    }
+  },
+  "timestamp": "2026-01-05T21:24:17.419173+00:00"
+}
