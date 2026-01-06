@@ -47,17 +47,52 @@ export const calculateDistance = (price: number | null, level: number | null): S
 };
 
 /**
+ * Calculate signed % distance using PineScript-style normalization (move from current price)
+ * Formula: pct_dist = (level - price) / price * 100
+ *
+ * Returns:
+ *   - Positive if level is above current price
+ *   - Negative if level is below current price
+ *   - null if either price or level is missing
+ */
+export const calculateDistanceFromCurrentPrice = (
+  price: number | null,
+  level: number | null
+): SupportDistance => {
+  if (price === null || level === null || price === 0) {
+    return {
+      level_value: level,
+      pct_dist: null,
+      abs_pct_dist: null,
+      is_below: null,
+    };
+  }
+
+  const pct_dist = ((level - price) / price) * 100;
+  const pct_dist_rounded = Math.round(pct_dist * 100) / 100;
+
+  return {
+    level_value: level,
+    pct_dist: pct_dist_rounded,
+    abs_pct_dist: Math.abs(pct_dist_rounded),
+    is_below: price < level,
+  };
+};
+
+/**
  * Calculate all risk distances for a symbol
  * Pure deterministic function - no side effects
  */
 export const calculateRiskDistances = (input: RiskDistanceInput): RiskDistanceOutput => {
   const { symbol, price, st_put, lt_put, q_put, max_pain, lower_ext, nw_lower_band, last_update } = input;
 
-  // Calculate distance for each support level
-  const st_put_dist = calculateDistance(price, st_put);
-  const lt_put_dist = calculateDistance(price, lt_put);
-  const q_put_dist = calculateDistance(price, q_put);
-  const max_pain_dist = calculateDistance(price, max_pain);
+  // PineScript-compatible distance convention for key levels
+  const st_put_dist = calculateDistanceFromCurrentPrice(price, st_put);
+  const lt_put_dist = calculateDistanceFromCurrentPrice(price, lt_put);
+  const q_put_dist = calculateDistanceFromCurrentPrice(price, q_put);
+  const max_pain_dist = calculateDistanceFromCurrentPrice(price, max_pain);
+
+  // Keep existing convention for non-PineScript-derived metrics
   const lower_ext_dist = calculateDistance(price, lower_ext);
   const nw_lower_band_dist = calculateDistance(price, nw_lower_band);
 

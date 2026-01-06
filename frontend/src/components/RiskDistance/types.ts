@@ -23,7 +23,7 @@ export interface RiskDistanceInput {
  */
 export interface SupportDistance {
   level_value: number | null;  // The support level price
-  pct_dist: number | null;     // Signed % distance: (price - level) / level * 100
+  pct_dist: number | null;     // Signed % distance (see calculator.ts for formulas)
   abs_pct_dist: number | null; // Absolute value of pct_dist
   is_below: boolean | null;    // True if price < level
 }
