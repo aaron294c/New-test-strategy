@@ -1872,84 +1872,82 @@ async def get_percentile_forward_mapping_4h(ticker: str, force_refresh: bool = F
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
-def get_stock_data(ticker: str, timeframe: str):
-    """Get data for a specific stock and timeframe."""
-    # Normalize timeframe to lowercase
-    timeframe = timeframe.lower()
+from gamma_risk_distance import get_symbol_risk_distances, get_risk_distance_data
 
-    data_map = {
-        "NVDA": {"4h": NVDA_4H_DATA, "daily": NVDA_DAILY_DATA},
-        "MSFT": {"4h": MSFT_4H_DATA, "daily": MSFT_DAILY_DATA},
-        "GOOGL": {"4h": GOOGL_4H_DATA, "daily": GOOGL_DAILY_DATA},
-        "AAPL": {"4h": AAPL_4H_DATA, "daily": AAPL_DAILY_DATA},
-        "GLD": {"4h": GLD_4H_DATA, "daily": GLD_DAILY_DATA},
-        "SLV": {"4h": SLV_4H_DATA, "daily": SLV_DAILY_DATA},
-        "TSLA": {"4h": TSLA_4H_DATA, "daily": TSLA_DAILY_DATA},
-        "NFLX": {"4h": NFLX_4H_DATA, "daily": NFLX_DAILY_DATA},
-        "BRK-B": {"4h": BRKB_4H_DATA, "daily": BRKB_DAILY_DATA},
-        "WMT": {"4h": WMT_4H_DATA, "daily": WMT_DAILY_DATA},
-        "UNH": {"4h": UNH_4H_DATA, "daily": UNH_DAILY_DATA},
-        "AVGO": {"4h": AVGO_4H_DATA, "daily": AVGO_DAILY_DATA},
-        "LLY": {"4h": LLY_4H_DATA, "daily": LLY_DAILY_DATA},
-        "TSM": {"4h": TSM_4H_DATA, "daily": TSM_DAILY_DATA},
-        "ORCL": {"4h": ORCL_4H_DATA, "daily": ORCL_DAILY_DATA},
-        "OXY": {"4h": OXY_4H_DATA, "daily": OXY_DAILY_DATA}
-    }
-
-    if ticker not in data_map:
-        raise HTTPException(status_code=404, detail=f"Stock {ticker} not found")
-
-    if timeframe not in ["4h", "daily"]:
-        raise HTTPException(status_code=400, detail="Timeframe must be '4h' or 'daily'")
-
-    return data_map[ticker][timeframe]
-
-class TradingRecommendationRequest(BaseModel):
-    ticker: str
-    current_4h_bin: str
-    current_daily_bin: str
-
-@app.get("/api/recommendation/{ticker}")
-@app.get("/recommendation/{ticker}")  # Also support without /api prefix
-async def get_recommendation(ticker: str):
-    """Get trading recommendation for a ticker based on current percentiles."""
+@app.get("/api/risk-distance/{symbol}")
+async def get_risk_distance(symbol: str):
+    """Get comprehensive risk distance data for a symbol."""
     try:
-        # Import the analyzer
-        from multi_timeframe_analyzer import MultiTimeframeAnalyzer
-
-        analyzer = MultiTimeframeAnalyzer()
-        result = analyzer.analyze(ticker.upper())
-
-        if not result:
-            return {
-                "ticker": ticker.upper(),
-                "recommendation": "HOLD",
-                "confidence": 0,
-                "daily_percentile": None,
-                "h4_percentile": None,
-                "divergence": None,
-                "category": "unknown",
-                "message": "Unable to fetch data"
-            }
-        
-        return {
-            "ticker": ticker.upper(),
-            "recommendation": result.get("recommendation", "HOLD"),
-            "confidence": result.get("confidence", 0),
-            "daily_percentile": result.get("daily_percentile", 0),
-            "h4_percentile": result.get("h4_percentile", 0),
-            "divergence": result.get("divergence", 0),
-            "category": result.get("category", "unknown"),
-            "message": result.get("message", "")
-        }
+        data = get_symbol_risk_distances(symbol.upper())
+        if data:
+            return {"status": "success", "data": data}
+        return {"status": "error", "message": f"No data available for {symbol}"}
     except Exception as e:
-        return {
-            "ticker": ticker.upper(),
-            "recommendation": "HOLD",
-            "confidence": 0,
-            "daily_percentile": 0,
-            "h4_percentile": 0,
-            "divergence": 0,
-            "category": "error",
-            "message": str(e)
+        logger.error(f"Error fetching risk distance for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/risk-distance/batch")
+async def get_batch_risk_distances(request: dict):
+    """Get risk distance data for multiple symbols."""
+    try:
+        symbols = request.get("symbols", [])
+        if not symbols:
+            return {"status": "error", "message": "No symbols provided"}
+        
+        data = get_risk_distance_data(symbols)
+        return {"status": "success", "data": data, "count": len(data)}
+    except Exception as e:
+        logger.error(f"Error fetching batch risk distances: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/risk-distance/{symbol}/summary")
+async def get_risk_distance_summary(symbol: str):
+    """Get condensed risk distance summary for quick display."""
+    try:
+        data = get_symbol_risk_distances(symbol.upper())
+        if not data:
+            return {"status": "error", "message": f"No data available for {symbol}"}
+        
+        # Extract key metrics for summary view
+        summary = {
+            "symbol": symbol.upper(),
+            "current_price": data["current_price"],
+            "timestamp": data["timestamp"],
+            
+            # Nearest support/resistance
+            "nearest_support": {
+                "level": data["put_walls"].get("swing", {}).get("strike", 0),
+                "distance_pct": data["put_walls"].get("swing", {}).get("distance_pct", 0),
+                "strength": data["put_walls"].get("swing", {}).get("strength", 0)
+            },
+            "nearest_resistance": {
+                "level": data["call_walls"].get("swing", {}).get("strike", 0),
+                "distance_pct": data["call_walls"].get("swing", {}).get("distance_pct", 0),
+                "strength": data["call_walls"].get("swing", {}).get("strength", 0)
+            },
+            
+            # Max pain
+            "max_pain": {
+                "weekly": data["max_pain"].get("weekly", {}).get("strike", 0),
+                "swing": data["max_pain"].get("swing", {}).get("strike",  0),
+                "monthly": data["max_pain"].get("long", {}).get("strike", 0)
+            },
+            
+            # Gamma flip
+            "gamma_flip": data.get("gamma_flip", {}).get("strike", 0),
+            
+            # Weighted recommendation
+            "recommended_support": data.get("weighted_walls", {}).get("put", {}).get("recommended_wall", 0),
+            
+            # Summary
+            "position": data.get("summary", {}).get("position_in_range", "unknown"),
+            "risk_reward": data.get("summary", {}).get("risk_reward_ratio", 1.0),
+            "recommendation": data.get("summary", {}).get("recommendation", "")
         }
+        
+        return {"status": "success", "data": summary}
+    except Exception as e:
+        logger.error(f"Error fetching risk distance summary for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

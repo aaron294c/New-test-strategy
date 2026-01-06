@@ -216,3 +216,98 @@ export type ThresholdFilter = 5 | 10 | 15;
 export type TimeHorizonRange = 'D1-D7' | 'D8-D14' | 'D15-D21' | 'All';
 export type ConfidenceLevel = 'VL' | 'L' | 'M' | 'H' | 'VH' | 'All';
 export type ChartType = 'heatmap' | 'distribution' | 'percentile' | 'montecarlo';
+
+// Risk Distance Types
+export interface RiskDistanceLevel {
+  strike: number;
+  distance_pct: number;
+  distance_pts: number;
+  strength: number;
+  dte: number;
+}
+
+export interface MaxPainData {
+  strike: number;
+  distance_pct: number;
+  distance_pts: number;
+  total_pain_value: number;
+  call_pain: number;
+  put_pain: number;
+  timeframe: string;
+}
+
+export interface WeightedWallData {
+  max_gex_wall: number;
+  weighted_centroid: number;
+  cumulative_threshold: number;
+  recommended_wall: number;
+  method_used: string;
+  confidence: string;
+}
+
+export interface GammaFlipData {
+  strike: number;
+  distance_pct: number;
+  distance_pts: number;
+}
+
+export interface SDLevels {
+  lower_1sd: number;
+  upper_1sd: number;
+  lower_1_5sd: number;
+  upper_1_5sd: number;
+  lower_2sd: number;
+  upper_2sd: number;
+  iv_used: number;
+  dte: number;
+}
+
+export interface RiskDistanceSummary {
+  nearest_support_pct: number;
+  nearest_resistance_pct: number;
+  risk_reward_ratio: number;
+  position_in_range: 'near_support' | 'mid_range' | 'near_resistance';
+  recommendation: string;
+}
+
+export interface SymbolRiskDistanceData {
+  symbol: string;
+  current_price: number;
+  timestamp: string;
+  put_walls: Record<string, RiskDistanceLevel>;
+  call_walls: Record<string, RiskDistanceLevel>;
+  max_pain: Record<string, MaxPainData>;
+  weighted_walls: {
+    put?: WeightedWallData;
+    call?: WeightedWallData;
+  };
+  gamma_flip: GammaFlipData | null;
+  sd_levels: SDLevels;
+  summary: RiskDistanceSummary;
+}
+
+export interface RiskDistanceSummaryResponse {
+  symbol: string;
+  current_price: number;
+  timestamp: string;
+  nearest_support: {
+    level: number;
+    distance_pct: number;
+    strength: number;
+  };
+  nearest_resistance: {
+    level: number;
+    distance_pct: number;
+    strength: number;
+  };
+  max_pain: {
+    weekly: number;
+    swing: number;
+    monthly: number;
+  };
+  gamma_flip: number;
+  recommended_support: number;
+  position: string;
+  risk_reward: number;
+  recommendation: string;
+}

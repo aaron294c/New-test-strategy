@@ -10,6 +10,8 @@ import type {
   PerformanceMatrix,
   OptimalExitStrategy,
   RSIChartData,
+  SymbolRiskDistanceData,
+  RiskDistanceSummaryResponse,
 } from '@/types';
 
 // Default to same-origin so:
@@ -157,6 +159,37 @@ export const utilityApi = {
     } catch {
       return false;
     }
+  },
+};
+
+/**
+ * Risk distance API calls
+ */
+export const riskDistanceApi = {
+  /**
+   * Get comprehensive risk distance data for a symbol
+   */
+  getRiskDistance: async (symbol: string): Promise<SymbolRiskDistanceData> => {
+    const response = await apiClient.get(`/api/risk-distance/${symbol}`);
+    return response.data.data;
+  },
+
+  /**
+   * Get risk distance data for multiple symbols
+   */
+  getBatchRiskDistances: async (
+    symbols: string[]
+  ): Promise<Record<string, SymbolRiskDistanceData>> => {
+    const response = await apiClient.post('/api/risk-distance/batch', { symbols });
+    return response.data.data;
+  },
+
+  /**
+   * Get condensed risk distance summary for a symbol
+   */
+  getRiskDistanceSummary: async (symbol: string): Promise<RiskDistanceSummaryResponse> => {
+    const response = await apiClient.get(`/api/risk-distance/${symbol}/summary`);
+    return response.data.data;
   },
 };
 
