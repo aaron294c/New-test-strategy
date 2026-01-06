@@ -52,7 +52,7 @@ export const RiskDistanceTab: React.FC = () => {
   const [settingsExpanded, setSettingsExpanded] = useState(false);
 
   // Fetch data from API
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh: boolean = false) => {
     setIsLoading(true);
     setError('');
 
@@ -67,7 +67,8 @@ export const RiskDistanceTab: React.FC = () => {
 
       let data;
       try {
-        data = await fetchJson(`${API_BASE_URL}/api/gamma-data?t=${Date.now()}`);
+        const url = `${API_BASE_URL}/api/gamma-data?t=${Date.now()}${forceRefresh ? '&force_refresh=true' : ''}`;
+        data = await fetchJson(url);
       } catch (primaryErr) {
         console.warn('Primary gamma-data fetch failed, falling back to example:', primaryErr);
         data = await fetchJson(`${API_BASE_URL}/api/gamma-data/example`);
@@ -92,7 +93,8 @@ export const RiskDistanceTab: React.FC = () => {
       // Pull enhanced scanner JSON (source of truth for proximity-filtered walls and 7D max pain)
       let scanner: ScannerJsonPayload | null = null;
       try {
-        scanner = await fetchJson(`${API_BASE_URL}/api/gamma-data/scanner-json?t=${Date.now()}`);
+        const url = `${API_BASE_URL}/api/gamma-data/scanner-json?t=${Date.now()}${forceRefresh ? '&force_refresh=true' : ''}`;
+        scanner = await fetchJson(url);
         setScannerJson(scanner);
         if (scanner?.last_update) setLastUpdate(scanner.last_update);
         if (scanner?.market_regime) setMarketRegime(scanner.market_regime);
@@ -299,7 +301,7 @@ export const RiskDistanceTab: React.FC = () => {
           </p>
         </div>
         <div style={styles.headerRight}>
-          <button onClick={fetchData} disabled={isLoading} style={styles.refreshButton}>
+          <button onClick={() => fetchData(true)} disabled={isLoading} style={styles.refreshButton}>
             {isLoading ? '⟳' : '↻'} Refresh
           </button>
         </div>
@@ -327,7 +329,7 @@ export const RiskDistanceTab: React.FC = () => {
       <div style={styles.toolbar}>
         <div style={styles.toolbarLeft}>
           <span style={styles.toolbarText}>
-            {symbols.length} symbols | {selectedSymbols.size} selected
+            {riskOutputs.length} symbols | {selectedSymbols.size} selected
           </span>
           <button onClick={selectAll} style={styles.toolbarButton}>
             Select All
