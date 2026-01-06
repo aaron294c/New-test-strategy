@@ -1986,16 +1986,59 @@ async def get_symbol_gamma(symbol: str):
         logger.error(f"Error fetching gamma for {symbol}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/gamma/refresh")
-async def refresh_gamma_data():
-    """Force refresh all gamma data."""
+@app.get("/api/gamma/data")
+async def get_gamma_data():
+    """Get cached gamma wall data from scanner output."""
     try:
-        data = refresh_and_get_all()
+        # Try multiple locations for the data file
+        possible_paths = [
+            Path(__file__).parent / 'cache' / 'gamma_walls_data.json',
+            Path(__file__).parent / 'Restoring' / 'cache' / 'gamma_walls_data.json',
+        ]
+        
+        for data_file in possible_paths:
+            if data_file.exists():
+                with open(data_file, 'r') as f:
+                    data = json.load(f)
+                return {"status": "success", "data": data}
+        
+        # If no cached data, return error with instructions
         return {
-            "status": "success",
-            "message": f"Refreshed {len(data.get('symbols', {}))} symbols",
-            "timestamp": data.get('timestamp')
+            "status": "error", 
+            "message": "No cached gamma data found. Run enhanced_gamma_scanner_weekly.py first.",
+            "data": None
         }
     except Exception as e:
-        logger.error(f"Error refreshing gamma data: {e}")
+        logger.error(f"Error loading gamma data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/gamma/refresh")
+async def refresh_gamma_data():
+    """Trigger a fresh gamma scan."""
+    try:
+        import subprocess
+        import sys
+        
+        scanner_path = Path(__file__).parent / 'Restoring' / 'enhanced_gamma_scanner_weekly.py'
+        
+        if not scanner_path.exists():
+            return {"status": "error", "message": f"Scanner not found at {scanner_path}"}
+        
+        # Run the scanner
+        result = subprocess.run(
+            [sys.executable, str(scanner_path)],
+            capture_output=True,
+            text=True,
+            timeout=120
+        )
+        
+        if result.returncode == 0:
+            return {"status": "success", "message": "Gamma scan completed", "output": result.stdout[-500:]}
+        else:
+            return {"status": "error", "message": result.stderr[-500:]}
+            
+    except subprocess.TimeoutExpired:
+        return {"status": "error", "message": "Scan timed out after 120 seconds"}
+    except Exception as e:
+        logger.error(f"Error running gamma scan: {e}")
         raise HTTPException(status_code=500, detail=str(e))
