@@ -595,18 +595,26 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                     weekly_calls_gex = calls_gex.copy()
                     weekly_puts_gex = puts_gex.copy()
                 
-                # FIXED: Calculate all 4 put wall methods with category-specific proximity
+                # CRITICAL FIX: Use the new multi-method calculation with category
                 put_walls = calculator.calculate_all_put_wall_methods(puts_gex, current_price, category)
                 call_walls = calculator.calculate_all_call_wall_methods(calls_gex, current_price, category)
+                
+                # DEBUG: Print what we got for SPX
+                if symbol == '^SPX' and tf_name == 'swing':
+                    print(f"\n  DEBUG SPX SWING PUT WALLS:")
+                    print(f"    Category: {category}")
+                    print(f"    Max Distance: {MAX_DISTANCE_BY_CATEGORY.get(category, 'DEFAULT')}")
+                    for k, v in put_walls.items():
+                        print(f"    {k}: {v}")
                 
                 # Store methods for this timeframe
                 results['put_wall_methods'][tf_name] = put_walls
                 results['call_wall_methods'][tf_name] = call_walls
                 
-                # Use weighted_combo as the primary put wall (configurable)
+                # Use weighted_combo as the primary put wall
                 put_wall_strike = put_walls['weighted_combo']
                 call_wall_strike = call_walls['weighted_combo']
-                
+
                 call_strength = calculator.calculate_wall_strength(calls_gex)
                 put_strength = calculator.calculate_wall_strength(puts_gex)
                 

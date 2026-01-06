@@ -362,6 +362,34 @@ export const RiskDistanceTab: React.FC<RiskDistanceTabProps> = ({ symbol }) => {
     }
   };
 
+  const fetchGammaData = async (forceRefresh = false) => {
+    try {
+      const url = forceRefresh 
+        ? '/api/gamma/refresh' 
+        : '/api/gamma/data';
+      
+      const response = await fetch(url, {
+        method: forceRefresh ? 'POST' : 'GET',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch gamma data: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.status === 'error') {
+        console.error('Gamma data error:', result.message);
+        return null;
+      }
+      
+      return result.data;
+    } catch (error) {
+      console.error('Error fetching gamma data:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, [symbol]);
