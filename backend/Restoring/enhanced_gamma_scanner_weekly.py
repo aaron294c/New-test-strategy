@@ -200,11 +200,13 @@ class GammaWallCalculator:
 
             min_dist = expected_move_pct * mult * cat_adj
 
-            # Practical bounds (percent).
-            min_dist = max(0.8, min(4.0, min_dist))
+            # Practical bounds (percent). We intentionally keep a *meaningful* floor so walls don't
+            # collapse to near-ATM strikes (often repeats ST/LT/Q and looks like noise, not a wall).
+            cat_floor = 1.5 if cat in ("INDEX", "ETF") else 2.0
+            min_dist = max(cat_floor, min(4.0, min_dist))
             return float(min_dist)
         except Exception:
-            return 1.5
+            return 2.0
 
     def calculate_all_put_wall_methods(
         self,
