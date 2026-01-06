@@ -28,6 +28,8 @@ CACHE_TTL_SECONDS = 300  # 5 minutes
 # Path to the gamma scanner Python script
 SCRIPT_DIR = Path(__file__).parent.parent.parent
 GAMMA_SCRIPT_PATH = SCRIPT_DIR / "gamma_wall_scanner_script.py"
+ENHANCED_SCANNER_PATH = SCRIPT_DIR / "Restoring" / "enhanced_gamma_scanner_weekly.py"
+SCANNER_JSON_CACHE_PATH = SCRIPT_DIR / "cache" / "gamma_walls_data.json"
 # Use the same interpreter that is running FastAPI (works on Windows & POSIX)
 PYTHON_EXECUTABLE = os.getenv("PYTHON_EXECUTABLE") or sys.executable or "python3"
 
@@ -123,14 +125,17 @@ def run_gamma_scanner_script() -> str:
     """
     Execute the gamma scanner Python script and return its output
     """
-    if not GAMMA_SCRIPT_PATH.exists():
+    # Prefer the enhanced scanner (v8.x) when available; it also writes backend/cache/gamma_walls_data.json.
+    script_path = ENHANCED_SCANNER_PATH if ENHANCED_SCANNER_PATH.exists() else GAMMA_SCRIPT_PATH
+
+    if not script_path.exists():
         raise FileNotFoundError(
-            f"Gamma scanner script not found at {GAMMA_SCRIPT_PATH}"
+            f"Gamma scanner script not found at {script_path}"
         )
 
     try:
         result = subprocess.run(
-            [PYTHON_EXECUTABLE, str(GAMMA_SCRIPT_PATH)],
+            [PYTHON_EXECUTABLE, str(script_path)],
             capture_output=True,
             text=True,
             timeout=120,  # 2 minute timeout
@@ -159,6 +164,137 @@ def run_gamma_scanner_script() -> str:
             detail=f"Failed to run gamma scanner: {str(e)}"
         )
 
+def _read_scanner_json_cache() -> Optional[dict]:
+    """
+    Read the enhanced scanner JSON output (backend/cache/gamma_walls_data.json).
+    Returns None if missing or invalid.
+    """
+    if not SCANNER_JSON_CACHE_PATH.exists():
+        return None
+
+    try:
+        with open(SCANNER_JSON_CACHE_PATH, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Failed to read scanner JSON cache: {e}")
+        return None
+
+
+def _safe_float(x, default: float = 0.0) -> float:
+    try:
+        if x is None:
+            return default
+        return float(x)
+    except Exception:
+        return default
+
+
+def _convert_scanner_json_to_gamma_data_response(payload: dict) -> GammaDataResponse:
+    """
+    Convert enhanced scanner JSON format (gamma_walls_data.json) into the existing
+    Pine-style 36-field `level_data` strings expected by the frontend parser.
+    """
+    symbols = payload.get("symbols") or {}
+    last_update = payload.get("last_update") or datetime.now().strftime("%b %d, %I:%M%p").lower()
+    market_regime = payload.get("market_regime") or "Normal Volatility"
+    current_vix = _safe_float(payload.get("vix"), 15.5)
+
+    level_data: List[str] = []
+
+    for _, sym in symbols.items():
+        symbol_name = str(sym.get("symbol") or "").strip()
+        if not symbol_name:
+            continue
+
+        current_price = _safe_float(sym.get("current_price"), 0.0)
+        if current_price <= 0:
+            continue
+
+        st_put = _safe_float(sym.get("st_put_wall"), 0.0)
+        st_call = _safe_float(sym.get("st_call_wall"), 0.0)
+        lt_put = _safe_float(sym.get("lt_put_wall"), 0.0)
+        lt_call = _safe_float(sym.get("lt_call_wall"), 0.0)
+        q_put = _safe_float(sym.get("q_put_wall"), 0.0)
+        q_call = _safe_float(sym.get("q_call_wall"), 0.0)
+
+        lower_1sd = _safe_float(sym.get("lower_1sd"), 0.0)
+        upper_1sd = _safe_float(sym.get("upper_1sd"), 0.0)
+        lower_2sd = _safe_float(sym.get("lower_2sd"), 0.0)
+        upper_2sd = _safe_float(sym.get("upper_2sd"), 0.0)
+
+        gamma_flip = _safe_float(sym.get("gamma_flip"), current_price)
+
+        st_put_strength = _safe_float(sym.get("st_put_strength"), 0.0)
+        st_call_strength = _safe_float(sym.get("st_call_strength"), 0.0)
+
+        category = str(sym.get("category") or "").upper()
+        # The enhanced JSON doesn't include per-symbol IV; approximate for downstream features.
+        # Indices/ETFs: use VIX proxy; stocks: use a conservative default.
+        iv_percent = max(5.0, min(300.0, current_vix)) if category in ("INDEX", "ETF") else 25.0
+
+        # Derive 1.5SD from 1SD "move" if possible
+        base_move = current_price - lower_1sd if lower_1sd > 0 else 0.0
+        lower_1_5sd = current_price - base_move * 1.5 if base_move > 0 else 0.0
+        upper_1_5sd = current_price + base_move * 1.5 if base_move > 0 else 0.0
+
+        fields = [
+            st_put,            # 0
+            st_call,           # 1
+            lt_put,            # 2
+            lt_call,           # 3
+            lower_1sd,         # 4
+            upper_1sd,         # 5
+            st_put,            # 6 duplicate
+            st_call,           # 7 duplicate
+            gamma_flip,        # 8
+            iv_percent,        # 9 swing IV%
+            2.0,               # 10 call/put ratio (unknown here)
+            0.0,               # 11 trend
+            3.0,               # 12 activity score
+            st_put,            # 13 duplicate
+            st_call,           # 14 duplicate
+            lower_1_5sd,       # 15
+            upper_1_5sd,       # 16
+            lower_2sd,         # 17
+            upper_2sd,         # 18
+            q_put,             # 19
+            q_call,            # 20
+            st_put_strength,   # 21
+            st_call_strength,  # 22
+            0.0,               # 23 lt_put_strength (not in JSON)
+            0.0,               # 24 lt_call_strength (not in JSON)
+            0.0,               # 25 q_put_strength (not in JSON)
+            0.0,               # 26 q_call_strength (not in JSON)
+            14,                # 27 st_dte (swing)
+            30,                # 28 lt_dte (long)
+            90,                # 29 q_dte (quarterly)
+            0.0,               # 30 st_put_gex
+            0.0,               # 31 st_call_gex
+            0.0,               # 32 lt_put_gex
+            0.0,               # 33 lt_call_gex
+            0.0,               # 34 q_put_gex
+            0.0,               # 35 q_call_gex
+        ]
+
+        formatted_fields: List[str] = []
+        for i, v in enumerate(fields):
+            if i >= 27 and i <= 29:
+                formatted_fields.append(str(int(v)))
+            elif i >= 30:
+                formatted_fields.append(f"{float(v):.1f}")
+            else:
+                formatted_fields.append(f"{float(v):.1f}")
+
+        level_data.append(f"{symbol_name}:{','.join(formatted_fields)};")
+
+    return GammaDataResponse(
+        level_data=level_data,
+        last_update=last_update,
+        market_regime=market_regime,
+        current_vix=current_vix,
+        regime_adjustment_enabled=True,
+    )
+
 
 def _is_cache_valid() -> bool:
     """Check if cached data is still valid."""
@@ -176,9 +312,14 @@ def _refresh_cache_sync():
 
     try:
         _gamma_cache["is_refreshing"] = True
-        stdout = run_gamma_scanner_script()
-        parser = GammaScriptOutput(stdout)
-        data = parser.parse()
+        # If the enhanced scanner JSON cache exists, prefer it (fast, deterministic).
+        payload = _read_scanner_json_cache()
+        if payload is not None:
+            data = _convert_scanner_json_to_gamma_data_response(payload)
+        else:
+            stdout = run_gamma_scanner_script()
+            parser = GammaScriptOutput(stdout)
+            data = parser.parse()
 
         if data.level_data:
             _gamma_cache["data"] = data
@@ -203,9 +344,16 @@ async def get_gamma_data(force_refresh: bool = False, background_tasks: Backgrou
     # If force refresh, bypass cache
     if force_refresh:
         try:
+            # Run the scanner (prefer enhanced) to produce fresh JSON + stdout.
             stdout = run_gamma_scanner_script()
-            parser = GammaScriptOutput(stdout)
-            data = parser.parse()
+
+            # Prefer the enhanced JSON cache if it was produced.
+            payload = _read_scanner_json_cache()
+            if payload is not None:
+                data = _convert_scanner_json_to_gamma_data_response(payload)
+            else:
+                parser = GammaScriptOutput(stdout)
+                data = parser.parse()
 
             if not data.level_data:
                 raise ValueError("No gamma data found in script output")
@@ -234,9 +382,13 @@ async def get_gamma_data(force_refresh: bool = False, background_tasks: Backgrou
 
     # Cache miss or expired - try to fetch fresh data
     try:
-        stdout = run_gamma_scanner_script()
-        parser = GammaScriptOutput(stdout)
-        data = parser.parse()
+        payload = _read_scanner_json_cache()
+        if payload is not None:
+            data = _convert_scanner_json_to_gamma_data_response(payload)
+        else:
+            stdout = run_gamma_scanner_script()
+            parser = GammaScriptOutput(stdout)
+            data = parser.parse()
 
         if not data.level_data:
             raise ValueError("No gamma data found in script output")
@@ -261,11 +413,17 @@ async def get_gamma_data(force_refresh: bool = False, background_tasks: Backgrou
 async def gamma_endpoint_health():
     """Health check for gamma data endpoint"""
     script_exists = GAMMA_SCRIPT_PATH.exists()
+    enhanced_exists = ENHANCED_SCANNER_PATH.exists()
+    json_cache_exists = SCANNER_JSON_CACHE_PATH.exists()
 
     return {
-        "status": "healthy" if script_exists else "degraded",
+        "status": "healthy" if (script_exists or enhanced_exists) else "degraded",
         "script_path": str(GAMMA_SCRIPT_PATH),
         "script_exists": script_exists,
+        "enhanced_script_path": str(ENHANCED_SCANNER_PATH),
+        "enhanced_script_exists": enhanced_exists,
+        "json_cache_path": str(SCANNER_JSON_CACHE_PATH),
+        "json_cache_exists": json_cache_exists,
         "timestamp": datetime.now().isoformat(),
     }
 
