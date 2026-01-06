@@ -56,6 +56,15 @@ DTE_BUCKETS = {
 RISK_FREE_RATE = 0.045
 MAX_WORKERS = 8
 
+# Back-compat for services that import scanner constants.
+# v9.x uses bucket aggregation and does not require these weights internally,
+# but downstream code expects the symbol to exist.
+PUT_WALL_WEIGHTS = {
+    "max_gex": 0.40,
+    "weighted_centroid": 0.35,
+    "cumulative_threshold": 0.25,
+}
+
 MAX_DISTANCE_BY_CATEGORY = {
     'INDEX': 0.10,
     'ETF': 0.12,

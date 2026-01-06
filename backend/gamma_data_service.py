@@ -15,7 +15,7 @@ import logging
 
 # Import the scanner
 import sys
-sys.path.insert(0, str(Path(__file__).parent / 'Restoring'))
+sys.path.insert(0, str(Path(__file__).parent))
 
 from Restoring.enhanced_gamma_scanner_weekly import (
     GammaWallCalculator,
