@@ -90,8 +90,9 @@ export const RiskDistanceTab: React.FC = () => {
       setError('');
 
       // Pull enhanced scanner JSON (source of truth for proximity-filtered walls and 7D max pain)
+      let scanner: ScannerJsonPayload | null = null;
       try {
-        const scanner = await fetchJson(`${API_BASE_URL}/api/gamma-data/scanner-json?t=${Date.now()}`);
+        scanner = await fetchJson(`${API_BASE_URL}/api/gamma-data/scanner-json?t=${Date.now()}`);
         setScannerJson(scanner);
         if (scanner?.last_update) setLastUpdate(scanner.last_update);
         if (scanner?.market_regime) setMarketRegime(scanner.market_regime);
@@ -100,11 +101,19 @@ export const RiskDistanceTab: React.FC = () => {
         setScannerJson(null);
       }
 
-      // Fetch real prices for all symbols
-      const priceRequests = parsedSymbols.map(s => ({
-        symbol: s.symbol,
-        estimatedPrice: s.currentPrice,
-      }));
+      const scannerSymbols = scanner?.symbols ? Object.keys(scanner.symbols) : [];
+      const parsedSymbolNames = parsedSymbols.map(s => s.symbol);
+      const symbolUniverse = Array.from(new Set([...scannerSymbols, ...parsedSymbolNames]));
+
+      // Fetch real prices for all symbols we plan to display
+      const priceRequests = symbolUniverse.map(symbol => {
+        const parsed = parsedSymbols.find(s => s.symbol === symbol);
+        const scannerPrice = scanner?.symbols?.[symbol]?.current_price;
+        return {
+          symbol,
+          estimatedPrice: parsed?.currentPrice || (typeof scannerPrice === 'number' ? scannerPrice : 0),
+        };
+      });
 
       const prices = await batchGetPrices(priceRequests);
       const priceMap = new Map<string, number>();
@@ -118,17 +127,17 @@ export const RiskDistanceTab: React.FC = () => {
       // Fetch lower extension data for all symbols
       const lowerExtMap = new Map<string, number>();
       await Promise.all(
-        parsedSymbols.map(async (s) => {
+        symbolUniverse.map(async (symbol) => {
           try {
-            const response = await fetch(`${API_BASE_URL}/api/lower-extension/metrics/${s.symbol}?length=30&lookback_days=30&t=${Date.now()}`);
+            const response = await fetch(`${API_BASE_URL}/api/lower-extension/metrics/${symbol}?length=30&lookback_days=30&t=${Date.now()}`);
             if (response.ok) {
               const data = await response.json();
               if (data.lower_ext) {
-                lowerExtMap.set(s.symbol, data.lower_ext);
+                lowerExtMap.set(symbol, data.lower_ext);
               }
             }
           } catch (err) {
-            console.warn(`Failed to fetch lower extension for ${s.symbol}:`, err);
+            console.warn(`Failed to fetch lower extension for ${symbol}:`, err);
           }
         })
       );
@@ -138,17 +147,17 @@ export const RiskDistanceTab: React.FC = () => {
       // Fetch Nadaraya-Watson lower band data for all symbols
       const nwMap = new Map<string, number>();
       await Promise.all(
-        parsedSymbols.map(async (s) => {
+        symbolUniverse.map(async (symbol) => {
           try {
-            const response = await fetch(`${API_BASE_URL}/api/nadaraya-watson/metrics/${s.symbol}?length=200&bandwidth=8.0&atr_period=50&atr_mult=2.0&t=${Date.now()}`);
+            const response = await fetch(`${API_BASE_URL}/api/nadaraya-watson/metrics/${symbol}?length=200&bandwidth=8.0&atr_period=50&atr_mult=2.0&t=${Date.now()}`);
             if (response.ok) {
               const data = await response.json();
               if (data.lower_band) {
-                nwMap.set(s.symbol, data.lower_band);
+                nwMap.set(symbol, data.lower_band);
               }
             }
           } catch (err) {
-            console.warn(`Failed to fetch Nadaraya-Watson for ${s.symbol}:`, err);
+            console.warn(`Failed to fetch Nadaraya-Watson for ${symbol}:`, err);
           }
         })
       );
@@ -172,35 +181,44 @@ export const RiskDistanceTab: React.FC = () => {
   // Convert ParsedSymbolData to RiskDistanceInput
   const riskInputs: RiskDistanceInput[] = useMemo(() => {
     const scannerSymbols = scannerJson?.symbols || {};
-    return symbols.map(symbol => {
-      // Find wall values from the parsed data
-      const stPutWall = symbol.walls.find(w => w.type === 'put' && w.timeframe === 'swing');
-      const ltPutWall = symbol.walls.find(w => w.type === 'put' && w.timeframe === 'long');
-      const qPutWall = symbol.walls.find(w => w.type === 'put' && w.timeframe === 'quarterly');
+    const scannerSymbolNames = Object.keys(scannerSymbols);
+    const parsedSymbolNames = symbols.map(s => s.symbol);
+    const displaySymbols = scannerSymbolNames.length ? scannerSymbolNames : parsedSymbolNames;
 
-      // Use real price if available, otherwise fall back to estimated price
-      const currentPrice = realPrices.get(symbol.symbol) || symbol.currentPrice;
+    return displaySymbols.map(symbolName => {
+      const parsed = symbols.find(s => s.symbol === symbolName) || null;
+      const scanner = scannerSymbols[symbolName];
 
-      const scanner = scannerSymbols[symbol.symbol];
+      const currentPrice =
+        realPrices.get(symbolName) ||
+        (scanner && typeof scanner.current_price === 'number' ? scanner.current_price : null) ||
+        parsed?.currentPrice ||
+        null;
 
-      // Prefer scanner outputs (proximity-filtered walls + 7D max pain) when available
-      const stPut = scanner?.st_put_wall || stPutWall?.strike || null;
-      const ltPut = scanner?.lt_put_wall || ltPutWall?.strike || null;
-      const qPut = scanner?.q_put_wall || qPutWall?.strike || null;
+      const stPutWall = parsed?.walls.find(w => w.type === 'put' && w.timeframe === 'swing')?.strike ?? null;
+      const ltPutWall = parsed?.walls.find(w => w.type === 'put' && w.timeframe === 'long')?.strike ?? null;
+      const qPutWall = parsed?.walls.find(w => w.type === 'put' && w.timeframe === 'quarterly')?.strike ?? null;
+
+      const stPut = (scanner && scanner.st_put_wall) || stPutWall || null;
+      const ltPut = (scanner && scanner.lt_put_wall) || ltPutWall || null;
+      const qPut = (scanner && scanner.q_put_wall) || qPutWall || null;
 
       const scannerMaxPain = scanner?.max_pain && scanner.max_pain > 0 ? scanner.max_pain : null;
-      const fallbackMaxPain = calculateMaxPain(symbol, { currentPriceOverride: currentPrice, marketRegime });
+      const fallbackMaxPain =
+        parsed && currentPrice !== null
+          ? calculateMaxPain(parsed, { currentPriceOverride: currentPrice, marketRegime })
+          : null;
       const maxPain = scannerMaxPain ?? fallbackMaxPain;
 
       return {
-        symbol: symbol.symbol,
+        symbol: symbolName,
         price: currentPrice,
         st_put: stPut,
         lt_put: ltPut,
         q_put: qPut,
         max_pain: maxPain,
-        lower_ext: lowerExtData.get(symbol.symbol) || null,
-        nw_lower_band: nwLowerBandData.get(symbol.symbol) || null,
+        lower_ext: lowerExtData.get(symbolName) || null,
+        nw_lower_band: nwLowerBandData.get(symbolName) || null,
         last_update: lastUpdate,
       };
     });

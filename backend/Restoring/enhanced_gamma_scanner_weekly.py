@@ -34,22 +34,21 @@ logger = logging.getLogger(__name__)
 # === CONFIGURATION ===
 # Extended symbol list with working Yahoo Finance symbols
 SYMBOLS = [
-    # Original tech stocks
-    'AAPL', 'NVDA', 'MSFT', 'AMZN', 'GOOGL', 'META', 'TSLA', 'NFLX', 'AMD', 'CRM', 'ADBE', 'ORCL',
-    # Working index symbols (correct Yahoo Finance format)
-    '^SPX',  # S&P 500 Index (working perfectly!)
-    'QQQ',   # QQQ ETF as NDX proxy (much better options liquidity)
-    # Energy stocks (confirmed working)
-    'CVX',   # Chevron
-    'XOM',   # ExxonMobil
-    # Additional reliable symbols
-    'INTC',  # Intel (tech diversity)
-    'JPM',   # JPMorgan (financial sector)
-    'BAC',   # Bank of America (financial sector)
-    'DIS',   # Disney (consumer/entertainment)
-    # International indices (correct Yahoo symbols)
-    '^GDAXI', # DAX Performance Index (has options chain)
-    '^FTSE',  # FTSE 100 Index
+    # Align with Live Market State tickers (swing_framework_api.py current-state list)
+    'SPY',
+    'QQQ',    # display as QQQ(NDX)
+    '^SPX',   # S&P 500 Index (kept for SPX wall accuracy)
+    '^VIX',   # VIX (may not have options via Yahoo; safe to attempt)
+
+    # Mega-cap / core equities
+    'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'TSLA', 'NFLX',
+    'BRK-B', 'AVGO', 'LLY', 'UNH', 'TSM', 'WMT', 'COST',
+
+    # Energy / Financial
+    'XOM', 'CVX', 'OXY', 'JPM', 'BAC',
+
+    # Liquid ETFs / proxies used in market state
+    'GLD', 'SLV',
 ]
 
 # UPDATED TIMEFRAMES - Now includes TRUE WEEKLY data
@@ -82,15 +81,8 @@ MAX_DISTANCE_BY_CATEGORY = {
 # Symbol mapping for display names
 SYMBOL_DISPLAY_NAMES = {
     '^SPX': 'SPX',
-    'QQQ': 'QQQ(NDX)', 
-    '^GDAXI': 'DAX',
-    '^FTSE': 'FTSE',
-    'CVX': 'CVX',
-    'XOM': 'XOM',
-    'INTC': 'INTC',
-    'JPM': 'JPM',
-    'BAC': 'BAC',
-    'DIS': 'DIS'
+    '^VIX': 'VIX',
+    'QQQ': 'QQQ(NDX)',
 }
 
 class GammaWallCalculator:
@@ -476,15 +468,15 @@ def find_best_expiration(options_dates: List[str], target_days: int) -> Tuple[st
 
 def get_symbol_category(symbol: str) -> str:
     """Categorize symbols for better error handling and display"""
-    if symbol in ['^SPX', '^GDAXI', '^FTSE']:
+    if symbol in ['^SPX', '^VIX']:
         return 'INDEX'
-    elif symbol in ['QQQ']:
+    elif symbol in ['QQQ', 'SPY', 'GLD', 'SLV']:
         return 'ETF'
-    elif symbol in ['CVX', 'XOM']:
+    elif symbol in ['CVX', 'XOM', 'OXY']:
         return 'ENERGY'
     elif symbol in ['JPM', 'BAC']:
         return 'FINANCIAL'
-    elif symbol in ['DIS']:
+    elif symbol in ['WMT', 'COST']:
         return 'CONSUMER'
     else:
         return 'TECH'
