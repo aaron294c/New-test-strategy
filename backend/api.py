@@ -1951,3 +1951,51 @@ async def get_risk_distance_summary(symbol: str):
     except Exception as e:
         logger.error(f"Error fetching risk distance summary for {symbol}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Add at the top with other imports
+from gamma_data_service import (
+    scan_all_symbols, 
+    get_symbol_risk_distance, 
+    refresh_and_get_all
+)
+
+# Add these endpoints (place after existing routes)
+
+@app.get("/api/gamma/all")
+async def get_all_gamma_data(refresh: bool = False):
+    """Get gamma wall data for all symbols."""
+    try:
+        if refresh:
+            data = refresh_and_get_all()
+        else:
+            data = scan_all_symbols()
+        return {"status": "success", "data": data}
+    except Exception as e:
+        logger.error(f"Error fetching gamma data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/gamma/{symbol}")
+async def get_symbol_gamma(symbol: str):
+    """Get gamma wall data for a specific symbol."""
+    try:
+        data = get_symbol_risk_distance(symbol)
+        if data:
+            return {"status": "success", "data": data}
+        return {"status": "error", "message": f"No data for {symbol}"}
+    except Exception as e:
+        logger.error(f"Error fetching gamma for {symbol}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/gamma/refresh")
+async def refresh_gamma_data():
+    """Force refresh all gamma data."""
+    try:
+        data = refresh_and_get_all()
+        return {
+            "status": "success",
+            "message": f"Refreshed {len(data.get('symbols', {}))} symbols",
+            "timestamp": data.get('timestamp')
+        }
+    except Exception as e:
+        logger.error(f"Error refreshing gamma data: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
