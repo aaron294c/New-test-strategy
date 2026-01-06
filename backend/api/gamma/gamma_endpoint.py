@@ -134,12 +134,20 @@ def run_gamma_scanner_script() -> str:
         )
 
     try:
+        # yfinance writes cookie/session caches via platformdirs (often under ~/.cache).
+        # In some deployments those locations can be read-only; force a writable cache dir.
+        cache_home = SCRIPT_DIR / "cache" / ".xdg_cache"
+        cache_home.mkdir(parents=True, exist_ok=True)
+        env = os.environ.copy()
+        env.setdefault("XDG_CACHE_HOME", str(cache_home))
+
         result = subprocess.run(
             [PYTHON_EXECUTABLE, str(script_path)],
             capture_output=True,
             text=True,
             timeout=120,  # 2 minute timeout
             check=True,
+            env=env,
         )
         return result.stdout
     except FileNotFoundError:

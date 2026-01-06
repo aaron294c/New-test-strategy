@@ -217,6 +217,22 @@ class GammaWallCalculator:
             
             abs_gex = relevant_strikes.abs()
             total_gex = abs_gex.sum()
+
+            # If exposure is effectively zero (often caused by missing/zero OI from the data source),
+            # fall back to the closest strike below spot to avoid degenerate "min strike" walls.
+            if not np.isfinite(total_gex) or total_gex <= 0:
+                nearest_support = float(relevant_strikes.index.max())
+                return {
+                    'max_gex': round(nearest_support, 2),
+                    'weighted_centroid': round(nearest_support, 2),
+                    'cumulative_threshold': round(nearest_support, 2),
+                    'weighted_combo': round(nearest_support, 2),
+                    'method_used': 'no_exposure',
+                    'confidence': 'low',
+                    'gex_concentration': 0.0,
+                    'strikes_analyzed': len(relevant_strikes),
+                    'max_distance_used': max_distance_pct
+                }
             
             # METHOD 1: Max GEX - Strike with highest absolute exposure
             max_gex_wall = abs_gex.idxmax()
@@ -316,6 +332,18 @@ class GammaWallCalculator:
             
             abs_gex = relevant_strikes.abs()
             total_gex = abs_gex.sum()
+
+            # If exposure is effectively zero, fall back to the closest strike above spot.
+            if not np.isfinite(total_gex) or total_gex <= 0:
+                nearest_resistance = float(relevant_strikes.index.min())
+                return {
+                    'max_gex': round(nearest_resistance, 2),
+                    'weighted_centroid': round(nearest_resistance, 2),
+                    'cumulative_threshold': round(nearest_resistance, 2),
+                    'weighted_combo': round(nearest_resistance, 2),
+                    'method_used': 'no_exposure',
+                    'confidence': 'low'
+                }
             
             max_gex_wall = abs_gex.idxmax()
             weighted_centroid = (abs_gex * abs_gex.index).sum() / total_gex if total_gex > 0 else max_gex_wall
@@ -562,6 +590,16 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                 if calls.empty or puts.empty:
                     continue
 
+                # Normalize key numeric columns early (Yahoo occasionally returns NaN/None).
+                for df in (calls, puts):
+                    for col in ('openInterest', 'volume', 'impliedVolatility'):
+                        if col in df.columns:
+                            df[col] = pd.to_numeric(df[col], errors='coerce')
+                    if 'openInterest' in df.columns:
+                        df['openInterest'] = df['openInterest'].fillna(0)
+                    if 'volume' in df.columns:
+                        df['volume'] = df['volume'].fillna(0)
+
                 # 7D Max Pain: compute from weekly chain before liquidity filtering
                 if tf_name == 'weekly':
                     try:
@@ -689,8 +727,13 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                     )
                 
                 # Calculate GEX
-                calls_gex = calls['openInterest'] * calls['gamma'] * 100 * current_price
-                puts_gex = puts['openInterest'] * puts['gamma'] * 100 * current_price * -1
+                # Use open interest when available; fall back to volume when OI is missing/zero.
+                # This avoids "all-zero GEX" degenerate walls when the upstream source omits OI.
+                calls_eff_oi = calls['openInterest'].where(calls['openInterest'] > 0, calls['volume']).astype(float)
+                puts_eff_oi = puts['openInterest'].where(puts['openInterest'] > 0, puts['volume']).astype(float)
+
+                calls_gex = calls_eff_oi * calls['gamma'] * 100 * current_price
+                puts_gex = puts_eff_oi * puts['gamma'] * 100 * current_price * -1
                 
                 if tf_name == 'weekly':
                     weekly_calls_gex = calls_gex.copy()
@@ -934,6 +977,12 @@ def main():
             # Gamma flip and max pain
             'gamma_flip': result.get('gamma_flip', current_price),
             'max_pain': result.get('max_pain', 0),  # Need to add this calculation
+
+            # Expiry diagnostics (helps validate ST/LT/Q are using distinct expiries)
+            'wk_dte': result.get('wk_dte', None),
+            'st_dte': result.get('st_dte', None),
+            'lt_dte': result.get('lt_dte', None),
+            'q_dte': result.get('q_dte', None),
             
             # SD levels
             'lower_1sd': result.get('lower_1sd', 0),
