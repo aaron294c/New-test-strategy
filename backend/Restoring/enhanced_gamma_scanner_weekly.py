@@ -163,51 +163,6 @@ class GammaWallCalculator:
             logger.warning(f"Gamma flip calculation error: {e}")
             return current_price
     
-    def _min_wall_distance_pct(self, iv_decimal: float, dte: float, category: str, timeframe: str) -> float:
-        """
-        Calibrate a minimum distance away from spot for wall selection.
-
-        This prevents "walls" from collapsing to the nearest strike below/above spot (often an artifact
-        of near-ATM gamma dominance or sparse/low-quality upstream OI).
-        """
-        try:
-            iv = float(iv_decimal) if iv_decimal is not None else 0.0
-            if not np.isfinite(iv) or iv <= 0:
-                iv = 0.20
-
-            d = float(dte) if dte is not None else 0.0
-            if not np.isfinite(d) or d <= 0:
-                d = 14.0
-
-            expected_move_pct = iv * np.sqrt(d / 365.0) * 100.0
-
-            # Longer-dated expiries have larger expected move; use smaller multipliers to avoid over-pushing.
-            tf = (timeframe or "").lower()
-            if tf == "weekly":
-                mult = 0.20
-            elif tf == "swing":
-                mult = 0.45
-            elif tf == "long":
-                mult = 0.35
-            elif tf == "quarterly":
-                mult = 0.25
-            else:
-                mult = 0.35
-
-            # Indices/ETFs can have tighter wall distances than single names.
-            cat = (category or "").upper()
-            cat_adj = 0.9 if cat in ("INDEX", "ETF") else 1.0
-
-            min_dist = expected_move_pct * mult * cat_adj
-
-            # Practical bounds (percent). We intentionally keep a *meaningful* floor so walls don't
-            # collapse to near-ATM strikes (often repeats ST/LT/Q and looks like noise, not a wall).
-            cat_floor = 1.5 if cat in ("INDEX", "ETF") else 2.0
-            min_dist = max(cat_floor, min(4.0, min_dist))
-            return float(min_dist)
-        except Exception:
-            return 2.0
-
     def calculate_all_put_wall_methods(
         self,
         puts_gex: pd.Series,
@@ -242,34 +197,19 @@ class GammaWallCalculator:
             # FIXED: Get category-specific max distance
             max_distance_pct = MAX_DISTANCE_BY_CATEGORY.get(category, MAX_DISTANCE_BY_CATEGORY['DEFAULT'])
             min_strike = current_price * (1 - max_distance_pct)
-            min_wall_distance_pct = self._min_wall_distance_pct(iv_decimal, dte, category, timeframe)
-            max_near_strike = current_price * (1 - (min_wall_distance_pct / 100.0))
             
             # Filter to strikes below current price AND within max distance
             relevant_strikes = puts_gex[(puts_gex.index < current_price) & (puts_gex.index >= min_strike)]
-            # Avoid selecting strikes too close to spot (near-ATM gamma dominance).
-            if not relevant_strikes.empty:
-                filtered = relevant_strikes[relevant_strikes.index <= max_near_strike]
-                if not filtered.empty:
-                    relevant_strikes = filtered
             
             # If no strikes in range, expand search gradually
             if relevant_strikes.empty:
                 # Try 1.5x the distance
                 min_strike_expanded = current_price * (1 - max_distance_pct * 1.5)
                 relevant_strikes = puts_gex[(puts_gex.index < current_price) & (puts_gex.index >= min_strike_expanded)]
-                if not relevant_strikes.empty:
-                    filtered = relevant_strikes[relevant_strikes.index <= max_near_strike]
-                    if not filtered.empty:
-                        relevant_strikes = filtered
             
             if relevant_strikes.empty:
                 # Last resort: use all strikes below price
                 relevant_strikes = puts_gex[puts_gex.index < current_price]
-                if not relevant_strikes.empty:
-                    filtered = relevant_strikes[relevant_strikes.index <= max_near_strike]
-                    if not filtered.empty:
-                        relevant_strikes = filtered
             
             if relevant_strikes.empty:
                 # Ultimate fallback
@@ -287,13 +227,9 @@ class GammaWallCalculator:
             total_gex = abs_gex.sum()
 
             # If exposure is effectively zero (often caused by missing/zero OI from the data source),
-            # fall back to a strike at the calibrated minimum distance (not the nearest-to-spot strike).
+            # fall back to the closest strike below spot to avoid degenerate "min strike" walls.
             if not np.isfinite(total_gex) or total_gex <= 0:
-                target = current_price * (1 - (min_wall_distance_pct / 100.0))
-                try:
-                    nearest_support = float(min(relevant_strikes.index, key=lambda k: abs(float(k) - target)))
-                except Exception:
-                    nearest_support = float(relevant_strikes.index.max())
+                nearest_support = float(relevant_strikes.index.max())
                 return {
                     'max_gex': round(nearest_support, 2),
                     'weighted_centroid': round(nearest_support, 2),
@@ -304,7 +240,6 @@ class GammaWallCalculator:
                     'gex_concentration': 0.0,
                     'strikes_analyzed': len(relevant_strikes),
                     'max_distance_used': max_distance_pct,
-                    'min_distance_used': round(min_wall_distance_pct, 2),
                 }
             
             # METHOD 1: Max GEX - Strike with highest absolute exposure
@@ -357,7 +292,6 @@ class GammaWallCalculator:
                 'gex_concentration': round(gex_concentration, 3),
                 'strikes_analyzed': len(relevant_strikes),
                 'max_distance_used': max_distance_pct,
-                'min_distance_used': round(min_wall_distance_pct, 2),
             }
             
         except Exception as e:
@@ -394,29 +328,15 @@ class GammaWallCalculator:
             
             max_distance_pct = MAX_DISTANCE_BY_CATEGORY.get(category, MAX_DISTANCE_BY_CATEGORY['DEFAULT'])
             max_strike = current_price * (1 + max_distance_pct)
-            min_wall_distance_pct = self._min_wall_distance_pct(iv_decimal, dte, category, timeframe)
-            min_near_strike = current_price * (1 + (min_wall_distance_pct / 100.0))
             
             relevant_strikes = calls_gex[(calls_gex.index > current_price) & (calls_gex.index <= max_strike)]
-            if not relevant_strikes.empty:
-                filtered = relevant_strikes[relevant_strikes.index >= min_near_strike]
-                if not filtered.empty:
-                    relevant_strikes = filtered
             
             if relevant_strikes.empty:
                 max_strike_expanded = current_price * (1 + max_distance_pct * 1.5)
                 relevant_strikes = calls_gex[(calls_gex.index > current_price) & (calls_gex.index <= max_strike_expanded)]
-                if not relevant_strikes.empty:
-                    filtered = relevant_strikes[relevant_strikes.index >= min_near_strike]
-                    if not filtered.empty:
-                        relevant_strikes = filtered
             
             if relevant_strikes.empty:
                 relevant_strikes = calls_gex[calls_gex.index > current_price]
-                if not relevant_strikes.empty:
-                    filtered = relevant_strikes[relevant_strikes.index >= min_near_strike]
-                    if not filtered.empty:
-                        relevant_strikes = filtered
             
             if relevant_strikes.empty:
                 default = current_price * 1.05
@@ -431,11 +351,7 @@ class GammaWallCalculator:
 
             # If exposure is effectively zero, fall back to the closest strike above spot.
             if not np.isfinite(total_gex) or total_gex <= 0:
-                target = current_price * (1 + (min_wall_distance_pct / 100.0))
-                try:
-                    nearest_resistance = float(min(relevant_strikes.index, key=lambda k: abs(float(k) - target)))
-                except Exception:
-                    nearest_resistance = float(relevant_strikes.index.min())
+                nearest_resistance = float(relevant_strikes.index.min())
                 return {
                     'max_gex': round(nearest_resistance, 2),
                     'weighted_centroid': round(nearest_resistance, 2),
@@ -443,7 +359,6 @@ class GammaWallCalculator:
                     'weighted_combo': round(nearest_resistance, 2),
                     'method_used': 'no_exposure',
                     'confidence': 'low',
-                    'min_distance_used': round(min_wall_distance_pct, 2),
                     'max_distance_used': max_distance_pct,
                 }
             
@@ -471,7 +386,6 @@ class GammaWallCalculator:
                 'weighted_combo': round(weighted_combo, 2),
                 'method_used': 'max_gex' if gex_concentration > 0.5 else 'weighted_centroid',
                 'confidence': 'high' if gex_concentration > 0.5 else 'medium',
-                'min_distance_used': round(min_wall_distance_pct, 2),
                 'max_distance_used': max_distance_pct,
             }
             
