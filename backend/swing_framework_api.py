@@ -1394,17 +1394,47 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
                 divergence_pct = daily_pct - four_h_pct
 
                 p85_threshold = {
+                    # Original tickers
                     'AAPL': 24.3, 'MSFT': 22.1, 'NVDA': 31.5, 'GOOGL': 28.4,
                     'TSLA': 35.2, 'NFLX': 26.8, 'AMZN': 29.7, 'BRK-B': 18.9,
                     'AVGO': 25.6, 'SPY': 19.2, 'QQQ': 27.3, 'CNX1': 21.4,
-                    'VIX': 33.5, 'IGLS': 23.8
+                    'VIX': 33.5, 'IGLS': 23.8,
+                    # Energy sector
+                    'XOM': 26.75, 'CVX': 24.06, 'OXY': 26.95,
+                    # Financial sector
+                    'JPM': 21.70, 'BAC': 21.31,
+                    # Healthcare sector
+                    'LLY': 27.36, 'UNH': 30.07,
+                    # Technology
+                    'TSM': 22.90,
+                    # Retail
+                    'WMT': 28.29, 'COST': 24.76,
+                    # Commodities
+                    'GLD': 23.91, 'SLV': 25.62,
+                    # FX & Bonds
+                    'USDGBP': 69.73, 'US10': 31.20
                 }.get(ticker, 25.0)  # Default to 25.0 if not found
 
                 p95_threshold = {
+                    # Original tickers
                     'AAPL': 36.8, 'MSFT': 33.9, 'NVDA': 47.3, 'GOOGL': 36.8,
                     'TSLA': 52.1, 'NFLX': 40.2, 'AMZN': 44.5, 'BRK-B': 28.1,
                     'AVGO': 38.4, 'SPY': 28.6, 'QQQ': 40.9, 'CNX1': 32.1,
-                    'VIX': 49.2, 'IGLS': 35.6
+                    'VIX': 49.2, 'IGLS': 35.6,
+                    # Energy sector
+                    'XOM': 35.16, 'CVX': 34.95, 'OXY': 38.55,
+                    # Financial sector
+                    'JPM': 31.34, 'BAC': 35.68,
+                    # Healthcare sector
+                    'LLY': 38.06, 'UNH': 42.04,
+                    # Technology
+                    'TSM': 33.40,
+                    # Retail
+                    'WMT': 37.38, 'COST': 39.21,
+                    # Commodities
+                    'GLD': 32.72, 'SLV': 32.75,
+                    # FX & Bonds
+                    'USDGBP': 84.14, 'US10': 45.13
                 }.get(ticker, 38.0)  # Default to 38.0 if not found
 
                 abs_divergence = abs(divergence_pct)
