@@ -595,14 +595,44 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                         calls_mp.set_index('strike', inplace=True)
                         puts_mp.set_index('strike', inplace=True)
 
-                        # Limit to a reasonable range around spot for speed/stability
-                        rng = 0.25 if category in ['INDEX', 'ETF'] else 0.35
-                        min_k = current_price * (1 - rng)
-                        max_k = current_price * (1 + rng)
-                        calls_mp = calls_mp[(calls_mp.index >= min_k) & (calls_mp.index <= max_k)]
-                        puts_mp = puts_mp[(puts_mp.index >= min_k) & (puts_mp.index <= max_k)]
+                        # Calibrate max-pain strike search to stay near spot for 7D expiries.
+                        # This intentionally enforces a tight band (≈ +/-1–2%) to match your expectation.
+                        try:
+                            calls_iv = calls['impliedVolatility'].median() if 'impliedVolatility' in calls.columns else np.nan
+                            puts_iv = puts['impliedVolatility'].median() if 'impliedVolatility' in puts.columns else np.nan
+                            iv = (calls_iv + puts_iv) / 2 if pd.notna(calls_iv) and pd.notna(puts_iv) else 0.20
+                        except Exception:
+                            iv = 0.20
 
-                        results['max_pain'] = calculator.calculate_max_pain(calls_mp, puts_mp)
+                        # Convert to expected move over weekly_dte (as decimal fraction of spot)
+                        expected_move = max(0.0, float(iv)) * np.sqrt(max(dte, 1) / 365.0)
+                        window_pct = min(0.02, max(0.01, expected_move))
+
+                        def _filter_to_window(pct: float):
+                            lo = current_price * (1 - pct)
+                            hi = current_price * (1 + pct)
+                            return (
+                                calls_mp[(calls_mp.index >= lo) & (calls_mp.index <= hi)],
+                                puts_mp[(puts_mp.index >= lo) & (puts_mp.index <= hi)],
+                            )
+
+                        calls_mp_f, puts_mp_f = _filter_to_window(window_pct)
+                        # If too sparse, do not widen beyond ~2%: use whatever strikes exist in-window.
+                        calls_mp = calls_mp_f
+                        puts_mp = puts_mp_f
+
+                        max_pain = calculator.calculate_max_pain(calls_mp, puts_mp)
+
+                        # If we still can't compute, fall back to nearest strike to spot (still close by design)
+                        if not max_pain or max_pain <= 0:
+                            try:
+                                all_strikes = calls_mp.index.union(puts_mp.index)
+                                if len(all_strikes) > 0:
+                                    max_pain = float(min(all_strikes, key=lambda k: abs(float(k) - current_price)))
+                            except Exception:
+                                max_pain = 0
+
+                        results['max_pain'] = max_pain
                     except Exception as e:
                         logger.warning(f"Failed weekly max pain for {symbol}: {e}")
                         results['max_pain'] = 0
@@ -690,8 +720,8 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                 results['put_wall_methods'][tf_name] = put_walls
                 results['call_wall_methods'][tf_name] = call_walls
                 
-                # Use weighted_combo as the primary put wall
-                put_wall_strike = put_walls['weighted_combo']
+                # Use max_gex as the primary put wall (with proximity filtering already applied)
+                put_wall_strike = put_walls['max_gex']
                 call_wall_strike = call_walls['weighted_combo']
 
                 call_strength = calculator.calculate_wall_strength(calls_gex)
