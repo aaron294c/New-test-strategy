@@ -36,7 +36,9 @@ from stock_statistics import (
     WMT_4H_DATA, WMT_DAILY_DATA,
     GLD_4H_DATA, GLD_DAILY_DATA,
     SLV_4H_DATA, SLV_DAILY_DATA,
-    COST_4H_DATA, COST_DAILY_DATA
+    COST_4H_DATA, COST_DAILY_DATA,
+    USDGBP_4H_DATA, USDGBP_DAILY_DATA,
+    US10_4H_DATA, US10_DAILY_DATA
 )
 from percentile_forward_4h import fetch_4h_data, calculate_rsi_ma_4h
 from ticker_utils import resolve_yahoo_symbol
@@ -589,7 +591,7 @@ async def get_swing_framework_data():
     """
 
     # Include both stocks and market indices
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
     results = {}
 
     bin_data_map = {
@@ -612,6 +614,8 @@ async def get_swing_framework_data():
         "COST": (COST_4H_DATA, COST_DAILY_DATA),
         "GLD": (GLD_4H_DATA, GLD_DAILY_DATA),
         "SLV": (SLV_4H_DATA, SLV_DAILY_DATA),
+        "USDGBP": (USDGBP_4H_DATA, USDGBP_DAILY_DATA),
+        "US10": (US10_4H_DATA, US10_DAILY_DATA),
         # Indices and stocks without pre-computed bin data - will use real-time calculation
         "SPY": (None, None),
         "QQQ": (None, None),
@@ -980,7 +984,7 @@ async def get_current_market_state(force_refresh: bool = False):
             return dict(_current_state_cache)
         # NOTE: Keep the expensive work inside the lock to prevent a cache stampede
         # (e.g., current-state and current-state-enriched arriving concurrently).
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
 
         # Get cached cohort stats (fast when loaded from snapshot or in-memory cache).
         #
@@ -1166,7 +1170,7 @@ async def get_current_market_state_4h(force_refresh: bool = False):
             _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
         ):
             return dict(_current_state_4h_cache)
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
         current_states = []
 
         print("Fetching 4H current percentiles...")
@@ -1360,7 +1364,7 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
         from multi_timeframe_analyzer import MultiTimeframeAnalyzer
         from percentile_threshold_analyzer import PercentileThresholdAnalyzer
 
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
 
         # First get base market state and 4H market state (run concurrently)
         base_response, four_h_response = await asyncio.gather(

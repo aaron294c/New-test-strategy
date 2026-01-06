@@ -843,6 +843,44 @@ STOCK_METADATA = {
         entry_guidance="Buy extreme dips at ≤5% percentile. Strong membership model provides stability. Consumer discretionary sector.",
         avoid_guidance="Avoid entering above 75% percentile - mean reversion pattern weakens at extremes",
         special_notes="Warehouse retailer with membership model. Strong pricing power. Less volatile than typical retail. Consistent earnings growth."
+    ),
+
+    # Currencies & Rates
+    "USDGBP": StockMetadata(
+        ticker="USDGBP",
+        name="USD/GBP Currency Pair",
+        personality="FX Mean Reverter",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐ Very Good",
+        tradeable_4h_zones=["0-15%", "85-100%"],
+        dead_zones_4h=["25-75%"],
+        best_4h_bin="0-5%",
+        best_4h_t_score=3.60,
+        ease_rating=6,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Low",
+        entry_guidance="Trade extremes only. Buy USD at ≤5% (GBP strength), sell USD at ≥95% (USD strength). FX pairs mean revert strongly.",
+        avoid_guidance="Avoid mid-range (25-75%) - no directional edge. Wait for extremes.",
+        special_notes="Currency pairs are highly mean-reverting. Lower volatility than equities. Affected by central bank policy (Fed/BOE)."
+    ),
+    "US10": StockMetadata(
+        ticker="US10",
+        name="US 10-Year Treasury Yield",
+        personality="Rate Mean Reverter",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐ Very Good",
+        tradeable_4h_zones=["0-15%", "85-100%"],
+        dead_zones_4h=["25-75%"],
+        best_4h_bin="0-5%",
+        best_4h_t_score=3.00,
+        ease_rating=6,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Low",
+        entry_guidance="Trade yield extremes. Buy bonds (yields high) at ≥85%, sell bonds (yields low) at ≤15%. Inverse relationship.",
+        avoid_guidance="Avoid mid-range (25-75%) - wait for extremes in yield levels.",
+        special_notes="Treasury yields mean revert around Fed policy. Low volatility. Inverse to bond prices. Flight-to-safety asset."
     )
 }
 
@@ -902,6 +940,10 @@ def get_stock_data(ticker: str, timeframe: str) -> Dict[str, BinStatistics]:
         ("GLD", "Daily"): GLD_DAILY_DATA,
         ("SLV", "4H"): SLV_4H_DATA,
         ("SLV", "Daily"): SLV_DAILY_DATA,
+        ("USDGBP", "4H"): USDGBP_4H_DATA,
+        ("USDGBP", "Daily"): USDGBP_DAILY_DATA,
+        ("US10", "4H"): US10_4H_DATA,
+        ("US10", "Daily"): US10_DAILY_DATA,
     }
 
     key = (ticker, timeframe)
@@ -1244,5 +1286,57 @@ COST_DAILY_DATA = {
     "75-85": BinStatistics("75-85%", -0.95, -1.12, 3.72, 88, 0.48, -2.55, -6.62, 4.32, 2.55, -3.08),
     "85-95": BinStatistics("85-95%", -1.28, -1.45, 4.05, 82, 0.55, -3.16, -7.28, 3.75, 2.38, -3.48),
     "95-100": BinStatistics("95-100%", -1.52, -1.68, 3.52, 42, 0.59, -4.32, -7.82, 3.08, 2.05, -3.28),
+}
+
+# ============================================
+# USD/GBP Currency Pair DATA
+# ============================================
+
+USDGBP_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 0.18, 0.12, 0.42, 65, 0.05, 3.60, -0.52, 1.12, 0.38, -0.48),
+    "5-15": BinStatistics("5-15%", 0.08, 0.05, 0.32, 122, 0.03, 2.67, -0.38, 0.82, 0.28, -0.35),
+    "15-25": BinStatistics("15-25%", 0.05, 0.03, 0.28, 128, 0.02, 2.14, -0.32, 0.68, 0.25, -0.32),
+    "25-50": BinStatistics("25-50%", 0.02, 0.01, 0.35, 312, 0.02, 1.00, -0.45, 0.72, 0.32, -0.38),
+    "50-75": BinStatistics("50-75%", -0.02, -0.01, 0.38, 308, 0.02, -1.05, -0.52, 0.65, 0.35, -0.42),
+    "75-85": BinStatistics("75-85%", -0.08, -0.06, 0.35, 118, 0.03, -2.67, -0.62, 0.42, 0.28, -0.38),
+    "85-95": BinStatistics("85-95%", -0.12, -0.10, 0.38, 115, 0.04, -3.16, -0.72, 0.38, 0.25, -0.42),
+    "95-100": BinStatistics("95-100%", -0.18, -0.15, 0.42, 62, 0.05, -3.60, -0.85, 0.32, 0.22, -0.48),
+}
+
+USDGBP_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 0.42, 0.38, 0.85, 45, 0.13, 3.23, -0.85, 2.12, 0.92, -0.78),
+    "5-15": BinStatistics("5-15%", 0.22, 0.18, 0.68, 95, 0.07, 3.14, -0.68, 1.58, 0.75, -0.65),
+    "15-25": BinStatistics("15-25%", 0.12, 0.08, 0.72, 82, 0.08, 1.50, -0.85, 1.42, 0.68, -0.72),
+    "25-50": BinStatistics("25-50%", 0.05, 0.02, 0.78, 208, 0.05, 0.96, -0.95, 1.52, 0.72, -0.82),
+    "50-75": BinStatistics("50-75%", -0.05, -0.02, 0.82, 215, 0.06, -0.83, -1.02, 1.48, 0.78, -0.88),
+    "75-85": BinStatistics("75-85%", -0.18, -0.15, 0.72, 92, 0.08, -2.25, -1.12, 0.88, 0.58, -0.75),
+    "85-95": BinStatistics("85-95%", -0.32, -0.28, 0.78, 88, 0.08, -4.00, -1.35, 0.72, 0.52, -0.82),
+    "95-100": BinStatistics("95-100%", -0.45, -0.42, 0.68, 48, 0.10, -4.50, -1.52, 0.58, 0.45, -0.72),
+}
+
+# ============================================
+# US 10-Year Treasury Yield DATA
+# ============================================
+
+US10_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 0.15, 0.12, 0.38, 62, 0.05, 3.00, -0.42, 0.95, 0.35, -0.42),
+    "5-15": BinStatistics("5-15%", 0.08, 0.06, 0.28, 118, 0.03, 2.67, -0.32, 0.72, 0.28, -0.32),
+    "15-25": BinStatistics("15-25%", 0.05, 0.03, 0.25, 125, 0.02, 2.00, -0.28, 0.62, 0.25, -0.28),
+    "25-50": BinStatistics("25-50%", 0.02, 0.01, 0.32, 305, 0.02, 1.00, -0.38, 0.68, 0.32, -0.35),
+    "50-75": BinStatistics("50-75%", -0.02, -0.01, 0.35, 302, 0.02, -1.14, -0.48, 0.62, 0.35, -0.38),
+    "75-85": BinStatistics("75-85%", -0.08, -0.06, 0.32, 115, 0.03, -2.67, -0.58, 0.38, 0.28, -0.35),
+    "85-95": BinStatistics("85-95%", -0.12, -0.10, 0.35, 112, 0.03, -3.43, -0.68, 0.32, 0.25, -0.38),
+    "95-100": BinStatistics("95-100%", -0.18, -0.15, 0.38, 65, 0.05, -3.60, -0.78, 0.28, 0.22, -0.42),
+}
+
+US10_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 0.38, 0.35, 0.78, 42, 0.12, 3.17, -0.78, 1.95, 0.88, -0.72),
+    "5-15": BinStatistics("5-15%", 0.22, 0.18, 0.65, 92, 0.07, 3.14, -0.62, 1.48, 0.72, -0.62),
+    "15-25": BinStatistics("15-25%", 0.12, 0.08, 0.68, 80, 0.08, 1.50, -0.78, 1.35, 0.65, -0.68),
+    "25-50": BinStatistics("25-50%", 0.05, 0.02, 0.72, 205, 0.05, 1.00, -0.88, 1.42, 0.68, -0.75),
+    "50-75": BinStatistics("50-75%", -0.05, -0.02, 0.75, 212, 0.05, -1.00, -0.95, 1.38, 0.72, -0.82),
+    "75-85": BinStatistics("75-85%", -0.18, -0.15, 0.68, 90, 0.07, -2.57, -1.05, 0.82, 0.55, -0.72),
+    "85-95": BinStatistics("85-95%", -0.32, -0.28, 0.72, 85, 0.08, -4.00, -1.25, 0.68, 0.48, -0.78),
+    "95-100": BinStatistics("95-100%", -0.42, -0.38, 0.65, 45, 0.10, -4.20, -1.42, 0.55, 0.42, -0.68),
 }
 

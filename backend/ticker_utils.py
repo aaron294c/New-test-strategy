@@ -20,6 +20,10 @@ _YAHOO_ALIASES: dict[str, str] = {
     # London Stock Exchange (Yahoo suffix: .L)
     "CNX1": "CNX1.L",
     "IGLS": "IGLS.L",
+    # Currency Pairs (FX)
+    "USDGBP": "USDGBP=X",
+    # Treasury Yields
+    "US10": "^TNX",
 }
 
 
