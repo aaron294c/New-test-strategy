@@ -15,6 +15,22 @@ import { ProximitySettings, ProximityConfig } from './ProximitySettings';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
+type ScannerJsonSymbol = {
+  symbol: string;
+  current_price: number;
+  st_put_wall: number;
+  lt_put_wall: number;
+  q_put_wall: number;
+  max_pain?: number;
+};
+
+type ScannerJsonPayload = {
+  last_update?: string;
+  market_regime?: string;
+  vix?: number;
+  symbols?: Record<string, ScannerJsonSymbol>;
+};
+
 export const RiskDistanceTab: React.FC = () => {
   const [symbols, setSymbols] = useState<ParsedSymbolData[]>([]);
   const [selectedSymbols, setSelectedSymbols] = useState<Set<string>>(new Set());
@@ -22,6 +38,7 @@ export const RiskDistanceTab: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [lastUpdate, setLastUpdate] = useState<string>('');
   const [marketRegime, setMarketRegime] = useState<string>('');
+  const [scannerJson, setScannerJson] = useState<ScannerJsonPayload | null>(null);
   const [realPrices, setRealPrices] = useState<Map<string, number>>(new Map());
   const [lowerExtData, setLowerExtData] = useState<Map<string, number>>(new Map());
   const [nwLowerBandData, setNwLowerBandData] = useState<Map<string, number>>(new Map());
@@ -71,6 +88,17 @@ export const RiskDistanceTab: React.FC = () => {
       setLastUpdate(data.last_update || new Date().toLocaleString());
       setMarketRegime(data.market_regime || '');
       setError('');
+
+      // Pull enhanced scanner JSON (source of truth for proximity-filtered walls and 7D max pain)
+      try {
+        const scanner = await fetchJson(`${API_BASE_URL}/api/gamma-data/scanner-json?t=${Date.now()}`);
+        setScannerJson(scanner);
+        if (scanner?.last_update) setLastUpdate(scanner.last_update);
+        if (scanner?.market_regime) setMarketRegime(scanner.market_regime);
+      } catch (scannerErr) {
+        console.warn('Failed to fetch scanner-json (will fall back to parsed level_data only):', scannerErr);
+        setScannerJson(null);
+      }
 
       // Fetch real prices for all symbols
       const priceRequests = parsedSymbols.map(s => ({
@@ -143,6 +171,7 @@ export const RiskDistanceTab: React.FC = () => {
 
   // Convert ParsedSymbolData to RiskDistanceInput
   const riskInputs: RiskDistanceInput[] = useMemo(() => {
+    const scannerSymbols = scannerJson?.symbols || {};
     return symbols.map(symbol => {
       // Find wall values from the parsed data
       const stPutWall = symbol.walls.find(w => w.type === 'put' && w.timeframe === 'swing');
@@ -152,23 +181,30 @@ export const RiskDistanceTab: React.FC = () => {
       // Use real price if available, otherwise fall back to estimated price
       const currentPrice = realPrices.get(symbol.symbol) || symbol.currentPrice;
 
-      // Calculate proper max pain using options pain theory
-      // Max pain = strike price where option holders experience maximum loss
-      const maxPain = calculateMaxPain(symbol, { currentPriceOverride: currentPrice, marketRegime });
+      const scanner = scannerSymbols[symbol.symbol];
+
+      // Prefer scanner outputs (proximity-filtered walls + 7D max pain) when available
+      const stPut = scanner?.st_put_wall || stPutWall?.strike || null;
+      const ltPut = scanner?.lt_put_wall || ltPutWall?.strike || null;
+      const qPut = scanner?.q_put_wall || qPutWall?.strike || null;
+
+      const scannerMaxPain = scanner?.max_pain && scanner.max_pain > 0 ? scanner.max_pain : null;
+      const fallbackMaxPain = calculateMaxPain(symbol, { currentPriceOverride: currentPrice, marketRegime });
+      const maxPain = scannerMaxPain ?? fallbackMaxPain;
 
       return {
         symbol: symbol.symbol,
         price: currentPrice,
-        st_put: stPutWall?.strike || null,
-        lt_put: ltPutWall?.strike || null,
-        q_put: qPutWall?.strike || null,
+        st_put: stPut,
+        lt_put: ltPut,
+        q_put: qPut,
         max_pain: maxPain,
         lower_ext: lowerExtData.get(symbol.symbol) || null,
         nw_lower_band: nwLowerBandData.get(symbol.symbol) || null,
         last_update: lastUpdate,
       };
     });
-  }, [symbols, lastUpdate, realPrices, lowerExtData, nwLowerBandData, marketRegime]);
+  }, [symbols, lastUpdate, realPrices, lowerExtData, nwLowerBandData, marketRegime, scannerJson]);
 
   // Calculate risk distances for all symbols
   const riskOutputs: RiskDistanceOutput[] = useMemo(() => {

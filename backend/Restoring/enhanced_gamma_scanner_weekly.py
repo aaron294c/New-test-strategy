@@ -361,19 +361,61 @@ class GammaWallCalculator:
             }
     
     def calculate_max_pain(self, calls: pd.DataFrame, puts: pd.DataFrame) -> float:
-        """Calculate true max pain strike."""
+        """Calculate true max pain strike (efficient O(n log n))."""
         try:
-            all_strikes = calls.index.union(puts.index)
-            pain_values = {}
-            
-            for strike in all_strikes:
-                call_pain = sum((strike - k) * calls.loc[k, 'openInterest'] * 100 
-                               for k in calls.index if k < strike)
-                put_pain = sum((k - strike) * puts.loc[k, 'openInterest'] * 100 
-                              for k in puts.index if k > strike)
-                pain_values[strike] = call_pain + put_pain
-            
-            return min(pain_values, key=pain_values.get) if pain_values else 0
+            if calls is None or puts is None or calls.empty or puts.empty:
+                return 0
+
+            # Ensure required columns exist
+            if 'openInterest' not in calls.columns or 'openInterest' not in puts.columns:
+                return 0
+
+            # Union of strikes and aligned OI series
+            all_strikes = calls.index.union(puts.index).sort_values()
+            if len(all_strikes) == 0:
+                return 0
+
+            call_oi = calls['openInterest'].reindex(all_strikes).fillna(0).astype(float)
+            put_oi = puts['openInterest'].reindex(all_strikes).fillna(0).astype(float)
+
+            strikes = pd.Series(all_strikes.astype(float), index=all_strikes.astype(float))
+
+            # Prefix sums for call pain: sum_{k<strike} (strike - k) * callOI(k) * 100
+            call_cum_oi = call_oi.cumsum()
+            call_cum_koi = (call_oi * strikes.values).cumsum()
+
+            # Suffix sums for put pain: sum_{k>strike} (k - strike) * putOI(k) * 100
+            put_rev_oi = put_oi.iloc[::-1]
+            put_rev_koi = (put_rev_oi * strikes.values[::-1]).cumsum()
+            put_cum_oi = put_rev_oi.iloc[::-1].cumsum()
+            put_cum_koi = put_rev_koi.iloc[::-1].cumsum()
+
+            total_pain = []
+            s_vals = strikes.values
+
+            for i in range(len(all_strikes)):
+                strike = s_vals[i]
+
+                # Calls with strikes < strike (prefix up to i-1)
+                if i > 0:
+                    prefix_oi = call_cum_oi.iloc[i - 1]
+                    prefix_koi = call_cum_koi.iloc[i - 1]
+                    call_pain = (strike * prefix_oi - prefix_koi) * 100
+                else:
+                    call_pain = 0.0
+
+                # Puts with strikes > strike (suffix from i+1)
+                if i < len(all_strikes) - 1:
+                    suffix_oi = put_cum_oi.iloc[-1] - put_cum_oi.iloc[i]
+                    suffix_koi = put_cum_koi.iloc[-1] - put_cum_koi.iloc[i]
+                    put_pain = (suffix_koi - strike * suffix_oi) * 100
+                else:
+                    put_pain = 0.0
+
+                total_pain.append(call_pain + put_pain)
+
+            min_idx = int(pd.Series(total_pain).idxmin())
+            return float(s_vals[min_idx])
         except Exception as e:
             logger.warning(f"Max pain error: {e}")
             return 0
@@ -527,6 +569,43 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                 
                 if calls.empty or puts.empty:
                     continue
+
+                # 7D Max Pain: compute from weekly chain before liquidity filtering
+                if tf_name == 'weekly':
+                    try:
+                        # Use openInterest when available; fall back to volume as a proxy when OI is missing/zero.
+                        calls_mp = calls[['strike', 'openInterest', 'volume']].copy()
+                        puts_mp = puts[['strike', 'openInterest', 'volume']].copy()
+
+                        calls_mp['openInterest'] = calls_mp['openInterest'].fillna(0)
+                        puts_mp['openInterest'] = puts_mp['openInterest'].fillna(0)
+                        calls_mp['volume'] = calls_mp['volume'].fillna(0)
+                        puts_mp['volume'] = puts_mp['volume'].fillna(0)
+
+                        calls_mp['openInterest'] = np.where(
+                            calls_mp['openInterest'] > 0, calls_mp['openInterest'], calls_mp['volume']
+                        )
+                        puts_mp['openInterest'] = np.where(
+                            puts_mp['openInterest'] > 0, puts_mp['openInterest'], puts_mp['volume']
+                        )
+
+                        calls_mp = calls_mp[calls_mp['openInterest'] > 0].copy()
+                        puts_mp = puts_mp[puts_mp['openInterest'] > 0].copy()
+
+                        calls_mp.set_index('strike', inplace=True)
+                        puts_mp.set_index('strike', inplace=True)
+
+                        # Limit to a reasonable range around spot for speed/stability
+                        rng = 0.25 if category in ['INDEX', 'ETF'] else 0.35
+                        min_k = current_price * (1 - rng)
+                        max_k = current_price * (1 + rng)
+                        calls_mp = calls_mp[(calls_mp.index >= min_k) & (calls_mp.index <= max_k)]
+                        puts_mp = puts_mp[(puts_mp.index >= min_k) & (puts_mp.index <= max_k)]
+
+                        results['max_pain'] = calculator.calculate_max_pain(calls_mp, puts_mp)
+                    except Exception as e:
+                        logger.warning(f"Failed weekly max pain for {symbol}: {e}")
+                        results['max_pain'] = 0
                 
                 T = dte / 365.0
                 

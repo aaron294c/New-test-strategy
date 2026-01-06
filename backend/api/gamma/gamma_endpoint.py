@@ -435,3 +435,22 @@ async def get_example_data():
     Returns hardcoded example data without running the Python script
     """
     return _build_example_response()
+
+
+@router.get("/scanner-json")
+async def get_scanner_json(force_refresh: bool = False):
+    """
+    Return the enhanced scanner JSON output (backend/cache/gamma_walls_data.json).
+    This is the source of truth for proximity-filtered put walls and (when enabled) 7D max pain.
+    """
+    if force_refresh or not SCANNER_JSON_CACHE_PATH.exists():
+        run_gamma_scanner_script()
+
+    payload = _read_scanner_json_cache()
+    if payload is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No scanner JSON cache found at {SCANNER_JSON_CACHE_PATH}. Run the enhanced scanner first."
+        )
+
+    return payload
