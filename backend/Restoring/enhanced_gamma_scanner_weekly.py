@@ -596,6 +596,51 @@ def find_best_expiration(options_dates: List[str], target_days: int) -> Tuple[st
     return best[0], best[1]
 
 
+def find_best_expirations_unique(options_dates: List[str], target_days_list: List[int]) -> Dict[int, Tuple[str, float]]:
+    """
+    Pick expirations for multiple target DTEs, preferring unique expiries.
+
+    This avoids ST/LT/Q collapsing to the same expiration when Yahoo's available
+    dates are sparse around the targets.
+    """
+    if not options_dates:
+        return {t: (None, float(t)) for t in target_days_list}
+
+    now = datetime.now()
+    valid_dates: List[Tuple[str, int]] = []
+    for date_str in options_dates:
+        try:
+            exp_date = datetime.strptime(date_str, "%Y-%m-%d")
+            dte = (exp_date - now).days
+            if 1 <= dte <= 400:
+                valid_dates.append((date_str, dte))
+        except Exception:
+            continue
+
+    if not valid_dates:
+        first = options_dates[0]
+        return {t: (first, float(t)) for t in target_days_list}
+
+    used: set[str] = set()
+    picked: Dict[int, Tuple[str, float]] = {}
+
+    for target in target_days_list:
+        ranked = sorted(valid_dates, key=lambda x: abs(x[1] - target))
+        choice = None
+        for date_str, dte in ranked:
+            if date_str not in used:
+                choice = (date_str, float(dte))
+                break
+        if choice is None:
+            # Fallback: allow reuse if we must.
+            date_str, dte = ranked[0]
+            choice = (date_str, float(dte))
+        used.add(choice[0])
+        picked[target] = choice
+
+    return picked
+
+
 def get_symbol_category(symbol: str) -> str:
     """Categorize symbols for better error handling and display"""
     if symbol in ['^SPX', '^VIX']:
@@ -654,11 +699,15 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
             logger.error(f"No options available for {symbol}")
             return None
         
-        # Find best expirations
-        weekly_exp, weekly_dte = find_best_expiration(options_dates, WEEKLY_DAYS)
-        swing_exp, swing_dte = find_best_expiration(options_dates, SWING_DAYS)
-        long_exp, long_dte = find_best_expiration(options_dates, LONG_DAYS)
-        quarterly_exp, quarterly_dte = find_best_expiration(options_dates, QUARTERLY_DAYS)
+        # Find best expirations (prefer unique expiries per timeframe)
+        picked = find_best_expirations_unique(
+            options_dates,
+            [WEEKLY_DAYS, SWING_DAYS, LONG_DAYS, QUARTERLY_DAYS],
+        )
+        weekly_exp, weekly_dte = picked[WEEKLY_DAYS]
+        swing_exp, swing_dte = picked[SWING_DAYS]
+        long_exp, long_dte = picked[LONG_DAYS]
+        quarterly_exp, quarterly_dte = picked[QUARTERLY_DAYS]
         
         if not all([weekly_exp, swing_exp, long_exp, quarterly_exp]):
             logger.error(f"Missing expirations for {symbol}")
@@ -671,7 +720,13 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
             'current_price': current_price,
             'timestamp': datetime.now().isoformat(),
             'put_wall_methods': {},  # Store all 4 methods per timeframe
-            'call_wall_methods': {}
+            'call_wall_methods': {},
+            'expirations': {
+                'weekly': {'exp': weekly_exp, 'dte': weekly_dte},
+                'swing': {'exp': swing_exp, 'dte': swing_dte},
+                'long': {'exp': long_exp, 'dte': long_dte},
+                'quarterly': {'exp': quarterly_exp, 'dte': quarterly_dte},
+            },
         }
         
         all_timeframe_data = {}
@@ -1099,6 +1154,7 @@ def main():
             'st_dte': result.get('st_dte', None),
             'lt_dte': result.get('lt_dte', None),
             'q_dte': result.get('q_dte', None),
+            'expirations': result.get('expirations', {}),
             
             # SD levels
             'lower_1sd': result.get('lower_1sd', 0),
