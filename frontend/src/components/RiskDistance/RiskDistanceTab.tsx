@@ -21,6 +21,7 @@ export const RiskDistanceTab: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [lastUpdate, setLastUpdate] = useState<string>('');
+  const [marketRegime, setMarketRegime] = useState<string>('');
   const [realPrices, setRealPrices] = useState<Map<string, number>>(new Map());
   const [lowerExtData, setLowerExtData] = useState<Map<string, number>>(new Map());
   const [nwLowerBandData, setNwLowerBandData] = useState<Map<string, number>>(new Map());
@@ -68,6 +69,7 @@ export const RiskDistanceTab: React.FC = () => {
 
       setSymbols(parsedSymbols);
       setLastUpdate(data.last_update || new Date().toLocaleString());
+      setMarketRegime(data.market_regime || '');
       setError('');
 
       // Fetch real prices for all symbols
@@ -152,7 +154,7 @@ export const RiskDistanceTab: React.FC = () => {
 
       // Calculate proper max pain using options pain theory
       // Max pain = strike price where option holders experience maximum loss
-      const maxPain = calculateMaxPain(symbol);
+      const maxPain = calculateMaxPain(symbol, { currentPriceOverride: currentPrice, marketRegime });
 
       return {
         symbol: symbol.symbol,
@@ -166,7 +168,7 @@ export const RiskDistanceTab: React.FC = () => {
         last_update: lastUpdate,
       };
     });
-  }, [symbols, lastUpdate, realPrices, lowerExtData, nwLowerBandData]);
+  }, [symbols, lastUpdate, realPrices, lowerExtData, nwLowerBandData, marketRegime]);
 
   // Calculate risk distances for all symbols
   const riskOutputs: RiskDistanceOutput[] = useMemo(() => {

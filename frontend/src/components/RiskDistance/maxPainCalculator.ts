@@ -17,178 +17,381 @@
  * 5. Find strike with minimum total pain
  */
 
-import { ParsedSymbolData, GammaWall } from '../GammaScanner/types';
+import { ParsedSymbolData } from '../GammaScanner/types';
 
-// DTE range for weekly options (approximately 7 days, allow 5-15 day range)
-const MIN_DTE_THRESHOLD = 5;
-const MAX_DTE_THRESHOLD = 15;
-const TARGET_DTE = 7;
+export type ExpiryType = 'Auto-Detect' | 'Weekly Friday' | 'Monthly (3rd Fri)' | 'Manual Days';
 
-interface StrikeData {
+export interface MaxPainSettings {
+  // Mirrors the PineScript defaults shown in your screenshot
+  expiryType: ExpiryType;
+  manualDaysToExpiry: number;
+  onlyHighConfidenceExpiries: boolean;
+  maxPainStrikeCount: number;
+  useGammaWeightedOI: boolean;
+  dealerShortBias: number;
+  confidenceThreshold: number;
+  useDynamicPinZone: boolean;
+  staticPinZonePct: number;
+}
+
+export const DEFAULT_MAX_PAIN_SETTINGS: MaxPainSettings = {
+  expiryType: 'Auto-Detect',
+  manualDaysToExpiry: 7,
+  onlyHighConfidenceExpiries: true,
+  maxPainStrikeCount: 35,
+  useGammaWeightedOI: true,
+  dealerShortBias: 0.65,
+  confidenceThreshold: 0.7,
+  useDynamicPinZone: true,
+  staticPinZonePct: 2.0,
+};
+
+interface StrikeRow {
   strike: number;
+  weight: number;
   callOI: number;
   putOI: number;
-  callGEX: number;
-  putGEX: number;
+}
+
+function isMajorWeeklySymbol(symbol: string): boolean {
+  const prefix = symbol.substring(0, 3).toUpperCase();
+  return prefix === 'SPY' || prefix === 'QQQ' || prefix === 'SPX' || prefix === 'NDX';
+}
+
+function daysUntilNextFriday(from: Date): number {
+  // JS: 0=Sun .. 6=Sat, Friday=5
+  const dow = from.getDay();
+  let delta = (5 - dow + 7) % 7;
+  // If it's already Friday, treat "next" as 7 days out (matches Pine intent after expiry)
+  if (delta === 0) delta = 7;
+  return delta;
+}
+
+function getThirdFridayOfMonth(year: number, month0Based: number): number {
+  // month0Based: 0..11
+  const first = new Date(year, month0Based, 1);
+  const firstDow = first.getDay(); // 0..6
+  const friday = 5;
+  const daysToFirstFriday = (friday - firstDow + 7) % 7;
+  const firstFriday = 1 + daysToFirstFriday;
+  return firstFriday + 14;
+}
+
+function calculateExpiryDays(symbol: string, settings: MaxPainSettings, now: Date): number {
+  if (settings.expiryType === 'Manual Days') return Math.max(1, settings.manualDaysToExpiry);
+
+  const weeklyDays = daysUntilNextFriday(now);
+
+  if (settings.expiryType === 'Weekly Friday') {
+    if (settings.onlyHighConfidenceExpiries && !isMajorWeeklySymbol(symbol)) return 5;
+    return weeklyDays;
+  }
+
+  if (settings.expiryType === 'Monthly (3rd Fri)') {
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const today = now.getDate();
+    const thirdFri = getThirdFridayOfMonth(year, month);
+    if (today <= thirdFri) return Math.max(1, thirdFri - today);
+    const nextMonth = month === 11 ? 0 : month + 1;
+    const nextYear = month === 11 ? year + 1 : year;
+    const thirdFriNext = getThirdFridayOfMonth(nextYear, nextMonth);
+    return Math.max(1, (thirdFriNext - today) + 31);
+  }
+
+  // Auto-Detect: prefer weekly for major symbols, otherwise monthly
+  if (isMajorWeeklySymbol(symbol)) return weeklyDays;
+
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const today = now.getDate();
+  const thirdFri = getThirdFridayOfMonth(year, month);
+  let monthlyDays: number;
+  if (today <= thirdFri) {
+    monthlyDays = Math.max(1, thirdFri - today);
+  } else {
+    const nextMonth = month === 11 ? 0 : month + 1;
+    const nextYear = month === 11 ? year + 1 : year;
+    const thirdFriNext = getThirdFridayOfMonth(nextYear, nextMonth);
+    monthlyDays = Math.max(1, (thirdFriNext - today) + 31);
+  }
+
+  // PineScript behavior: if "only high confidence" is enabled and monthly expiry is far,
+  // fall back to a near-term default window.
+  if (settings.onlyHighConfidenceExpiries && monthlyDays > 7) return 7;
+
+  return monthlyDays;
+}
+
+function getExpiryTimeDecay(daysRemaining: number): number {
+  if (daysRemaining <= 0) return 0.0;
+  if (daysRemaining <= 1) return 2.0;
+  if (daysRemaining <= 3) return 1.5;
+  if (daysRemaining <= 5) return 1.2;
+  if (daysRemaining <= 7) return 1.0;
+  return 0.7;
+}
+
+function roundStrikeEnhanced(strike: number, currentPrice: number): number {
+  if (currentPrice >= 500) return Math.round(strike / 10) * 10;
+  if (currentPrice >= 100) return Math.round(strike / 5) * 5;
+  if (currentPrice >= 20) return Math.round(strike / 2.5) * 2.5;
+  return Math.round(strike);
+}
+
+function calculateDynamicPinZonePct(
+  ivPercent: number | null | undefined,
+  daysRemaining: number,
+  currentPrice: number,
+  confidence: number,
+  regime: string | null | undefined,
+  settings: MaxPainSettings
+): number {
+  if (!settings.useDynamicPinZone || !ivPercent || ivPercent <= 0 || currentPrice <= 0) return settings.staticPinZonePct;
+
+  const dailyMovePct = (ivPercent / 100) / Math.sqrt(365);
+  const timeFactor = getExpiryTimeDecay(daysRemaining);
+  const confidenceFactor = 1.0 + (1.0 - confidence) * 0.5;
+
+  const regimeFactor =
+    regime && regime.includes('High Volatility') ? 1.4 : regime && regime.includes('Low Volatility') ? 0.7 : 1.0;
+
+  const zonePct = dailyMovePct * timeFactor * confidenceFactor * regimeFactor * 100;
+  return Math.max(0.5, Math.min(zonePct, 8.0));
 }
 
 /**
- * Estimate open interest based on GEX and distance from current price
+ * PineScript-style OI estimator (synthetic), integrating wall proximity and dealer bias.
  */
-function estimateOpenInterest(
+function estimateEnhancedOpenInterest(
   strike: number,
   currentPrice: number,
-  gex: number,
-  isCall: boolean
+  isCall: boolean,
+  gammaWallStrike: number | null,
+  baseVolume: number,
+  daysRemaining: number,
+  settings: MaxPainSettings
 ): number {
-  // Convert GEX to estimated contract volume
-  // GEX is gamma exposure in millions, use as proxy for open interest
-  const baseOI = Math.abs(gex) * 100; // Scale factor
-
-  // Distance decay: OI typically higher near current price
   const distancePct = Math.abs(strike - currentPrice) / currentPrice;
-  const decayFactor = Math.exp(-distancePct * 8); // Exponential decay
+  const baseFactor = 1 / (1 + distancePct * 8);
+  const volatilityFactor = Math.pow(0.75, distancePct * 15);
 
-  return baseOI * decayFactor;
-}
-
-/**
- * Calculate pain at a specific expiration price
- */
-function calculatePainAtPrice(
-  expirationPrice: number,
-  strikes: StrikeData[]
-): number {
-  let totalPain = 0;
-
-  for (const strike of strikes) {
-    // Call pain: calls are ITM when price > strike
-    if (expirationPrice > strike.strike) {
-      totalPain += strike.callOI * (expirationPrice - strike.strike);
-    }
-
-    // Put pain: puts are ITM when price < strike
-    if (expirationPrice < strike.strike) {
-      totalPain += strike.putOI * (strike.strike - expirationPrice);
-    }
+  let wallProximityBoost = 1.0;
+  if (settings.useGammaWeightedOI && gammaWallStrike !== null) {
+    const wallDistance = Math.abs(strike - gammaWallStrike) / currentPrice;
+    if (wallDistance < 0.02) wallProximityBoost = 2.5;
+    else if (wallDistance < 0.05) wallProximityBoost = 1.6;
   }
 
-  return totalPain;
+  const baseOi = baseVolume * baseFactor * volatilityFactor * wallProximityBoost * 0.025;
+
+  const dealerAdjustment = isCall ? 1.0 / settings.dealerShortBias : settings.dealerShortBias;
+
+  const timeBias =
+    daysRemaining <= 7 ? (isCall ? 0.9 : 1.4) : (isCall ? 1.0 : 1.2);
+
+  const finalOi = baseOi * dealerAdjustment * timeBias;
+  return Math.max(150, finalOi);
 }
 
 /**
- * Generate test prices around current price
+ * Generate strike grid and weights similar to PineScript.
  */
-function generateTestPrices(
+function generateEnhancedStrikes(
   currentPrice: number,
-  minStrike: number,
-  maxStrike: number,
-  numTests: number = 50
-): number[] {
-  const testPrices: number[] = [];
-  const step = (maxStrike - minStrike) / numTests;
+  strikeCount: number,
+  wallPut: number | null,
+  wallCall: number | null,
+  wallLtPut: number | null,
+  wallLtCall: number | null,
+  ivLevel: number | null | undefined
+): { strikes: number[]; weights: number[] } {
+  const ivToUse = ivLevel && ivLevel > 0 ? ivLevel : 25.0;
+  const volFactor = ivToUse > 40 ? 0.2 : ivToUse > 25 ? 0.15 : 0.12;
+  const strikeRange = currentPrice * volFactor;
 
-  for (let i = 0; i <= numTests; i++) {
-    const price = minStrike + i * step;
-    testPrices.push(price);
+  const minStrike = currentPrice - strikeRange;
+  const maxStrike = currentPrice + strikeRange;
+  const stepSize = (maxStrike - minStrike) / strikeCount;
+
+  const strikes: number[] = [];
+  const weights: number[] = [];
+
+  for (let i = 0; i < strikeCount; i++) {
+    const rawStrike = minStrike + i * stepSize;
+    const roundedStrike = roundStrikeEnhanced(rawStrike, currentPrice);
+
+    const distanceFactor = Math.abs(roundedStrike - currentPrice) / currentPrice;
+    let weight = Math.exp(-distanceFactor * 5);
+
+    let wallBoost = 1.0;
+    if (wallPut !== null && Math.abs(roundedStrike - wallPut) / currentPrice < 0.03) wallBoost = 1.8;
+    else if (wallCall !== null && Math.abs(roundedStrike - wallCall) / currentPrice < 0.03) wallBoost = 1.8;
+    else if (wallLtPut !== null && Math.abs(roundedStrike - wallLtPut) / currentPrice < 0.03) wallBoost = 1.5;
+    else if (wallLtCall !== null && Math.abs(roundedStrike - wallLtCall) / currentPrice < 0.03) wallBoost = 1.5;
+
+    weight *= wallBoost;
+
+    const last = strikes.length ? strikes[strikes.length - 1] : null;
+    if (last === null || roundedStrike !== last) {
+      strikes.push(roundedStrike);
+      weights.push(weight);
+    }
   }
 
-  return testPrices;
+  // Ensure key wall strikes are included (high weight)
+  const wallValues: number[] = [];
+  if (wallPut && wallPut > 0) wallValues.push(wallPut);
+  if (wallCall && wallCall > 0) wallValues.push(wallCall);
+  if (wallLtPut && wallLtPut > 0) wallValues.push(wallLtPut);
+  if (wallLtCall && wallLtCall > 0) wallValues.push(wallLtCall);
+
+  for (const wallStrike of wallValues) {
+    const rounded = roundStrikeEnhanced(wallStrike, currentPrice);
+    if (rounded < minStrike || rounded > maxStrike) continue;
+    if (strikes.some(s => Math.abs(s - rounded) < 0.01)) continue;
+    strikes.push(rounded);
+    weights.push(2.0);
+    if (strikes.length >= strikeCount + 10) break;
+  }
+
+  // Keep them ordered
+  const zipped = strikes.map((s, idx) => ({ s, w: weights[idx] })).sort((a, b) => a.s - b.s);
+  return { strikes: zipped.map(z => z.s), weights: zipped.map(z => z.w) };
+}
+
+function populateEnhancedOiData(
+  currentPrice: number,
+  activityScore: number | null | undefined,
+  wallPut: number | null,
+  wallCall: number | null,
+  daysRemaining: number,
+  strikes: number[],
+  weights: number[],
+  settings: MaxPainSettings
+): StrikeRow[] {
+  const activityToUse = activityScore ?? 3.0;
+  const baseVolume = activityToUse >= 4 ? 800_000 : activityToUse >= 2.5 ? 600_000 : 400_000;
+
+  return strikes.map((strike, idx) => {
+    let relevantWall: number | null = null;
+    if (wallPut !== null && wallCall !== null) {
+      relevantWall = Math.abs(strike - wallPut) < Math.abs(strike - wallCall) ? wallPut : wallCall;
+    } else if (wallPut !== null) {
+      relevantWall = wallPut;
+    } else if (wallCall !== null) {
+      relevantWall = wallCall;
+    } else {
+      relevantWall = strike;
+    }
+
+    let callOi = estimateEnhancedOpenInterest(strike, currentPrice, true, relevantWall, baseVolume, daysRemaining, settings);
+    let putOi = estimateEnhancedOpenInterest(strike, currentPrice, false, relevantWall, baseVolume, daysRemaining, settings);
+
+    const weight = weights[idx] ?? 1.0;
+    callOi *= weight;
+    putOi *= weight;
+
+    return { strike, weight, callOI: callOi, putOI: putOi };
+  });
+}
+
+function calculateEnhancedMaxPain(
+  currentPrice: number,
+  daysRemaining: number,
+  strikes: number[],
+  weights: number[],
+  rows: StrikeRow[]
+): { maxPain: number; confidence: number } {
+  if (!strikes.length || !rows.length) return { maxPain: currentPrice, confidence: 0.5 };
+
+  let bestStrike = currentPrice;
+  let minTotalPain = Number.POSITIVE_INFINITY;
+  let maxTotalPain = 0;
+
+  for (const testPrice of strikes) {
+    let totalPain = 0;
+    const timeDecayFactor = getExpiryTimeDecay(daysRemaining);
+
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const strike = row.strike;
+      const weight = weights[i] ?? row.weight ?? 1.0;
+
+      if (testPrice > strike) totalPain += row.callOI * (testPrice - strike) * timeDecayFactor * weight;
+      if (testPrice < strike) totalPain += row.putOI * (strike - testPrice) * timeDecayFactor * weight;
+    }
+
+    maxTotalPain = Math.max(maxTotalPain, totalPain);
+    if (totalPain < minTotalPain) {
+      minTotalPain = totalPain;
+      bestStrike = testPrice;
+    }
+  }
+
+  let confidence = 0.5;
+  if (maxTotalPain > 0) {
+    const painSpread = (maxTotalPain - minTotalPain) / maxTotalPain;
+    const baseConfidence = Math.min(0.95, painSpread * 1.2);
+    const timeFactor = daysRemaining <= 3 ? 1.0 : daysRemaining <= 7 ? 0.9 : 0.7;
+    confidence = baseConfidence * timeFactor;
+  }
+
+  return { maxPain: bestStrike, confidence };
 }
 
 /**
  * Calculate max pain level for a symbol
- * Uses walls with DTE around 7 days (5-15 day range for weekly options)
+ * PineScript-aligned synthetic max pain (strike grid + estimated OI + confidence threshold).
  */
-export function calculateMaxPain(symbol: ParsedSymbolData): number | null {
-  const { walls, currentPrice } = symbol;
-
-  if (walls.length === 0) {
-    return null;
+export function calculateMaxPain(
+  symbol: ParsedSymbolData,
+  opts?: {
+    currentPriceOverride?: number;
+    marketRegime?: string;
+    settings?: Partial<MaxPainSettings>;
+    now?: Date;
   }
+): number | null {
+  const settings: MaxPainSettings = { ...DEFAULT_MAX_PAIN_SETTINGS, ...(opts?.settings ?? {}) };
+  const currentPrice = opts?.currentPriceOverride ?? symbol.currentPrice;
+  if (!currentPrice || currentPrice <= 0) return null;
 
-  // Filter to short-term options (5-15 DTE, targeting ~7 days)
-  // This captures weekly options expiring on the nearest Friday
-  const shortTermWalls = walls.filter(
-    wall => wall.dte >= MIN_DTE_THRESHOLD && wall.dte <= MAX_DTE_THRESHOLD
+  const stPut = symbol.walls.find(w => w.type === 'put' && w.timeframe === 'swing')?.strike ?? null;
+  const stCall = symbol.walls.find(w => w.type === 'call' && w.timeframe === 'swing')?.strike ?? null;
+  const ltPut = symbol.walls.find(w => w.type === 'put' && w.timeframe === 'long')?.strike ?? null;
+  const ltCall = symbol.walls.find(w => w.type === 'call' && w.timeframe === 'long')?.strike ?? null;
+
+  const daysRemaining = calculateExpiryDays(symbol.symbol, settings, opts?.now ?? new Date());
+
+  const { strikes, weights } = generateEnhancedStrikes(
+    currentPrice,
+    settings.maxPainStrikeCount,
+    stPut,
+    stCall,
+    ltPut,
+    ltCall,
+    symbol.swingIV
   );
 
-  // If no walls in the 5-15 range, try to find the closest to 7 days
-  if (shortTermWalls.length === 0) {
-    // Find walls closest to target DTE
-    const sortedByDte = [...walls].sort((a, b) =>
-      Math.abs(a.dte - TARGET_DTE) - Math.abs(b.dte - TARGET_DTE)
-    );
+  const rows = populateEnhancedOiData(
+    currentPrice,
+    symbol.activityScore,
+    stPut,
+    stCall,
+    daysRemaining,
+    strikes,
+    weights,
+    settings
+  );
 
-    // Use the closest DTE if it's within 30 days
-    if (sortedByDte.length > 0 && sortedByDte[0].dte <= 30) {
-      const closestDte = sortedByDte[0].dte;
-      shortTermWalls.push(...walls.filter(w => w.dte === closestDte));
-    }
-  }
+  const { maxPain, confidence } = calculateEnhancedMaxPain(currentPrice, daysRemaining, strikes, weights, rows);
 
-  if (shortTermWalls.length === 0) {
-    // No suitable options available
-    return null;
-  }
-
-  // Extract strike data from SHORT-TERM walls ONLY
-  const strikeMap = new Map<number, StrikeData>();
-
-  for (const wall of shortTermWalls) {
-    if (!strikeMap.has(wall.strike)) {
-      strikeMap.set(wall.strike, {
-        strike: wall.strike,
-        callOI: 0,
-        putOI: 0,
-        callGEX: 0,
-        putGEX: 0,
-      });
-    }
-
-    const strikeData = strikeMap.get(wall.strike)!;
-
-    if (wall.type === 'call') {
-      strikeData.callGEX += wall.gex;
-      strikeData.callOI += estimateOpenInterest(wall.strike, currentPrice, wall.gex, true);
-    } else {
-      strikeData.putGEX += wall.gex;
-      strikeData.putOI += estimateOpenInterest(wall.strike, currentPrice, wall.gex, false);
-    }
-  }
-
-  const strikes = Array.from(strikeMap.values());
-
-  // Sort strikes by value
-  strikes.sort((a, b) => a.strike - b.strike);
-
-  if (strikes.length === 0) {
-    return null;
-  }
-
-  // Determine price range to test
-  const allStrikes = strikes.map(s => s.strike);
-  const minStrike = Math.min(...allStrikes);
-  const maxStrike = Math.max(...allStrikes);
-
-  // Generate test prices
-  const testPrices = generateTestPrices(currentPrice, minStrike, maxStrike, 100);
-
-  // Calculate pain at each test price
-  let minPain = Infinity;
-  let maxPainLevel = currentPrice;
-
-  for (const testPrice of testPrices) {
-    const pain = calculatePainAtPrice(testPrice, strikes);
-
-    if (pain < minPain) {
-      minPain = pain;
-      maxPainLevel = testPrice;
-    }
-  }
+  const effectiveThreshold = Math.min(settings.confidenceThreshold, 0.5);
+  if (confidence < effectiveThreshold) return null;
 
   // Round to reasonable precision
-  return Math.round(maxPainLevel * 100) / 100;
+  return Math.round(maxPain * 100) / 100;
 }
 
 /**
@@ -199,98 +402,97 @@ export interface MaxPainAnalysis {
   currentPrice: number;
   distanceToPain: number;
   distancePct: number;
-  pinRisk: 'HIGH' | 'MEDIUM' | 'LOW';
+  pinRisk: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  dynamicPinZonePct: number;
+  confidence: number;
   totalCallOI: number;
   totalPutOI: number;
   putCallRatio: number;
   nearestStrike: number;
-  painAtCurrent: number;
-  painAtMaxPain: number;
 }
 
 export function calculateMaxPainAnalysis(
-  symbol: ParsedSymbolData
+  symbol: ParsedSymbolData,
+  opts?: {
+    currentPriceOverride?: number;
+    marketRegime?: string;
+    settings?: Partial<MaxPainSettings>;
+    now?: Date;
+  }
 ): MaxPainAnalysis | null {
-  const maxPainLevel = calculateMaxPain(symbol);
+  const settings: MaxPainSettings = { ...DEFAULT_MAX_PAIN_SETTINGS, ...(opts?.settings ?? {}) };
+  const currentPrice = opts?.currentPriceOverride ?? symbol.currentPrice;
+  const maxPainLevel = calculateMaxPain(symbol, opts);
 
   if (maxPainLevel === null) {
     return null;
   }
 
-  const { walls, currentPrice } = symbol;
+  const stPut = symbol.walls.find(w => w.type === 'put' && w.timeframe === 'swing')?.strike ?? null;
+  const stCall = symbol.walls.find(w => w.type === 'call' && w.timeframe === 'swing')?.strike ?? null;
+  const ltPut = symbol.walls.find(w => w.type === 'put' && w.timeframe === 'long')?.strike ?? null;
+  const ltCall = symbol.walls.find(w => w.type === 'call' && w.timeframe === 'long')?.strike ?? null;
 
-  // Filter to short-term options (5-15 DTE, targeting ~7 days)
-  const shortTermWalls = walls.filter(
-    wall => wall.dte >= MIN_DTE_THRESHOLD && wall.dte <= MAX_DTE_THRESHOLD
+  const daysRemaining = calculateExpiryDays(symbol.symbol, settings, opts?.now ?? new Date());
+
+  const { strikes, weights } = generateEnhancedStrikes(
+    currentPrice,
+    settings.maxPainStrikeCount,
+    stPut,
+    stCall,
+    ltPut,
+    ltCall,
+    symbol.swingIV
   );
 
-  // Fallback to closest DTE if no walls in range
-  if (shortTermWalls.length === 0) {
-    const sortedByDte = [...walls].sort((a, b) =>
-      Math.abs(a.dte - TARGET_DTE) - Math.abs(b.dte - TARGET_DTE)
-    );
-    if (sortedByDte.length > 0 && sortedByDte[0].dte <= 30) {
-      const closestDte = sortedByDte[0].dte;
-      shortTermWalls.push(...walls.filter(w => w.dte === closestDte));
-    }
-  }
+  const rows = populateEnhancedOiData(
+    currentPrice,
+    symbol.activityScore,
+    stPut,
+    stCall,
+    daysRemaining,
+    strikes,
+    weights,
+    settings
+  );
 
-  if (shortTermWalls.length === 0) {
-    return null;
-  }
-
-  // Calculate aggregate metrics from SHORT-TERM walls ONLY
   let totalCallOI = 0;
   let totalPutOI = 0;
-
-  const strikeData: StrikeData[] = [];
-  const strikeMap = new Map<number, StrikeData>();
-
-  for (const wall of shortTermWalls) {
-    if (!strikeMap.has(wall.strike)) {
-      strikeMap.set(wall.strike, {
-        strike: wall.strike,
-        callOI: 0,
-        putOI: 0,
-        callGEX: 0,
-        putGEX: 0,
-      });
-    }
-
-    const data = strikeMap.get(wall.strike)!;
-    const oi = estimateOpenInterest(wall.strike, currentPrice, wall.gex, wall.type === 'call');
-
-    if (wall.type === 'call') {
-      data.callOI += oi;
-      data.callGEX += wall.gex;
-      totalCallOI += oi;
-    } else {
-      data.putOI += oi;
-      data.putGEX += wall.gex;
-      totalPutOI += oi;
-    }
+  for (const row of rows) {
+    totalCallOI += row.callOI;
+    totalPutOI += row.putOI;
   }
-
-  strikeData.push(...Array.from(strikeMap.values()));
 
   // Distance calculations
   const distanceToPain = maxPainLevel - currentPrice;
   const distancePct = (distanceToPain / currentPrice) * 100;
 
-  // Pin risk: HIGH if within 2%, MEDIUM if within 5%, LOW otherwise
-  const absPct = Math.abs(distancePct);
-  const pinRisk: 'HIGH' | 'MEDIUM' | 'LOW' =
-    absPct < 2 ? 'HIGH' : absPct < 5 ? 'MEDIUM' : 'LOW';
-
-  // Find nearest strike to max pain
-  const strikes = Array.from(strikeMap.keys()).sort((a, b) => a - b);
-  const nearestStrike = strikes.reduce((prev, curr) =>
-    Math.abs(curr - maxPainLevel) < Math.abs(prev - maxPainLevel) ? curr : prev
+  const { confidence } = calculateEnhancedMaxPain(currentPrice, daysRemaining, strikes, weights, rows);
+  const dynamicPinZonePct = calculateDynamicPinZonePct(
+    symbol.swingIV,
+    daysRemaining,
+    currentPrice,
+    confidence,
+    opts?.marketRegime,
+    settings
   );
 
-  // Calculate pain at current price vs max pain
-  const painAtCurrent = calculatePainAtPrice(currentPrice, strikeData);
-  const painAtMaxPain = calculatePainAtPrice(maxPainLevel, strikeData);
+  const absPct = Math.abs(distancePct);
+  const pinRisk: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' =
+    absPct <= dynamicPinZonePct * 0.5
+      ? 'CRITICAL'
+      : absPct <= dynamicPinZonePct
+        ? 'HIGH'
+        : absPct <= dynamicPinZonePct * 2
+          ? 'MEDIUM'
+          : 'LOW';
+
+  // Find nearest strike to max pain
+  const nearestStrike = strikes.length
+    ? strikes.reduce((prev, curr) =>
+        Math.abs(curr - maxPainLevel) < Math.abs(prev - maxPainLevel) ? curr : prev
+      )
+    : maxPainLevel;
 
   return {
     maxPainLevel,
@@ -298,11 +500,11 @@ export function calculateMaxPainAnalysis(
     distanceToPain,
     distancePct,
     pinRisk,
+    dynamicPinZonePct,
+    confidence,
     totalCallOI,
     totalPutOI,
     putCallRatio: totalCallOI > 0 ? totalPutOI / totalCallOI : 0,
     nearestStrike,
-    painAtCurrent,
-    painAtMaxPain,
   };
 }
