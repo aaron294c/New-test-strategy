@@ -317,6 +317,37 @@ def compute_latest_percentile(indicator: pd.Series, lookback_period: int) -> flo
     return float((below_count / (len(window) - 1)) * 100)
 
 
+def calculate_full_percentile_ranks(indicator: pd.Series, lookback_period: int) -> pd.Series:
+    """
+    Calculate rolling percentile ranks for the entire indicator series.
+
+    For each point, calculates what percentile it is within the lookback window.
+    """
+    if indicator is None or indicator.empty:
+        return pd.Series(dtype=float)
+
+    series = indicator.dropna()
+    if len(series) < lookback_period:
+        return pd.Series(dtype=float)
+
+    percentiles = []
+    indices = []
+
+    for i in range(lookback_period - 1, len(series)):
+        window = series.iloc[i - lookback_period + 1:i + 1]
+        if len(window) < 2:
+            continue
+
+        current_value = window.iloc[-1]
+        below_count = (window.iloc[:-1] < current_value).sum()
+        percentile = (below_count / (len(window) - 1)) * 100
+
+        percentiles.append(percentile)
+        indices.append(series.index[i])
+
+    return pd.Series(percentiles, index=indices)
+
+
 def find_last_extreme_low_date(percentile_ranks: pd.Series, threshold: float = 5.0) -> str | None:
     """
     Find the most recent date when the percentile was at or below the threshold (default 5%).
@@ -1162,8 +1193,8 @@ async def get_current_market_state(
 
         batch_daily_frames: Dict[str, pd.DataFrame] = {}
         try:
-            print("Batch fetching daily OHLCV (2y) for current-state...")
-            batch_daily_frames = fetch_daily_batch(tickers, period="2y")
+            print("Batch fetching daily OHLCV (5y) for current-state...")
+            batch_daily_frames = fetch_daily_batch(tickers, period="5y")
         except Exception as e:
             print(f"  Batch daily fetch failed: {e}. Falling back to per-ticker fetches.")
             batch_daily_frames = {t: pd.DataFrame() for t in tickers}
@@ -1182,11 +1213,11 @@ async def get_current_market_state(
                 ticker_cohort_data = cohort_stats_cache.get(ticker, {}) if cohort_stats_cache else {}
 
                 data = batch_daily_frames.get(ticker, pd.DataFrame())
-                if data.empty or len(data) < backtester.lookback_period + 3:
+                if data.empty or len(data) < backtester.lookback_period + 100:  # Need at least 100 extra points for meaningful percentile history
                     # Fall back to the existing per-ticker fetch path for this ticker only.
-                    data = backtester.fetch_data(ticker, period="2y")
-                    if data.empty or len(data) < backtester.lookback_period + 3:
-                        data = backtester.fetch_data(ticker, period="5y")
+                    data = backtester.fetch_data(ticker, period="5y")
+                    if data.empty or len(data) < backtester.lookback_period + 50:
+                        data = backtester.fetch_data(ticker, period="max")
                 if data.empty:
                     continue
 
@@ -1196,8 +1227,19 @@ async def get_current_market_state(
                     continue
 
                 # Calculate full percentile ranks to find last extreme low date
-                percentile_ranks = backtester.calculate_percentile_ranks(indicator)
+                percentile_ranks = calculate_full_percentile_ranks(indicator, backtester.lookback_period)
                 last_extreme_low_date = find_last_extreme_low_date(percentile_ranks, threshold=5.0)
+
+                # If no <5% found in current data, try fetching more historical data
+                if last_extreme_low_date is None and len(data) < 2500:  # ~10 years
+                    try:
+                        extended_data = backtester.fetch_data(ticker, period="max")
+                        if len(extended_data) > len(data):
+                            extended_indicator = backtester.calculate_rsi_ma_indicator(extended_data)
+                            extended_percentile_ranks = calculate_full_percentile_ranks(extended_indicator, backtester.lookback_period)
+                            last_extreme_low_date = find_last_extreme_low_date(extended_percentile_ranks, threshold=5.0)
+                    except Exception:
+                        pass  # Use None if extended fetch fails
 
                 current_price = float(data['Close'].iloc[-1])
                 current_date = data.index[-1].strftime("%Y-%m-%d")
