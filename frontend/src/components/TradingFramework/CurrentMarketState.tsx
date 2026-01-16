@@ -102,30 +102,17 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
   const [sortField, setSortField] = useState<SortField>('percentile');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
-  const formatRelativeTime = (dateString: string | null | undefined): string => {
+  const formatDateStamp = (dateString: string | null | undefined): string => {
     if (!dateString) return '—';
 
     try {
       const date = new Date(dateString);
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 0) return 'Today';
-      if (diffDays === 1) return '1 day ago';
-      if (diffDays < 7) return `${diffDays} days ago`;
-      if (diffDays < 30) {
-        const weeks = Math.floor(diffDays / 7);
-        return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
-      }
-      if (diffDays < 365) {
-        const months = Math.floor(diffDays / 30);
-        return months === 1 ? '1 month ago' : `${months} months ago`;
-      }
-      const years = Math.floor(diffDays / 365);
-      return years === 1 ? '1 year ago' : `${years} years ago`;
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const year = String(date.getFullYear()).slice(-2);
+      return `${month}/${day}/${year}`;
     } catch {
-      return dateString;
+      return '—';
     }
   };
 
@@ -600,26 +587,21 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                 </TableCell>
 
                 <TableCell align="right">
-                  <Tooltip
-                    title={
-                      state.last_extreme_low_date
-                        ? `Last saw ≤5% percentile on ${state.last_extreme_low_date}`
-                        : 'Never hit ≤5% in historical data'
-                    }
-                  >
-                    <Typography
-                      variant="body2"
-                      color={
-                        state.last_extreme_low_date
-                          ? state.current_percentile <= 5
-                            ? 'success.main'
-                            : 'text.secondary'
-                          : 'text.disabled'
-                      }
-                    >
-                      {formatRelativeTime(state.last_extreme_low_date)}
+                  {state.last_extreme_low_date ? (
+                    <Tooltip title={`Last saw ≤5% percentile on ${formatDateStamp(state.last_extreme_low_date)}`}>
+                      <Typography
+                        variant="body2"
+                        color={state.current_percentile <= 5 ? 'success.main' : 'text.secondary'}
+                        fontWeight={state.current_percentile <= 5 ? 'medium' : 'normal'}
+                      >
+                        {formatDateStamp(state.last_extreme_low_date)}
+                      </Typography>
+                    </Tooltip>
+                  ) : (
+                    <Typography variant="body2" color="text.disabled">
+                      —
                     </Typography>
-                  </Tooltip>
+                  )}
                 </TableCell>
 
                 <TableCell align="right">

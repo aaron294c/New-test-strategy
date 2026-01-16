@@ -352,7 +352,7 @@ def find_last_extreme_low_date(percentile_ranks: pd.Series, threshold: float = 5
     """
     Find the most recent date when the percentile was at or below the threshold (default 5%).
 
-    Returns ISO format date string or None if never hit threshold.
+    Returns ISO format date string or None if never hit threshold in historical data.
     """
     if percentile_ranks is None or percentile_ranks.empty:
         return None
