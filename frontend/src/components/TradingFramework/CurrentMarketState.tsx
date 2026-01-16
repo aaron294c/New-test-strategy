@@ -116,6 +116,23 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
     }
   };
 
+  const getDaysAgo = (dateString: string | null | undefined): string => {
+    if (!dateString) return '';
+
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) return 'today';
+      if (diffDays === 1) return '1 day ago';
+      return `${diffDays} days ago`;
+    } catch {
+      return '';
+    }
+  };
+
   const fetchCurrentState = async (
     target: Timeframe,
     refresh: boolean = false,
@@ -589,13 +606,18 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                 <TableCell align="right">
                   {state.last_extreme_low_date ? (
                     <Tooltip title={`Last saw ≤5% percentile on ${formatDateStamp(state.last_extreme_low_date)}`}>
-                      <Typography
-                        variant="body2"
-                        color={state.current_percentile <= 5 ? 'success.main' : 'text.secondary'}
-                        fontWeight={state.current_percentile <= 5 ? 'medium' : 'normal'}
-                      >
-                        {formatDateStamp(state.last_extreme_low_date)}
-                      </Typography>
+                      <Box display="flex" flexDirection="column" alignItems="flex-end">
+                        <Typography
+                          variant="body2"
+                          color={state.current_percentile <= 5 ? 'success.main' : 'text.secondary'}
+                          fontWeight={state.current_percentile <= 5 ? 'medium' : 'normal'}
+                        >
+                          {formatDateStamp(state.last_extreme_low_date)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          ({getDaysAgo(state.last_extreme_low_date)})
+                        </Typography>
+                      </Box>
                     </Tooltip>
                   ) : (
                     <Typography variant="body2" color="text.disabled">
