@@ -54,6 +54,10 @@ interface MarketState {
   current_date: string;
   current_price: number;
   current_percentile: number;
+  prev_midday_percentile?: number | null;
+  change_since_prev_midday?: number | null;
+  prev_midday_price?: number | null;
+  price_change_pct?: number | null;
   percentile_cohort: string;
   zone_label: string;
   in_entry_zone: boolean;
@@ -62,11 +66,18 @@ interface MarketState {
   is_momentum: boolean;
   volatility_level: string;
   live_expectancy: LiveExpectancy;
+  last_extreme_low_date?: string | null;
 }
 
 interface MarketStateResponse {
   timestamp: string;
   market_state: MarketState[];
+  prev_midday_snapshot?: {
+    market_date: string;
+    captured_at: string | null;
+    timeframe: string;
+  };
+  midday_snapshot_saved?: boolean;
   summary: {
     total_tickers: number;
     in_entry_zone: number;
@@ -90,6 +101,33 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('percentile');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  const formatRelativeTime = (dateString: string | null | undefined): string => {
+    if (!dateString) return '—';
+
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) return 'Today';
+      if (diffDays === 1) return '1 day ago';
+      if (diffDays < 7) return `${diffDays} days ago`;
+      if (diffDays < 30) {
+        const weeks = Math.floor(diffDays / 7);
+        return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
+      }
+      if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30);
+        return months === 1 ? '1 month ago' : `${months} months ago`;
+      }
+      const years = Math.floor(diffDays / 365);
+      return years === 1 ? '1 year ago' : `${years} years ago`;
+    } catch {
+      return dateString;
+    }
+  };
 
   const fetchCurrentState = async (
     target: Timeframe,
@@ -263,6 +301,7 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
 
   const { market_state, summary } = marketData;
   const sortedData = getSortedData(market_state);
+  const prevMidday = marketData.prev_midday_snapshot;
 
   return (
     <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
@@ -344,6 +383,17 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                   Current %ile
                 </TableSortLabel>
               </TableCell>
+              <TableCell align="right">
+                <Tooltip
+                  title={
+                    prevMidday?.captured_at
+                      ? `Previous trading day snapshot (${prevMidday.market_date}) captured at ${new Date(prevMidday.captured_at).toLocaleString()}`
+                      : `No previous trading day midday snapshot found for ${prevMidday?.market_date ?? 'previous trading day'}`
+                  }
+                >
+                  <span>Prev Midday %ile</span>
+                </Tooltip>
+              </TableCell>
               <TableCell>Zone</TableCell>
               <TableCell>Regime</TableCell>
               <TableCell align="right">
@@ -381,6 +431,11 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                 >
                   Avg Hold (days)
                 </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <Tooltip title="Last date when this asset hit ≤5% percentile (extreme low zone)">
+                  <span>Last &lt;5%</span>
+                </Tooltip>
               </TableCell>
               <TableCell align="right">Sample Size</TableCell>
             </TableRow>
@@ -423,6 +478,49 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                   >
                     {state.current_percentile.toFixed(1)}%
                   </Typography>
+                </TableCell>
+
+                <TableCell align="right">
+                  {state.prev_midday_percentile == null ? (
+                    <Typography variant="body2" color="text.secondary">
+                      —
+                    </Typography>
+                  ) : (
+                    <Box display="flex" flexDirection="column" alignItems="flex-end">
+                      <Typography variant="body2">
+                        {state.prev_midday_percentile.toFixed(1)}%
+                      </Typography>
+                      {state.change_since_prev_midday != null && (
+                        <Box display="flex" alignItems="center" gap={0.5}>
+                          {state.change_since_prev_midday > 0 ? (
+                            <ArrowUpward sx={{ fontSize: 14, color: '#f44336' }} />
+                          ) : state.change_since_prev_midday < 0 ? (
+                            <ArrowDownward sx={{ fontSize: 14, color: '#4caf50' }} />
+                          ) : null}
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color:
+                                state.change_since_prev_midday > 0
+                                  ? '#f44336'
+                                  : state.change_since_prev_midday < 0
+                                  ? '#4caf50'
+                                  : 'text.secondary',
+                            }}
+                          >
+                            {state.change_since_prev_midday > 0 ? '+' : ''}
+                            {state.change_since_prev_midday.toFixed(1)}pp
+                            {state.price_change_pct != null && (
+                              <span style={{ marginLeft: '4px' }}>
+                                ({state.price_change_pct > 0 ? '+' : ''}
+                                {state.price_change_pct.toFixed(1)}%)
+                              </span>
+                            )}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  )}
                 </TableCell>
 
                 <TableCell>
@@ -499,6 +597,29 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                   <Typography variant="body2">
                     {state.live_expectancy.expected_holding_days.toFixed(1)}
                   </Typography>
+                </TableCell>
+
+                <TableCell align="right">
+                  <Tooltip
+                    title={
+                      state.last_extreme_low_date
+                        ? `Last saw ≤5% percentile on ${state.last_extreme_low_date}`
+                        : 'Never hit ≤5% in historical data'
+                    }
+                  >
+                    <Typography
+                      variant="body2"
+                      color={
+                        state.last_extreme_low_date
+                          ? state.current_percentile <= 5
+                            ? 'success.main'
+                            : 'text.secondary'
+                          : 'text.disabled'
+                      }
+                    >
+                      {formatRelativeTime(state.last_extreme_low_date)}
+                    </Typography>
+                  </Tooltip>
                 </TableCell>
 
                 <TableCell align="right">

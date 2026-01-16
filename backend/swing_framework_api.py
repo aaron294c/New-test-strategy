@@ -9,12 +9,13 @@ import asyncio
 import json
 import os
 from fastapi import APIRouter, HTTPException
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from scipy.stats import norm
 import pandas as pd
 import yfinance as yf
+from zoneinfo import ZoneInfo
 from enhanced_backtester import EnhancedPerformanceMatrixBacktester
 from stock_statistics import (
     STOCK_METADATA,
@@ -67,6 +68,137 @@ _current_state_enriched_cache_ttl_seconds = 60  # 1 minute TTL
 _current_state_enriched_lock = asyncio.Lock()
 
 _STATIC_SNAPSHOT_DIR = Path(__file__).resolve().parent / "static_snapshots" / "swing_framework"
+_MIDDAY_SNAPSHOT_DIR = Path(__file__).resolve().parent / "cache" / "midday_snapshots"
+_MIDDAY_SNAPSHOT_TZ = os.getenv("SWING_MIDDAY_SNAPSHOT_TZ", "America/New_York")
+
+
+def _get_market_date(now_utc: datetime) -> date:
+    try:
+        tz = ZoneInfo(_MIDDAY_SNAPSHOT_TZ)
+    except Exception:
+        tz = timezone.utc
+    return now_utc.astimezone(tz).date()
+
+
+def _previous_trading_day(day: date) -> date:
+    prev = day - timedelta(days=1)
+    while prev.weekday() >= 5:  # Sat/Sun
+        prev -= timedelta(days=1)
+    return prev
+
+
+def _midday_snapshot_path(timeframe: str, market_date: date) -> Path:
+    safe_timeframe = "4h" if timeframe in {"4h", "4hour"} else "daily"
+    return _MIDDAY_SNAPSHOT_DIR / safe_timeframe / f"{market_date.isoformat()}.json"
+
+
+def _load_midday_snapshot(timeframe: str, market_date: date) -> Dict[str, Any] | None:
+    path = _midday_snapshot_path(timeframe, market_date)
+    if not path.exists():
+        return None
+    try:
+        with path.open("r", encoding="utf-8") as file:
+            payload = json.load(file)
+        if isinstance(payload, dict):
+            return payload
+    except Exception as e:
+        print(f"  Failed to load midday snapshot {path}: {e}")
+    return None
+
+
+def _save_midday_snapshot(
+    timeframe: str,
+    market_date: date,
+    percentiles: Dict[str, float],
+    captured_at_utc: datetime,
+    prices: Dict[str, float] | None = None,
+    overwrite: bool = False,
+) -> bool:
+    path = _midday_snapshot_path(timeframe, market_date)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and not overwrite:
+        return False
+    payload = {
+        "captured_at": captured_at_utc.replace(microsecond=0).isoformat(),
+        "market_date": market_date.isoformat(),
+        "timeframe": "4h" if timeframe in {"4h", "4hour"} else "daily",
+        "percentiles": percentiles,
+        "prices": prices or {},
+    }
+    try:
+        with path.open("w", encoding="utf-8") as file:
+            json.dump(payload, file, indent=2)
+        return True
+    except Exception as e:
+        print(f"  Failed to save midday snapshot {path}: {e}")
+        return False
+
+
+def _augment_with_prev_midday_snapshot(response: Dict[str, Any], timeframe: str) -> Dict[str, Any]:
+    """
+    Annotate `market_state` entries with the previous trading day's saved "midday" percentile,
+    price, and price change percentage, if such a snapshot exists on disk.
+    """
+    now_utc = datetime.now(timezone.utc)
+    market_day = _get_market_date(now_utc)
+    prev_day = _previous_trading_day(market_day)
+
+    snapshot = _load_midday_snapshot(timeframe, prev_day)
+    prev_percentiles: Dict[str, Any] = {}
+    prev_prices: Dict[str, Any] = {}
+    captured_at: str | None = None
+    if snapshot:
+        prev_percentiles = snapshot.get("percentiles") or {}
+        prev_prices = snapshot.get("prices") or {}
+        captured_at = snapshot.get("captured_at")
+
+    for state in response.get("market_state", []) or []:
+        if not isinstance(state, dict):
+            continue
+        ticker = state.get("ticker")
+
+        # Previous percentile
+        prev_pct = prev_percentiles.get(ticker) if ticker else None
+        if prev_pct is not None:
+            try:
+                prev_pct = float(prev_pct)
+            except Exception:
+                prev_pct = None
+        state["prev_midday_percentile"] = prev_pct
+
+        # Percentile change
+        state["change_since_prev_midday"] = (
+            float(state["current_percentile"]) - prev_pct
+            if prev_pct is not None and state.get("current_percentile") is not None
+            else None
+        )
+
+        # Previous price and price change percentage
+        prev_price = prev_prices.get(ticker) if ticker else None
+        if prev_price is not None:
+            try:
+                prev_price = float(prev_price)
+            except Exception:
+                prev_price = None
+        state["prev_midday_price"] = prev_price
+
+        # Calculate price change percentage
+        current_price = state.get("current_price")
+        if prev_price is not None and current_price is not None:
+            try:
+                price_change_pct = ((float(current_price) - prev_price) / prev_price) * 100
+                state["price_change_pct"] = price_change_pct
+            except (ZeroDivisionError, ValueError):
+                state["price_change_pct"] = None
+        else:
+            state["price_change_pct"] = None
+
+    response["prev_midday_snapshot"] = {
+        "market_date": prev_day.isoformat(),
+        "captured_at": captured_at,
+        "timeframe": "4h" if timeframe in {"4h", "4hour"} else "daily",
+    }
+    return response
 
 
 def _read_snapshot_file(filename: str) -> Dict | None:
@@ -183,6 +315,28 @@ def compute_latest_percentile(indicator: pd.Series, lookback_period: int) -> flo
     current_value = window.iloc[-1]
     below_count = (window.iloc[:-1] < current_value).sum()
     return float((below_count / (len(window) - 1)) * 100)
+
+
+def find_last_extreme_low_date(percentile_ranks: pd.Series, threshold: float = 5.0) -> str | None:
+    """
+    Find the most recent date when the percentile was at or below the threshold (default 5%).
+
+    Returns ISO format date string or None if never hit threshold.
+    """
+    if percentile_ranks is None or percentile_ranks.empty:
+        return None
+
+    # Filter to dates where percentile <= threshold
+    extreme_low_dates = percentile_ranks[percentile_ranks <= threshold]
+
+    if extreme_low_dates.empty:
+        return None
+
+    # Get the most recent date
+    last_date = extreme_low_dates.index[-1]
+
+    # Return as ISO format string
+    return last_date.strftime("%Y-%m-%d") if hasattr(last_date, 'strftime') else str(last_date)
 
 
 def convert_bins_to_dict(bin_data: Dict) -> Dict:
@@ -953,7 +1107,11 @@ async def get_current_indices_state():
 
 
 @router.get("/current-state")
-async def get_current_market_state(force_refresh: bool = False):
+async def get_current_market_state(
+    force_refresh: bool = False,
+    capture_midday_snapshot: bool = False,
+    overwrite_midday_snapshot: bool = False,
+):
     """
     Get CURRENT RSI-MA percentile and live risk-adjusted expectancy for all tickers (stocks + indices)
     Shows real-time buy opportunities based on current market state
@@ -970,7 +1128,7 @@ async def get_current_market_state(force_refresh: bool = False):
     if not force_refresh and _current_state_cache is None:
         static_payload = _load_static_snapshot("current-state.json")
         if static_payload is not None:
-            return static_payload
+            return _augment_with_prev_midday_snapshot(dict(static_payload), "daily")
 
     if not force_refresh and _is_cache_valid(
         _current_state_cache, _current_state_cache_timestamp, _current_state_cache_ttl_seconds
@@ -1036,6 +1194,11 @@ async def get_current_market_state(force_refresh: bool = False):
                 current_percentile = compute_latest_percentile(indicator, backtester.lookback_period)
                 if current_percentile is None:
                     continue
+
+                # Calculate full percentile ranks to find last extreme low date
+                percentile_ranks = backtester.calculate_percentile_ranks(indicator)
+                last_extreme_low_date = find_last_extreme_low_date(percentile_ranks, threshold=5.0)
+
                 current_price = float(data['Close'].iloc[-1])
                 current_date = data.index[-1].strftime("%Y-%m-%d")
 
@@ -1121,6 +1284,7 @@ async def get_current_market_state(force_refresh: bool = False):
                         "is_momentum": metadata.is_momentum,
                         "volatility_level": metadata.volatility_level,
                         "live_expectancy": live_expectancy,  # Expected performance if entering NOW
+                        "last_extreme_low_date": last_extreme_low_date,  # Last date when percentile was ≤5%
                     }
                 )
 
@@ -1141,13 +1305,43 @@ async def get_current_market_state(force_refresh: bool = False):
                 "low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'low')
             }
         }
+
+        response = _augment_with_prev_midday_snapshot(response, "daily")
+
+        if capture_midday_snapshot:
+            now_utc = datetime.now(timezone.utc)
+            market_day = _get_market_date(now_utc)
+            percentiles = {
+                s.get("ticker"): float(s.get("current_percentile"))
+                for s in (response.get("market_state") or [])
+                if isinstance(s, dict) and s.get("ticker") is not None and s.get("current_percentile") is not None
+            }
+            prices = {
+                s.get("ticker"): float(s.get("current_price"))
+                for s in (response.get("market_state") or [])
+                if isinstance(s, dict) and s.get("ticker") is not None and s.get("current_price") is not None
+            }
+            saved = _save_midday_snapshot(
+                timeframe="daily",
+                market_date=market_day,
+                percentiles=percentiles,
+                captured_at_utc=now_utc,
+                prices=prices,
+                overwrite=overwrite_midday_snapshot,
+            )
+            response["midday_snapshot_saved"] = saved
+
         _current_state_cache = response
         _current_state_cache_timestamp = datetime.now(timezone.utc)
         return response
 
 
 @router.get("/current-state-4h")
-async def get_current_market_state_4h(force_refresh: bool = False):
+async def get_current_market_state_4h(
+    force_refresh: bool = False,
+    capture_midday_snapshot: bool = False,
+    overwrite_midday_snapshot: bool = False,
+):
     """
     Get CURRENT RSI-MA percentile and live expectancy for the 4-hour timeframe.
     Uses pre-computed 4H bin statistics when available and falls back to on-the-fly
@@ -1158,7 +1352,7 @@ async def get_current_market_state_4h(force_refresh: bool = False):
     if not force_refresh and _current_state_4h_cache is None:
         static_payload = _load_static_snapshot("current-state-4h.json")
         if static_payload is not None:
-            return static_payload
+            return _augment_with_prev_midday_snapshot(dict(static_payload), "4h")
 
     if not force_refresh and _is_cache_valid(
         _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
@@ -1316,6 +1510,32 @@ async def get_current_market_state_4h(force_refresh: bool = False):
                 "low_opportunities": sum(1 for s in current_states if s['percentile_cohort'] == 'low')
             }
         }
+
+        response = _augment_with_prev_midday_snapshot(response, "4h")
+
+        if capture_midday_snapshot:
+            now_utc = datetime.now(timezone.utc)
+            market_day = _get_market_date(now_utc)
+            percentiles = {
+                s.get("ticker"): float(s.get("current_percentile"))
+                for s in (response.get("market_state") or [])
+                if isinstance(s, dict) and s.get("ticker") is not None and s.get("current_percentile") is not None
+            }
+            prices = {
+                s.get("ticker"): float(s.get("current_price"))
+                for s in (response.get("market_state") or [])
+                if isinstance(s, dict) and s.get("ticker") is not None and s.get("current_price") is not None
+            }
+            saved = _save_midday_snapshot(
+                timeframe="4h",
+                market_date=market_day,
+                percentiles=percentiles,
+                captured_at_utc=now_utc,
+                prices=prices,
+                overwrite=overwrite_midday_snapshot,
+            )
+            response["midday_snapshot_saved"] = saved
+
         _current_state_4h_cache = response
         _current_state_4h_cache_timestamp = datetime.now(timezone.utc)
         return response
