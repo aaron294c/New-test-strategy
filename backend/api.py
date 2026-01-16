@@ -1872,7 +1872,8 @@ async def get_percentile_forward_mapping_4h(ticker: str, force_refresh: bool = F
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
-from gamma_risk_distance import get_symbol_risk_distances, get_risk_distance_data
+# Use v2 calculator with PineScript-inspired calculations
+from gamma_risk_distance_v2 import get_symbol_risk_distances, get_risk_distance_data
 
 @app.get("/api/risk-distance/{symbol}")
 async def get_risk_distance(symbol: str):
@@ -1910,37 +1911,77 @@ async def get_risk_distance_summary(symbol: str):
         if not data:
             return {"status": "error", "message": f"No data available for {symbol}"}
         
-        # Extract key metrics for summary view
+        # Extract key metrics for summary view (v2 enhanced)
         summary = {
             "symbol": symbol.upper(),
             "current_price": data["current_price"],
             "timestamp": data["timestamp"],
-            
-            # Nearest support/resistance
+
+            # Nearest support/resistance with GEX values
             "nearest_support": {
                 "level": data["put_walls"].get("swing", {}).get("strike", 0),
                 "distance_pct": data["put_walls"].get("swing", {}).get("distance_pct", 0),
-                "strength": data["put_walls"].get("swing", {}).get("strength", 0)
+                "strength": data["put_walls"].get("swing", {}).get("strength", 0),
+                "gex_value": data["put_walls"].get("swing", {}).get("gex_value", 0)
             },
             "nearest_resistance": {
                 "level": data["call_walls"].get("swing", {}).get("strike", 0),
                 "distance_pct": data["call_walls"].get("swing", {}).get("distance_pct", 0),
-                "strength": data["call_walls"].get("swing", {}).get("strength", 0)
+                "strength": data["call_walls"].get("swing", {}).get("strength", 0),
+                "gex_value": data["call_walls"].get("swing", {}).get("gex_value", 0)
             },
-            
-            # Max pain
+
+            # Max pain with pin risk assessment
             "max_pain": {
-                "weekly": data["max_pain"].get("weekly", {}).get("strike", 0),
-                "swing": data["max_pain"].get("swing", {}).get("strike",  0),
-                "monthly": data["max_pain"].get("long", {}).get("strike", 0)
+                "weekly": {
+                    "strike": data["max_pain"].get("weekly", {}).get("strike", 0),
+                    "distance_pct": data["max_pain"].get("weekly", {}).get("distance_pct", 0),
+                    "pin_risk": data["max_pain"].get("weekly", {}).get("pin_risk", "LOW")
+                },
+                "swing": {
+                    "strike": data["max_pain"].get("swing", {}).get("strike", 0),
+                    "distance_pct": data["max_pain"].get("swing", {}).get("distance_pct", 0),
+                    "pin_risk": data["max_pain"].get("swing", {}).get("pin_risk", "LOW")
+                },
+                "long": {
+                    "strike": data["max_pain"].get("long", {}).get("strike", 0),
+                    "distance_pct": data["max_pain"].get("long", {}).get("distance_pct", 0),
+                    "pin_risk": data["max_pain"].get("long", {}).get("pin_risk", "LOW")
+                },
+                "quarterly": {
+                    "strike": data["max_pain"].get("quarterly", {}).get("strike", 0),
+                    "distance_pct": data["max_pain"].get("quarterly", {}).get("distance_pct", 0),
+                    "pin_risk": data["max_pain"].get("quarterly", {}).get("pin_risk", "LOW")
+                }
             },
-            
-            # Gamma flip
-            "gamma_flip": data.get("gamma_flip", {}).get("strike", 0),
-            
-            # Weighted recommendation
-            "recommended_support": data.get("weighted_walls", {}).get("put", {}).get("recommended_wall", 0),
-            
+
+            # Gamma flip with context
+            "gamma_flip": {
+                "strike": data.get("gamma_flip", {}).get("strike", 0),
+                "distance_pct": data.get("gamma_flip", {}).get("distance_pct", 0),
+                "net_gex_above": data.get("gamma_flip", {}).get("net_gex_above", 0),
+                "net_gex_below": data.get("gamma_flip", {}).get("net_gex_below", 0)
+            },
+
+            # Weighted recommendations with confidence
+            "weighted_support": {
+                "recommended_wall": data.get("weighted_walls", {}).get("put", {}).get("recommended_wall", 0),
+                "method_used": data.get("weighted_walls", {}).get("put", {}).get("method_used", ""),
+                "confidence": data.get("weighted_walls", {}).get("put", {}).get("confidence", "low")
+            },
+            "weighted_resistance": {
+                "recommended_wall": data.get("weighted_walls", {}).get("call", {}).get("recommended_wall", 0),
+                "method_used": data.get("weighted_walls", {}).get("call", {}).get("method_used", ""),
+                "confidence": data.get("weighted_walls", {}).get("call", {}).get("confidence", "low")
+            },
+
+            # Market regime (v2 feature)
+            "regime": data.get("regime", {}).get("regime", "Normal Volatility"),
+            "vix": data.get("regime", {}).get("vix_value", 16.0),
+
+            # SD levels for expected move
+            "sd_levels": data.get("sd_levels", {}),
+
             # Summary
             "position": data.get("summary", {}).get("position_in_range", "unknown"),
             "risk_reward": data.get("summary", {}).get("risk_reward_ratio", 1.0),

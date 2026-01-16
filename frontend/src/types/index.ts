@@ -217,13 +217,15 @@ export type TimeHorizonRange = 'D1-D7' | 'D8-D14' | 'D15-D21' | 'All';
 export type ConfidenceLevel = 'VL' | 'L' | 'M' | 'H' | 'VH' | 'All';
 export type ChartType = 'heatmap' | 'distribution' | 'percentile' | 'montecarlo';
 
-// Risk Distance Types
+// Risk Distance Types (v2 - PineScript-inspired calculations)
 export interface RiskDistanceLevel {
   strike: number;
-  distance_pct: number;
+  distance_pct: number;     // Positive = above price, Negative = below
   distance_pts: number;
-  strength: number;
+  strength: number;          // 0-95% based on GEX concentration
   dte: number;
+  gex_value?: number;        // Raw GEX at this strike
+  iv_at_strike?: number;     // IV% at this strike
 }
 
 export interface MaxPainData {
@@ -234,6 +236,8 @@ export interface MaxPainData {
   call_pain: number;
   put_pain: number;
   timeframe: string;
+  pin_risk?: 'HIGH' | 'MEDIUM' | 'LOW';  // Pin risk assessment
+  pain_ratio?: number;                    // call_pain / put_pain
 }
 
 export interface WeightedWallData {
@@ -242,13 +246,23 @@ export interface WeightedWallData {
   cumulative_threshold: number;
   recommended_wall: number;
   method_used: string;
-  confidence: string;
+  confidence: 'high' | 'medium' | 'low';
+  gex_concentration?: number;  // How concentrated the GEX is at the wall
 }
 
 export interface GammaFlipData {
   strike: number;
   distance_pct: number;
   distance_pts: number;
+  net_gex_above?: number;   // Net GEX above flip (positive = bullish)
+  net_gex_below?: number;   // Net GEX below flip
+}
+
+export interface MarketRegime {
+  regime: 'High Volatility' | 'Low Volatility' | 'Normal Volatility';
+  vix_value: number;
+  is_estimated?: boolean;
+  strength_multiplier?: number;
 }
 
 export interface SDLevels {
@@ -282,7 +296,8 @@ export interface SymbolRiskDistanceData {
     call?: WeightedWallData;
   };
   gamma_flip: GammaFlipData | null;
-  sd_levels: SDLevels;
+  sd_levels: SDLevels | null;
+  regime?: MarketRegime;  // v2: Market regime detection
   summary: RiskDistanceSummary;
 }
 
@@ -294,19 +309,41 @@ export interface RiskDistanceSummaryResponse {
     level: number;
     distance_pct: number;
     strength: number;
+    gex_value?: number;
   };
   nearest_resistance: {
     level: number;
     distance_pct: number;
     strength: number;
+    gex_value?: number;
   };
-  max_pain: {
-    weekly: number;
-    swing: number;
-    monthly: number;
+  max_pain: Record<
+    string,
+    {
+      strike: number;
+      distance_pct: number;
+      pin_risk?: 'HIGH' | 'MEDIUM' | 'LOW';
+    }
+  >;
+  gamma_flip: {
+    strike: number;
+    distance_pct: number;
+    net_gex_above?: number;
+    net_gex_below?: number;
   };
-  gamma_flip: number;
-  recommended_support: number;
+  weighted_support: {
+    recommended_wall: number;
+    method_used: string;
+    confidence: 'high' | 'medium' | 'low';
+  };
+  weighted_resistance: {
+    recommended_wall: number;
+    method_used: string;
+    confidence: 'high' | 'medium' | 'low';
+  };
+  regime: string;
+  vix: number;
+  sd_levels: SDLevels | null;
   position: string;
   risk_reward: number;
   recommendation: string;

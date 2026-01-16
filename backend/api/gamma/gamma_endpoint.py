@@ -234,11 +234,32 @@ def _convert_scanner_json_to_gamma_data_response(payload: dict) -> GammaDataResp
 
         st_put_strength = _safe_float(sym.get("st_put_strength"), 0.0)
         st_call_strength = _safe_float(sym.get("st_call_strength"), 0.0)
+        lt_put_strength = _safe_float(sym.get("lt_put_strength"), 0.0)
+        lt_call_strength = _safe_float(sym.get("lt_call_strength"), 0.0)
+        q_put_strength = _safe_float(sym.get("q_put_strength"), 0.0)
+        q_call_strength = _safe_float(sym.get("q_call_strength"), 0.0)
+
+        st_dte = int(_safe_float(sym.get("st_dte"), 14))
+        lt_dte = int(_safe_float(sym.get("lt_dte"), 30))
+        q_dte = int(_safe_float(sym.get("q_dte"), 90))
+
+        st_put_gex = _safe_float(sym.get("st_put_gex"), 0.0)
+        st_call_gex = _safe_float(sym.get("st_call_gex"), 0.0)
+        lt_put_gex = _safe_float(sym.get("lt_put_gex"), 0.0)
+        lt_call_gex = _safe_float(sym.get("lt_call_gex"), 0.0)
+        q_put_gex = _safe_float(sym.get("q_put_gex"), 0.0)
+        q_call_gex = _safe_float(sym.get("q_call_gex"), 0.0)
 
         category = str(sym.get("category") or "").upper()
-        # The enhanced JSON doesn't include per-symbol IV; approximate for downstream features.
-        # Indices/ETFs: use VIX proxy; stocks: use a conservative default.
-        iv_percent = max(5.0, min(300.0, current_vix)) if category in ("INDEX", "ETF") else 25.0
+        # Prefer per-bucket IV from scanner JSON; fallback to a simple proxy.
+        iv_percent = _safe_float(sym.get("st_iv"), 0.0)
+        if iv_percent <= 0:
+            iv_percent = max(5.0, min(300.0, current_vix)) if category in ("INDEX", "ETF") else 25.0
+
+        # Derive a call/put ratio when possible (used by the GammaScanner UI).
+        call_put_ratio = 2.0
+        if abs(st_put_gex) > 0 and abs(st_call_gex) > 0:
+            call_put_ratio = float(abs(st_call_gex) / abs(st_put_gex))
 
         # Derive 1.5SD from 1SD "move" if possible
         base_move = current_price - lower_1sd if lower_1sd > 0 else 0.0
@@ -256,7 +277,7 @@ def _convert_scanner_json_to_gamma_data_response(payload: dict) -> GammaDataResp
             st_call,           # 7 duplicate
             gamma_flip,        # 8
             iv_percent,        # 9 swing IV%
-            2.0,               # 10 call/put ratio (unknown here)
+            call_put_ratio,    # 10 call/put ratio (approx)
             0.0,               # 11 trend
             3.0,               # 12 activity score
             st_put,            # 13 duplicate
@@ -269,19 +290,19 @@ def _convert_scanner_json_to_gamma_data_response(payload: dict) -> GammaDataResp
             q_call,            # 20
             st_put_strength,   # 21
             st_call_strength,  # 22
-            0.0,               # 23 lt_put_strength (not in JSON)
-            0.0,               # 24 lt_call_strength (not in JSON)
-            0.0,               # 25 q_put_strength (not in JSON)
-            0.0,               # 26 q_call_strength (not in JSON)
-            14,                # 27 st_dte (swing)
-            30,                # 28 lt_dte (long)
-            90,                # 29 q_dte (quarterly)
-            0.0,               # 30 st_put_gex
-            0.0,               # 31 st_call_gex
-            0.0,               # 32 lt_put_gex
-            0.0,               # 33 lt_call_gex
-            0.0,               # 34 q_put_gex
-            0.0,               # 35 q_call_gex
+            lt_put_strength,   # 23
+            lt_call_strength,  # 24
+            q_put_strength,    # 25
+            q_call_strength,   # 26
+            st_dte,            # 27 st_dte (swing)
+            lt_dte,            # 28 lt_dte (long)
+            q_dte,             # 29 q_dte (quarterly)
+            st_put_gex,        # 30
+            st_call_gex,       # 31
+            lt_put_gex,        # 32
+            lt_call_gex,       # 33
+            q_put_gex,         # 34
+            q_call_gex,        # 35
         ]
 
         formatted_fields: List[str] = []

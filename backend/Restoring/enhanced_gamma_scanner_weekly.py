@@ -26,6 +26,7 @@ from datetime import datetime
 from scipy.stats import norm
 import warnings
 import logging
+import sys
 from typing import Dict, Optional, Tuple, List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
@@ -35,6 +36,18 @@ from dataclasses import dataclass
 warnings.filterwarnings('ignore')
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Allow importing shared helpers from `backend/`
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_DIR))
+
+from gamma_wall_levels_v2 import (
+    DEFAULT_WALL_WEIGHTS,
+    calculate_max_pain_level,
+    calculate_wall_strength as calculate_wall_strength_v2,
+    select_wall_level,
+)
 
 # === CONFIGURATION ===
 SYMBOLS = [
@@ -110,14 +123,7 @@ class GammaWallCalculator:
     def calculate_wall_strength(self, gex_series: pd.Series) -> float:
         """Calculate wall strength."""
         try:
-            if gex_series.empty:
-                return 0.0
-            max_exp = gex_series.abs().max()
-            total_exp = gex_series.abs().sum()
-            if total_exp == 0:
-                return 0.0
-            concentration = max_exp / total_exp
-            return max(0.0, min(95.0, concentration * 45 + np.log10(max_exp + 1) * 8))
+            return float(calculate_wall_strength_v2(gex_series))
         except Exception:
             return 0.0
     
@@ -512,17 +518,40 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
             
             if agg is None or agg.put_gex_by_strike.empty:
                 continue
-            
-            put_wall, put_method, put_dominance, put_top5 = calculator.select_put_wall_distinct(
-                agg.put_gex_by_strike, current_price, category, 
-                already_selected_put_walls, bucket_name
+
+            max_dist = MAX_DISTANCE_BY_CATEGORY.get(category, MAX_DISTANCE_BY_CATEGORY["DEFAULT"])
+
+            put_sel = select_wall_level(
+                agg.put_gex_by_strike,
+                current_price,
+                side="put",
+                bucket_name=bucket_name,
+                max_dist_pct=max_dist,
+                already_selected=already_selected_put_walls,
+                weights=PUT_WALL_WEIGHTS,
+                allow_outside_price_side=True,
             )
-            
+            put_wall = round(float(put_sel.wall), 2)
+            put_method = put_sel.method_used
+            put_dominance = round(float(put_sel.dominance), 3)
+            put_top5 = put_sel.top_5
+
             already_selected_put_walls.append(put_wall)
-            
-            call_wall, call_method, call_dominance, call_top5 = calculator.select_call_wall_distinct(
-                agg.call_gex_by_strike, current_price, category, [], bucket_name
+
+            call_sel = select_wall_level(
+                agg.call_gex_by_strike,
+                current_price,
+                side="call",
+                bucket_name=bucket_name,
+                max_dist_pct=max_dist,
+                already_selected=[],
+                weights=DEFAULT_WALL_WEIGHTS,
+                allow_outside_price_side=True,
             )
+            call_wall = round(float(call_sel.wall), 2)
+            call_method = call_sel.method_used
+            call_dominance = round(float(call_sel.dominance), 3)
+            call_top5 = call_sel.top_5
             
             results['bucket_debug'][bucket_name] = {
                 'dte_range': dte_range,
@@ -536,6 +565,15 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
             
             put_strength = calculator.calculate_wall_strength(agg.put_gex_by_strike)
             call_strength = calculator.calculate_wall_strength(agg.call_gex_by_strike)
+
+            try:
+                put_gex_at_wall = float(agg.put_gex_by_strike.reindex([put_wall], method="nearest").iloc[0])
+            except Exception:
+                put_gex_at_wall = 0.0
+            try:
+                call_gex_at_wall = float(agg.call_gex_by_strike.reindex([call_wall], method="nearest").iloc[0])
+            except Exception:
+                call_gex_at_wall = 0.0
             
             all_timeframe_data[bucket_name] = {
                 'put_wall': put_wall,
@@ -546,6 +584,8 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                 'dte_median': np.median(agg.dte_list) if agg.dte_list else 0,
                 'put_gex_series': agg.put_gex_by_strike,
                 'call_gex_series': agg.call_gex_by_strike,
+                'put_gex_at_wall': put_gex_at_wall,
+                'call_gex_at_wall': call_gex_at_wall,
             }
             
             prefix = {'weekly': 'wk', 'swing': 'st', 'long': 'lt', 'quarterly': 'q'}[bucket_name]
@@ -557,6 +597,15 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                 f'{prefix}_call_strength': call_strength,
                 f'{prefix}_iv': agg.median_iv * 100,
                 f'{prefix}_dte': int(np.median(agg.dte_list)) if agg.dte_list else 0,
+                f'{prefix}_put_gex': put_gex_at_wall,
+                f'{prefix}_call_gex': call_gex_at_wall,
+
+                # Method breakdown (debugging / downstream services)
+                f'{prefix}_put_wall_maxgex': float(put_sel.max_gex),
+                f'{prefix}_put_wall_centroid': float(put_sel.centroid),
+                f'{prefix}_put_wall_cumulative': float(put_sel.cumulative),
+                f'{prefix}_put_method': put_method,
+                f'{prefix}_put_dominance': float(put_sel.dominance),
             })
         
         # Max pain
@@ -566,12 +615,14 @@ def process_symbol(symbol: str, calculator: GammaWallCalculator) -> Optional[Dic
                     dte = (datetime.strptime(d, '%Y-%m-%d') - datetime.now()).days
                     if 1 <= dte <= 7:
                         chain = ticker.option_chain(d)
-                        calls_mp = chain.calls[['strike', 'openInterest']].copy()
-                        puts_mp = chain.puts[['strike', 'openInterest']].copy()
-                        calls_mp.set_index('strike', inplace=True)
-                        puts_mp.set_index('strike', inplace=True)
-                        results['max_pain'] = calculator.calculate_max_pain_realistic(
-                            calls_mp, puts_mp, current_price
+                        results['max_pain'] = calculate_max_pain_level(
+                            chain.calls,
+                            chain.puts,
+                            current_price,
+                            dte=int(dte),
+                            risk_free_rate=RISK_FREE_RATE,
+                            dealer_bias_factor=0.65,
+                            use_gamma_weighted_oi=True,
                         )
                         break
             except Exception:
@@ -668,15 +719,62 @@ def main():
         frontend_data['symbols'][key] = {
             'symbol': key,
             'current_price': price,
+            # Core walls (Risk Distance tab consumes these)
             'st_put_wall': result.get('st_put_wall', 0),
             'lt_put_wall': result.get('lt_put_wall', 0),
             'q_put_wall': result.get('q_put_wall', 0),
             'wk_put_wall': result.get('wk_put_wall', 0),
+
+            # Companion call walls (Gamma Scanner consumes these)
+            'st_call_wall': result.get('st_call_wall', 0),
+            'lt_call_wall': result.get('lt_call_wall', 0),
+            'q_call_wall': result.get('q_call_wall', 0),
+            'wk_call_wall': result.get('wk_call_wall', 0),
+
+            # Strengths (0-95-ish)
+            'st_put_strength': result.get('st_put_strength', 0),
+            'st_call_strength': result.get('st_call_strength', 0),
+            'lt_put_strength': result.get('lt_put_strength', 0),
+            'lt_call_strength': result.get('lt_call_strength', 0),
+            'q_put_strength': result.get('q_put_strength', 0),
+            'q_call_strength': result.get('q_call_strength', 0),
+
+            # DTE + IV per bucket
+            'st_dte': result.get('st_dte', 14),
+            'lt_dte': result.get('lt_dte', 30),
+            'q_dte': result.get('q_dte', 90),
+            'wk_dte': result.get('wk_dte', 7),
+            'st_iv': result.get('st_iv', 0),
+            'lt_iv': result.get('lt_iv', 0),
+            'q_iv': result.get('q_iv', 0),
+            'wk_iv': result.get('wk_iv', 0),
+
+            # GEX at chosen wall strikes (signed)
+            'st_put_gex': result.get('st_put_gex', 0),
+            'st_call_gex': result.get('st_call_gex', 0),
+            'lt_put_gex': result.get('lt_put_gex', 0),
+            'lt_call_gex': result.get('lt_call_gex', 0),
+            'q_put_gex': result.get('q_put_gex', 0),
+            'q_call_gex': result.get('q_call_gex', 0),
+
+            # Put wall method breakdown (debugging / comparison)
+            'st_put_wall_maxgex': result.get('st_put_wall_maxgex', 0),
+            'st_put_wall_centroid': result.get('st_put_wall_centroid', 0),
+            'st_put_wall_cumulative': result.get('st_put_wall_cumulative', 0),
+            'st_put_method': result.get('st_put_method', ''),
+            'st_put_dominance': result.get('st_put_dominance', 0),
+            'lt_put_method': result.get('lt_put_method', ''),
+            'q_put_method': result.get('q_put_method', ''),
+
             'st_put_distance': dist(result.get('st_put_wall', 0)),
             'lt_put_distance': dist(result.get('lt_put_wall', 0)),
             'q_put_distance': dist(result.get('q_put_wall', 0)),
             'gamma_flip': result.get('gamma_flip', price),
             'max_pain': result.get('max_pain', price),
+            'lower_1sd': result.get('lower_1sd', 0),
+            'upper_1sd': result.get('upper_1sd', 0),
+            'lower_2sd': result.get('lower_2sd', 0),
+            'upper_2sd': result.get('upper_2sd', 0),
             'category': result.get('category', 'TECH'),
         }
     

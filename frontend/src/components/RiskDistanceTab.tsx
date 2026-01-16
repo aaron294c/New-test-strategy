@@ -28,7 +28,7 @@ import {
   Info,
   Refresh,
 } from '@mui/icons-material';
-import { getRiskDistance } from '../api/client';
+import { riskDistanceApi } from '../api/client';
 import type { SymbolRiskDistanceData, RiskDistanceLevel, MaxPainData } from '../types';
 
 interface RiskDistanceTabProps {
@@ -166,6 +166,15 @@ const WallCard: React.FC<{
   );
 };
 
+const getPinRiskColor = (pinRisk: string): string => {
+  switch (pinRisk) {
+    case 'HIGH': return '#f44336';
+    case 'MEDIUM': return '#ff9800';
+    case 'LOW': return '#4caf50';
+    default: return '#9e9e9e';
+  }
+};
+
 const MaxPainCard: React.FC<{ maxPain: Record<string, MaxPainData>; currentPrice: number }> = ({
   maxPain,
   currentPrice,
@@ -180,7 +189,7 @@ const MaxPainCard: React.FC<{ maxPain: Record<string, MaxPainData>; currentPrice
           <Typography variant="h6" sx={{ ml: 1 }}>
             Max Pain Levels
           </Typography>
-          <Tooltip title="Max pain is the strike price where option holders lose the most money at expiration. Price often gravitates toward max pain near expiration.">
+          <Tooltip title="Max pain is the strike price where option holders lose the most money at expiration. Price often gravitates toward max pain near expiration. Pin Risk indicates likelihood of price pinning to max pain.">
             <IconButton size="small" sx={{ ml: 1 }}>
               <Info fontSize="small" />
             </IconButton>
@@ -193,15 +202,14 @@ const MaxPainCard: React.FC<{ maxPain: Record<string, MaxPainData>; currentPrice
                 <TableCell>Timeframe</TableCell>
                 <TableCell align="right">Max Pain</TableCell>
                 <TableCell align="right">Distance</TableCell>
-                <TableCell align="right">Direction</TableCell>
+                <TableCell align="right">Pin Risk</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {timeframes.map((tf) => {
                 const mp = maxPain[tf];
                 if (!mp) return null;
-                const direction = mp.strike > currentPrice ? 'Above' : 'Below';
-                const directionColor = mp.strike > currentPrice ? '#4caf50' : '#f44336';
+                const pinRisk = mp.pin_risk || 'LOW';
                 return (
                   <TableRow key={tf}>
                     <TableCell>
@@ -219,7 +227,15 @@ const MaxPainCard: React.FC<{ maxPain: Record<string, MaxPainData>; currentPrice
                       {formatPercent(mp.distance_pct)}
                     </TableCell>
                     <TableCell align="right">
-                      <Chip label={direction} size="small" sx={{ backgroundColor: directionColor, color: 'white' }} />
+                      <Chip
+                        label={pinRisk}
+                        size="small"
+                        sx={{
+                          backgroundColor: getPinRiskColor(pinRisk),
+                          color: 'white',
+                          fontWeight: 'bold',
+                        }}
+                      />
                     </TableCell>
                   </TableRow>
                 );
@@ -232,8 +248,14 @@ const MaxPainCard: React.FC<{ maxPain: Record<string, MaxPainData>; currentPrice
   );
 };
 
+const getRegimeColor = (regime: string): string => {
+  if (regime.includes('High')) return '#f44336';
+  if (regime.includes('Low')) return '#4caf50';
+  return '#2196f3';
+};
+
 const SummaryCard: React.FC<{ data: SymbolRiskDistanceData }> = ({ data }) => {
-  const { summary, gamma_flip, weighted_walls, sd_levels } = data;
+  const { summary, gamma_flip, weighted_walls, sd_levels, regime } = data;
   
   const positionColors: Record<string, string> = {
     near_support: '#4caf50',
@@ -250,7 +272,7 @@ const SummaryCard: React.FC<{ data: SymbolRiskDistanceData }> = ({ data }) => {
         
         <Grid container spacing={2}>
           {/* Position Status */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={6} md={3}>
             <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 2 }}>
               <Typography variant="body2" color="text.secondary">
                 Current Position
@@ -266,9 +288,9 @@ const SummaryCard: React.FC<{ data: SymbolRiskDistanceData }> = ({ data }) => {
               />
             </Box>
           </Grid>
-          
+
           {/* Risk/Reward */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={6} md={3}>
             <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 2 }}>
               <Typography variant="body2" color="text.secondary">
                 Risk/Reward Ratio
@@ -278,9 +300,9 @@ const SummaryCard: React.FC<{ data: SymbolRiskDistanceData }> = ({ data }) => {
               </Typography>
             </Box>
           </Grid>
-          
+
           {/* Gamma Flip */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={6} md={3}>
             <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 2 }}>
               <Typography variant="body2" color="text.secondary">
                 Gamma Flip
@@ -292,6 +314,33 @@ const SummaryCard: React.FC<{ data: SymbolRiskDistanceData }> = ({ data }) => {
                 <Typography variant="body2" color="text.secondary">
                   {formatPercent(gamma_flip.distance_pct)} away
                 </Typography>
+              )}
+            </Box>
+          </Grid>
+
+          {/* Market Regime (v2 feature) */}
+          <Grid item xs={6} md={3}>
+            <Box sx={{ textAlign: 'center', p: 2, backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 2 }}>
+              <Typography variant="body2" color="text.secondary">
+                Market Regime
+              </Typography>
+              {regime ? (
+                <>
+                  <Chip
+                    label={regime.regime.replace(' Volatility', '')}
+                    sx={{
+                      mt: 1,
+                      backgroundColor: getRegimeColor(regime.regime),
+                      color: 'white',
+                      fontWeight: 'bold',
+                    }}
+                  />
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    VIX: {regime.vix_value.toFixed(1)}
+                  </Typography>
+                </>
+              ) : (
+                <Typography variant="h5" sx={{ mt: 1 }}>N/A</Typography>
               )}
             </Box>
           </Grid>
@@ -353,7 +402,7 @@ export const RiskDistanceTab: React.FC<RiskDistanceTabProps> = ({ symbol }) => {
     setLoading(true);
     setError(null);
     try {
-      const result = await getRiskDistance(symbol);
+      const result = await riskDistanceApi.getRiskDistance(symbol);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch risk distance data');
