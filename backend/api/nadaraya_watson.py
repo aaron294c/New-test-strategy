@@ -16,6 +16,8 @@ from datetime import datetime, timedelta
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from urllib.parse import quote as _url_quote
+import requests
 
 # Add parent directory to path to import ticker_utils
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -84,37 +86,76 @@ def _nw_estimate(closes: np.ndarray, length: int, bandwidth: float) -> Optional[
 
 
 def _download_ohlc(ticker: str, lookback_days: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    import yfinance as yf
-
     end_date = datetime.now()
     start_date = end_date - timedelta(days=lookback_days)
-    data = yf.download(ticker, start=start_date, end=end_date, progress=False, timeout=10)
-
-    if data is None or getattr(data, "empty", True):
-        raise ValueError(f"No data available for {ticker}")
-
-    # yfinance can return a MultiIndex column frame; normalize for single-symbol usage
+    # Try yfinance first (convenient), then fall back to Yahoo chart API (more robust).
     try:
-        import pandas as pd  # noqa: F401
+        import yfinance as yf
+        import pandas as pd
 
-        if hasattr(data, "columns") and getattr(data.columns, "nlevels", 1) > 1:
-            data = data.droplevel(0, axis=1)
+        data = yf.download(ticker, start=start_date, end=end_date, progress=False, timeout=10)
+        if data is None or getattr(data, "empty", True):
+            raise ValueError("yfinance returned empty data")
+
+        # yfinance can return MultiIndex columns even for a single ticker; normalize to OHLC column names.
+        if isinstance(getattr(data, "columns", None), pd.MultiIndex):
+            data.columns = [c[0] for c in data.columns]
+
+        required_cols = {"Close", "High", "Low"}
+        missing = [c for c in required_cols if c not in data.columns]
+        if missing:
+            raise ValueError(f"yfinance missing OHLC columns: {', '.join(missing)}")
+
+        closes = np.asarray(data["Close"].values, dtype=float)
+        highs = np.asarray(data["High"].values, dtype=float)
+        lows = np.asarray(data["Low"].values, dtype=float)
+
+        mask = np.isfinite(closes) & np.isfinite(highs) & np.isfinite(lows)
+        closes = closes[mask]
+        highs = highs[mask]
+        lows = lows[mask]
+
+        if closes.size == 0:
+            raise ValueError("yfinance returned no finite OHLC data")
+
+        return closes, highs, lows
     except Exception:
-        pass
+        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{_url_quote(ticker)}"
+        params = {
+            "interval": "1d",
+            "period1": int(start_date.timestamp()),
+            "period2": int(end_date.timestamp()),
+            "includePrePost": "false",
+            "events": "div,splits",
+        }
+        headers = {"User-Agent": "Mozilla/5.0"}
+        resp = requests.get(url, params=params, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            raise ValueError(f"Yahoo chart API HTTP {resp.status_code} for {ticker}")
 
-    closes = np.asarray(data["Close"].values, dtype=float)
-    highs = np.asarray(data["High"].values, dtype=float)
-    lows = np.asarray(data["Low"].values, dtype=float)
+        payload = resp.json()
+        result = (payload.get("chart", {}) or {}).get("result")
+        if not result:
+            raise ValueError(f"Yahoo chart API returned no result for {ticker}")
 
-    mask = np.isfinite(closes) & np.isfinite(highs) & np.isfinite(lows)
-    closes = closes[mask]
-    highs = highs[mask]
-    lows = lows[mask]
+        quote = (((result[0] or {}).get("indicators") or {}).get("quote") or [None])[0] or {}
+        closes = np.asarray(quote.get("close") or [], dtype=float)
+        highs = np.asarray(quote.get("high") or [], dtype=float)
+        lows = np.asarray(quote.get("low") or [], dtype=float)
 
-    if closes.size == 0:
-        raise ValueError(f"No valid OHLC data for {ticker}")
+        if closes.size == 0 or highs.size == 0 or lows.size == 0:
+            raise ValueError(f"Yahoo chart API returned empty OHLC arrays for {ticker}")
 
-    return closes, highs, lows
+        # Replace nulls with NaN and filter to finite triplets.
+        mask = np.isfinite(closes) & np.isfinite(highs) & np.isfinite(lows)
+        closes = closes[mask]
+        highs = highs[mask]
+        lows = lows[mask]
+
+        if closes.size == 0:
+            raise ValueError(f"Yahoo chart API returned no finite OHLC data for {ticker}")
+
+        return closes, highs, lows
 
 
 def calculate_nadaraya_watson_lower_band(

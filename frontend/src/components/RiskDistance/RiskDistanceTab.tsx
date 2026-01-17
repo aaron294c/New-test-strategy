@@ -166,6 +166,8 @@ export const RiskDistanceTab: React.FC = () => {
               if (typeof data.lower_ext === 'number') {
                 lowerExtUpdates.set(symbol, data.lower_ext);
               }
+            } else {
+              console.warn(`Lower extension fetch failed for ${symbol}: HTTP ${response.status}`);
             }
           } catch (err) {
             console.warn(`Failed to fetch lower extension for ${symbol}:`, err);
@@ -198,6 +200,8 @@ export const RiskDistanceTab: React.FC = () => {
               if (typeof lowerBand === 'number' && Number.isFinite(lowerBand)) {
                 nwUpdates.set(symbol, lowerBand);
               }
+            } else {
+              console.warn(`NW fetch failed for ${symbol}: HTTP ${response.status}`);
             }
           } catch (err) {
             console.warn(`Failed to fetch Nadaraya-Watson for ${symbol}:`, err);
