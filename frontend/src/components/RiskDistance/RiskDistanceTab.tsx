@@ -42,7 +42,6 @@ export const RiskDistanceTab: React.FC = () => {
   const [realPrices, setRealPrices] = useState<Map<string, number>>(new Map());
   const [lowerExtData, setLowerExtData] = useState<Map<string, number>>(new Map());
   const [nwLowerBandData, setNwLowerBandData] = useState<Map<string, number>>(new Map());
-  const [nwAtrPeriod, setNwAtrPeriod] = useState<number>(50);
 
   // Proximity settings state
   const [proximityConfig, setProximityConfig] = useState<ProximityConfig>({
@@ -52,7 +51,13 @@ export const RiskDistanceTab: React.FC = () => {
   });
   const [settingsExpanded, setSettingsExpanded] = useState(false);
 
-  const nwAtrPeriodOptions = [15, 30, 50, 60] as const;
+  // Nadaraya-Watson parameters (match PineScript indicator inputs)
+  const [nwConfig, setNwConfig] = useState({
+    length: 200,
+    bandwidth: 8.0,
+    atrPeriod: 50,
+    atrMult: 2.0,
+  });
 
   // Fetch data from API
   const fetchData = useCallback(async (forceRefresh: boolean = false) => {
@@ -155,7 +160,7 @@ export const RiskDistanceTab: React.FC = () => {
         symbolUniverse.map(async (symbol) => {
           try {
             const response = await fetch(
-              `${API_BASE_URL}/api/nadaraya-watson/metrics/${symbol}?length=200&bandwidth=8.0&atr_period=${nwAtrPeriod}&atr_mult=2.0&t=${Date.now()}`
+              `${API_BASE_URL}/api/nadaraya-watson/metrics/${symbol}?length=${nwConfig.length}&bandwidth=${nwConfig.bandwidth}&atr_period=${nwConfig.atrPeriod}&atr_mult=${nwConfig.atrMult}&t=${Date.now()}`
             );
             if (response.ok) {
               const data = await response.json();
@@ -176,7 +181,7 @@ export const RiskDistanceTab: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [nwAtrPeriod]);
+  }, [nwConfig.atrMult, nwConfig.atrPeriod, nwConfig.bandwidth, nwConfig.length]);
 
   // Auto-load data on mount
   useEffect(() => {
@@ -330,28 +335,75 @@ export const RiskDistanceTab: React.FC = () => {
         />
         <div style={styles.nwSettingsContainer}>
           <div style={styles.nwSettingsHeader}>
-            <span style={styles.nwSettingsTitle}>NW Band Settings</span>
-            <span style={styles.nwSettingsSubtitle}>Matches TradingView ATR period</span>
+            <span style={styles.nwSettingsTitle}>NW Envelope Settings</span>
+            <span style={styles.nwSettingsSubtitle}>Matches PineScript inputs</span>
           </div>
-          <div style={styles.nwSettingsRow}>
+
+          <div style={styles.nwSettingsGrid}>
+            <label style={styles.nwSettingsLabel} htmlFor="nw-length">
+              Window Size
+            </label>
+            <input
+              id="nw-length"
+              type="number"
+              min={20}
+              max={500}
+              step={1}
+              value={nwConfig.length}
+              onChange={(e) => setNwConfig((prev) => ({ ...prev, length: Number(e.target.value) }))}
+              style={styles.nwSettingsInput}
+            />
+
+            <label style={styles.nwSettingsLabel} htmlFor="nw-bandwidth">
+              Bandwidth
+            </label>
+            <input
+              id="nw-bandwidth"
+              type="number"
+              min={0.1}
+              step={0.1}
+              value={nwConfig.bandwidth}
+              onChange={(e) => setNwConfig((prev) => ({ ...prev, bandwidth: Number(e.target.value) }))}
+              style={styles.nwSettingsInput}
+            />
+
             <label style={styles.nwSettingsLabel} htmlFor="nw-atr-period">
               ATR Period
             </label>
-            <select
+            <input
               id="nw-atr-period"
-              value={nwAtrPeriod}
-              onChange={(e) => setNwAtrPeriod(Number(e.target.value))}
-              style={styles.nwSettingsSelect}
-            >
-              {nwAtrPeriodOptions.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
+              type="number"
+              min={10}
+              step={1}
+              value={nwConfig.atrPeriod}
+              onChange={(e) => setNwConfig((prev) => ({ ...prev, atrPeriod: Number(e.target.value) }))}
+              style={styles.nwSettingsInput}
+            />
+
+            <label style={styles.nwSettingsLabel} htmlFor="nw-atr-mult">
+              ATR Mult
+            </label>
+            <input
+              id="nw-atr-mult"
+              type="number"
+              min={0.1}
+              step={0.1}
+              value={nwConfig.atrMult}
+              onChange={(e) => setNwConfig((prev) => ({ ...prev, atrMult: Number(e.target.value) }))}
+              style={styles.nwSettingsInput}
+            />
           </div>
+
           <div style={styles.nwSettingsNote}>
-            Changing ATR Period triggers a refresh and updates NW Lower Band values.
+            NW Band value used in Risk Distance is the indicator’s `lower_band` (support).
+          </div>
+          <div style={styles.nwSettingsFooter}>
+            <button
+              onClick={() => setNwConfig({ length: 200, bandwidth: 8.0, atrPeriod: 50, atrMult: 2.0 })}
+              style={styles.nwSettingsResetButton}
+            >
+              Reset NW Defaults
+            </button>
           </div>
         </div>
       </div>
@@ -533,18 +585,18 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: '11px',
     color: '#6E7681',
   },
-  nwSettingsRow: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
   nwSettingsLabel: {
     fontSize: '12px',
     color: '#8B949E',
-    minWidth: '74px',
+    minWidth: '84px',
   },
-  nwSettingsSelect: {
-    flex: 1,
+  nwSettingsGrid: {
+    display: 'grid',
+    gridTemplateColumns: '96px 1fr',
+    gap: '10px 12px',
+    alignItems: 'center',
+  },
+  nwSettingsInput: {
     backgroundColor: '#0D1117',
     border: '1px solid #373E47',
     color: '#D1D4DC',
@@ -558,6 +610,21 @@ const styles: Record<string, React.CSSProperties> = {
     marginTop: '8px',
     fontSize: '11px',
     color: '#6E7681',
+  },
+  nwSettingsFooter: {
+    marginTop: '10px',
+    display: 'flex',
+    justifyContent: 'flex-end',
+  },
+  nwSettingsResetButton: {
+    padding: '6px 10px',
+    fontSize: '11px',
+    fontWeight: 600,
+    color: '#D1D4DC',
+    backgroundColor: 'transparent',
+    border: '1px solid #373E47',
+    borderRadius: '6px',
+    cursor: 'pointer',
   },
 
   // Toolbar
