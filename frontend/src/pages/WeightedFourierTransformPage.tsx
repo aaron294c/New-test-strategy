@@ -504,10 +504,11 @@ function WFTStackedChart(props: {
         isSyncingRef.current = true;
         try {
           const r = range as { from?: unknown; to?: unknown } | null | undefined;
-          if (!r || r.from == null || r.to == null) {
-            target.timeScale().fitContent();
-          } else {
+          if (!r || r.from == null || r.to == null) return;
+          try {
             target.timeScale().setVisibleRange(r as never);
+          } catch {
+            // ignore transient/invalid ranges during init/dispose
           }
         } finally {
           isSyncingRef.current = false;
