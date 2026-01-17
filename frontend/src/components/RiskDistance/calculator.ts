@@ -35,8 +35,8 @@ export const calculateDistance = (price: number | null, level: number | null): S
   // Calculate absolute distance
   const abs_pct_dist = Math.abs(pct_dist_rounded);
 
-  // Determine if below
-  const is_below = pct_dist_rounded < 0;
+  // Determine if level is below current price
+  const is_below = level < price;
 
   return {
     level_value: level,
@@ -75,7 +75,7 @@ export const calculateDistanceFromCurrentPrice = (
     level_value: level,
     pct_dist: pct_dist_rounded,
     abs_pct_dist: Math.abs(pct_dist_rounded),
-    is_below: price < level,
+    is_below: level < price,
   };
 };
 
@@ -86,15 +86,13 @@ export const calculateDistanceFromCurrentPrice = (
 export const calculateRiskDistances = (input: RiskDistanceInput): RiskDistanceOutput => {
   const { symbol, price, st_put, lt_put, q_put, max_pain, lower_ext, nw_lower_band, last_update } = input;
 
-  // PineScript-compatible distance convention for key levels
+  // Distance convention: normalized to current price (move required from current price)
   const st_put_dist = calculateDistanceFromCurrentPrice(price, st_put);
   const lt_put_dist = calculateDistanceFromCurrentPrice(price, lt_put);
   const q_put_dist = calculateDistanceFromCurrentPrice(price, q_put);
   const max_pain_dist = calculateDistanceFromCurrentPrice(price, max_pain);
-
-  // Keep existing convention for non-PineScript-derived metrics
-  const lower_ext_dist = calculateDistance(price, lower_ext);
-  const nw_lower_band_dist = calculateDistance(price, nw_lower_band);
+  const lower_ext_dist = calculateDistanceFromCurrentPrice(price, lower_ext);
+  const nw_lower_band_dist = calculateDistanceFromCurrentPrice(price, nw_lower_band);
 
   // Build output in exact format for composite score consumption
   return {
