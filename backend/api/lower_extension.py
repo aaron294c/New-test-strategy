@@ -3,7 +3,10 @@ Lower Extension Distance API
 Provides calculation functions for lower extension metrics
 """
 
+import asyncio
+import time
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 from typing import Dict, Optional, Tuple
 import yfinance as yf
 import pandas as pd
@@ -11,12 +14,48 @@ import numpy as np
 from datetime import datetime, timedelta
 import sys
 from pathlib import Path
+from starlette.concurrency import run_in_threadpool
 
 # Add parent directory to path to import ticker_utils
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from ticker_utils import resolve_yahoo_symbol
 
 router = APIRouter(prefix="/api/lower-extension", tags=["Lower Extension"])
+
+_METRICS_CACHE_TTL_SECONDS = 300
+_METRICS_CACHE: dict[tuple[str, int, int], tuple[float, dict]] = {}
+
+
+def _cache_get(ticker: str, length: int, lookback_days: int) -> dict | None:
+    key = (ticker, int(length), int(lookback_days))
+    entry = _METRICS_CACHE.get(key)
+    if not entry:
+        return None
+    ts, payload = entry
+    if (time.time() - ts) > _METRICS_CACHE_TTL_SECONDS:
+        _METRICS_CACHE.pop(key, None)
+        return None
+    return payload
+
+
+def _cache_set(ticker: str, length: int, lookback_days: int, payload: dict) -> None:
+    key = (ticker, int(length), int(lookback_days))
+    _METRICS_CACHE[key] = (time.time(), payload)
+
+
+def get_or_calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30) -> dict:
+    cached = _cache_get(ticker, length, lookback_days)
+    if cached is not None:
+        return cached
+    payload = calculate_mbad_levels(ticker, length, lookback_days)
+    _cache_set(ticker, length, lookback_days, payload)
+    return payload
+
+
+class LowerExtensionBatchRequest(BaseModel):
+    tickers: list[str] = Field(..., min_length=1, max_length=200)
+    length: int = 30
+    lookback_days: int = 30
 
 
 def _round_to_tick(value: float, tick_size: float = 0.01) -> float:
@@ -150,9 +189,13 @@ def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30
 
         data = data.dropna(subset=["Open", "Close"]).copy()
         if len(data) < length:
-            raise ValueError(
-                f"Insufficient bars for MBAD: have {len(data)}, need {length}"
-            )
+            # Some symbols (new listings, illiquid products) may not have enough bars yet.
+            # Prefer returning a best-effort MBAD level rather than a hard failure.
+            if len(data) < 5:
+                raise ValueError(
+                    f"Insufficient bars for MBAD: have {len(data)}, need {length}"
+                )
+            length = len(data)
 
         # MBAD settings requested: source=close, interpretation=mean reversion (levels unaffected)
         tick_size = 0.01
@@ -271,7 +314,44 @@ async def get_lower_extension_metrics(
     ticker: str, length: int = 30, lookback_days: int = 30
 ):
     """Get lower extension MBAD metrics for a ticker."""
-    return calculate_mbad_levels(ticker.upper(), length, lookback_days)
+    return await run_in_threadpool(get_or_calculate_mbad_levels, ticker.upper(), length, lookback_days)
+
+
+@router.post("/metrics-batch")
+async def get_lower_extension_metrics_batch(req: LowerExtensionBatchRequest):
+    """
+    Get lower extension MBAD metrics for multiple tickers.
+
+    This reduces frontend fan-out (N requests) and applies a bounded concurrency
+    limit so yfinance calls are less likely to timeout or get rate-limited.
+    """
+
+    tickers = [t.strip().upper() for t in req.tickers if t and t.strip()]
+    if not tickers:
+        raise HTTPException(status_code=400, detail="No tickers provided")
+
+    sem = asyncio.Semaphore(4)
+    results: dict[str, dict] = {}
+    errors: dict[str, str] = {}
+
+    async def work(ticker: str) -> None:
+        async with sem:
+            try:
+                results[ticker] = await run_in_threadpool(
+                    get_or_calculate_mbad_levels, ticker, req.length, req.lookback_days
+                )
+            except HTTPException as exc:
+                errors[ticker] = str(exc.detail)
+            except Exception as exc:
+                errors[ticker] = str(exc)
+
+    await asyncio.gather(*(work(t) for t in tickers))
+
+    return {
+        "results": results,
+        "errors": errors,
+        "timestamp": datetime.now().isoformat(),
+    }
 
 
 @router.get("/candles/{ticker}")

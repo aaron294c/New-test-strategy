@@ -7,6 +7,8 @@ often requires an exchange suffix (e.g., `CNX1.L` for London Stock Exchange).
 
 from __future__ import annotations
 
+import re
+
 
 _YAHOO_ALIASES: dict[str, str] = {
     # Indices
@@ -52,5 +54,10 @@ def resolve_yahoo_symbol(symbol: str) -> str:
             base = rest.strip().upper()
             return base if base.endswith(".L") else f"{base}.L"
 
-    return _YAHOO_ALIASES.get(sym, sym)
+    # Common share-class tickers are written with a dot (e.g., BRK.B) but Yahoo
+    # expects a dash (e.g., BRK-B). Keep this narrowly-scoped to avoid
+    # interfering with exchange suffixes like `.L`, `.F`, etc.
+    if re.fullmatch(r"[A-Z0-9]+\.[ABC]", sym):
+        sym = sym.replace(".", "-", 1)
 
+    return _YAHOO_ALIASES.get(sym, sym)

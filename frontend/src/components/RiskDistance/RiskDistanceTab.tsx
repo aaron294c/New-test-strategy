@@ -157,23 +157,65 @@ export const RiskDistanceTab: React.FC = () => {
 
       // Fetch lower extension data for all symbols
       const lowerExtUpdates = new Map<string, number>();
-      await Promise.all(
-        symbolUniverse.map(async (symbol) => {
-          try {
-            const response = await fetch(`${API_BASE_URL}/api/lower-extension/metrics/${symbol}?length=30&lookback_days=30&t=${Date.now()}`);
-            if (response.ok) {
-              const data = await response.json();
-              if (typeof data.lower_ext === 'number') {
-                lowerExtUpdates.set(symbol, data.lower_ext);
-              }
-            } else {
-              console.warn(`Lower extension fetch failed for ${symbol}: HTTP ${response.status}`);
-            }
-          } catch (err) {
-            console.warn(`Failed to fetch lower extension for ${symbol}:`, err);
+      const coerceNumber = (value: unknown): number | null => {
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+        if (typeof value === 'string') {
+          const parsed = Number(value);
+          return Number.isFinite(parsed) ? parsed : null;
+        }
+        return null;
+      };
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/lower-extension/metrics-batch?t=${Date.now()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tickers: symbolUniverse,
+            length: 30,
+            lookback_days: 30,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const batch = await response.json();
+        const results: Record<string, any> = batch?.results || {};
+        const errors: Record<string, any> = batch?.errors || {};
+        Object.entries(results).forEach(([ticker, payload]) => {
+          const lowerExt = coerceNumber(payload?.lower_ext);
+          if (lowerExt !== null) {
+            lowerExtUpdates.set(ticker, lowerExt);
           }
-        })
-      );
+        });
+        Object.entries(errors).forEach(([ticker, message]) => {
+          console.warn(`Lower extension unavailable for ${ticker}:`, message);
+        });
+      } catch (err) {
+        console.warn('Lower extension batch fetch failed; falling back to per-symbol fetch:', err);
+        await Promise.all(
+          symbolUniverse.map(async (symbol) => {
+            try {
+              const response = await fetch(
+                `${API_BASE_URL}/api/lower-extension/metrics/${encodeURIComponent(symbol)}?length=30&lookback_days=30&t=${Date.now()}`
+              );
+              if (response.ok) {
+                const data = await response.json();
+                const lowerExt = coerceNumber(data?.lower_ext);
+                if (lowerExt !== null) {
+                  lowerExtUpdates.set(symbol.toUpperCase(), lowerExt);
+                }
+              } else {
+                console.warn(`Lower extension fetch failed for ${symbol}: HTTP ${response.status}`);
+              }
+            } catch (fetchErr) {
+              console.warn(`Failed to fetch lower extension for ${symbol}:`, fetchErr);
+            }
+          })
+        );
+      }
 
       setLowerExtData((prev) => {
         const next = new Map(prev);
@@ -187,7 +229,7 @@ export const RiskDistanceTab: React.FC = () => {
         symbolUniverse.map(async (symbol) => {
           try {
             const response = await fetch(
-              `${API_BASE_URL}/api/nadaraya-watson/metrics/${symbol}?length=${nwConfig.length}&bandwidth=${nwConfig.bandwidth}&atr_period=${nwConfig.atrPeriod}&atr_mult=${nwConfig.atrMult}&t=${Date.now()}`
+              `${API_BASE_URL}/api/nadaraya-watson/metrics/${encodeURIComponent(symbol)}?length=${nwConfig.length}&bandwidth=${nwConfig.bandwidth}&atr_period=${nwConfig.atrPeriod}&atr_mult=${nwConfig.atrMult}&t=${Date.now()}`
             );
             if (response.ok) {
               const data = await response.json();
@@ -198,7 +240,7 @@ export const RiskDistanceTab: React.FC = () => {
                     ? Number(data.lower_band)
                     : null;
               if (typeof lowerBand === 'number' && Number.isFinite(lowerBand)) {
-                nwUpdates.set(symbol, lowerBand);
+                nwUpdates.set(symbol.toUpperCase(), lowerBand);
               }
             } else {
               console.warn(`NW fetch failed for ${symbol}: HTTP ${response.status}`);
@@ -268,8 +310,8 @@ export const RiskDistanceTab: React.FC = () => {
         lt_put: ltPut,
         q_put: qPut,
         max_pain: maxPain,
-        lower_ext: lowerExtData.get(symbolName) ?? null,
-        nw_lower_band: nwLowerBandData.get(symbolName) ?? null,
+        lower_ext: lowerExtData.get(symbolName) ?? lowerExtData.get(symbolName.toUpperCase()) ?? null,
+        nw_lower_band: nwLowerBandData.get(symbolName) ?? nwLowerBandData.get(symbolName.toUpperCase()) ?? null,
         last_update: lastUpdate,
       };
     });
