@@ -142,61 +142,94 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
     }
   };
 
-  // Fetch wall data for all tickers (optimized using scanner-json cache)
-  const fetchWallData = useCallback(async (_tickers: string[]) => {
+  // Fetch wall data for ALL tickers in the table
+  const fetchWallData = useCallback(async (tickers: string[]) => {
+    if (tickers.length === 0) return;
+
+    const newWallData = new Map<string, WallData>();
+    const missingTickers = new Set(tickers);
+
+    // Step 1: Try scanner-json first for quick cached data
     try {
-      // Use scanner-json endpoint which is pre-cached and fast
       const response = await axios.get(`${API_BASE_URL}/api/gamma-data/scanner-json`, {
         params: { t: Date.now() },
       });
 
-      const newWallData = new Map<string, WallData>();
-
-      // Scanner JSON has symbols as an object with symbol keys
       const symbols = response.data?.symbols;
       if (symbols && typeof symbols === 'object') {
         for (const [ticker, data] of Object.entries(symbols)) {
-          if (data && typeof data === 'object') {
+          if (data && typeof data === 'object' && missingTickers.has(ticker)) {
             const wallData = normalizeWallData(data);
             if (wallData) {
               newWallData.set(ticker, wallData);
+              missingTickers.delete(ticker);
             }
           }
         }
       }
-
-      setWallDataMap(newWallData);
-      console.log(`✅ Wall data loaded for ${newWallData.size} tickers`);
+      console.log(`✅ Scanner-json: ${newWallData.size} tickers, ${missingTickers.size} remaining`);
     } catch (err: any) {
-      console.warn('⚠️ Could not fetch wall data from scanner-json, trying batch endpoint:', err.message);
+      console.warn('⚠️ Scanner-json unavailable:', err.message);
+    }
 
-      // Fallback to batch endpoint if scanner-json fails
+    // Step 2: For remaining tickers, try batch risk-distance endpoint
+    if (missingTickers.size > 0) {
       try {
         const response = await axios.post(`${API_BASE_URL}/api/risk-distance/batch`, {
-          symbols: _tickers,
+          symbols: Array.from(missingTickers),
         });
 
-        const newWallData = new Map<string, WallData>();
         const data = response.data?.data;
-
         if (data && typeof data === 'object') {
           for (const [ticker, symbolData] of Object.entries(data)) {
             if (symbolData && typeof symbolData === 'object') {
               const wallData = normalizeWallData(symbolData);
               if (wallData) {
                 newWallData.set(ticker, wallData);
+                missingTickers.delete(ticker);
               }
             }
           }
         }
-
-        setWallDataMap(newWallData);
-        console.log(`✅ Wall data loaded from batch for ${newWallData.size} tickers`);
+        console.log(`✅ Risk-distance batch: now ${newWallData.size} total, ${missingTickers.size} remaining`);
       } catch (batchErr: any) {
-        console.warn('⚠️ Could not fetch wall data:', batchErr.message);
-        // Non-blocking - continue without wall data
+        console.warn('⚠️ Batch risk-distance failed:', batchErr.message);
       }
     }
+
+    // Step 3: For any still missing, try individual gamma/symbol endpoints
+    if (missingTickers.size > 0 && missingTickers.size <= 10) {
+      const individualPromises = Array.from(missingTickers).map(async (ticker) => {
+        try {
+          const response = await axios.get(`${API_BASE_URL}/api/gamma/${ticker}`);
+          if (response.data) {
+            const wallData = normalizeWallData(response.data);
+            if (wallData) {
+              return { ticker, wallData };
+            }
+          }
+        } catch {
+          // Ticker doesn't have gamma data (bonds, forex, etc.) - that's OK
+        }
+        return null;
+      });
+
+      const results = await Promise.allSettled(individualPromises);
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value) {
+          newWallData.set(result.value.ticker, result.value.wallData);
+          missingTickers.delete(result.value.ticker);
+        }
+      }
+      console.log(`✅ Individual fetches complete: ${newWallData.size} total`);
+    }
+
+    // Log any tickers without wall data (likely bonds, forex, etc.)
+    if (missingTickers.size > 0) {
+      console.log(`ℹ️ No wall data for: ${Array.from(missingTickers).join(', ')} (may not have options)`);
+    }
+
+    setWallDataMap(newWallData);
   }, []);
 
   const fetchCurrentState = async (

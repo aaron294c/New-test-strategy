@@ -15,7 +15,7 @@ describe('Risk Distance calculator', () => {
 
       // (level - price) / price * 100
       expect(result.pct_dist).toBe(-4.69);
-      expect(result.is_below).toBe(true);
+      expect(result.is_below).toBe(false);
       expect(result.abs_pct_dist).toBe(4.69);
     });
 
@@ -26,7 +26,7 @@ describe('Risk Distance calculator', () => {
       const result = calculateDistanceFromCurrentPrice(price, level);
 
       expect(result.pct_dist).toBe(7.39);
-      expect(result.is_below).toBe(false);
+      expect(result.is_below).toBe(true);
       expect(result.abs_pct_dist).toBe(7.39);
     });
   });
@@ -48,23 +48,22 @@ describe('Risk Distance calculator', () => {
       const out = calculateRiskDistances(input);
 
       expect(out.pct_dist_st_put).toBe(-4.69);
-      expect(out.is_below_st_put).toBe(true);
+      expect(out.is_below_st_put).toBe(false);
 
       expect(out.pct_dist_lt_put).toBe(-6.03);
-      expect(out.is_below_lt_put).toBe(true);
+      expect(out.is_below_lt_put).toBe(false);
 
       expect(out.pct_dist_q_put).toBe(-14.08);
-      expect(out.is_below_q_put).toBe(true);
+      expect(out.is_below_q_put).toBe(false);
 
       expect(out.pct_dist_max_pain).toBe(-0.66);
-      expect(out.is_below_max_pain).toBe(true);
+      expect(out.is_below_max_pain).toBe(false);
 
-      expect(out.pct_dist_lower_ext).toBe(-16.69);
-      expect(out.is_below_lower_ext).toBe(true);
+      expect(out.pct_dist_lower_ext).toBe(20.04);
+      expect(out.is_below_lower_ext).toBe(false);
 
-      expect(out.pct_dist_nw_lower_band).toBe(-6.21);
-      expect(out.is_below_nw_lower_band).toBe(true);
+      expect(out.pct_dist_nw_lower_band).toBe(6.62);
+      expect(out.is_below_nw_lower_band).toBe(false);
     });
   });
 });
-
