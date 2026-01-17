@@ -131,6 +131,20 @@ try:
 except Exception as e:
     print(f"[WARN] Could not load Price Fetcher API: {e}")
 
+# Import and add Daily Trend Scanner router
+try:
+    import sys
+    from pathlib import Path
+    api_dir = Path(__file__).parent / "api"
+    if str(api_dir) not in sys.path:
+        sys.path.insert(0, str(api_dir))
+
+    from daily_trend_scanner import router as daily_trend_router
+    app.include_router(daily_trend_router)
+    print("[OK] Daily Trend Scanner API registered (/api/daily-trend/*)")
+except Exception as e:
+    print(f"[WARN] Could not load Daily Trend Scanner API: {e}")
+
 # Import and add Lower Extension API
 try:
     import sys

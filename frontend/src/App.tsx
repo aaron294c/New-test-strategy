@@ -51,6 +51,7 @@ const RiskDistanceTab = React.lazy(() =>
 const LowerExtensionPage = React.lazy(() => import('./pages/LowerExtensionPage'));
 const WeightedFourierTransformPage = React.lazy(() => import('./pages/WeightedFourierTransformPage'));
 const LEAPSStrategyPanel = React.lazy(() => import('./components/LEAPSScanner/LEAPSStrategyPanel'));
+const DailyTrendScannerPage = React.lazy(() => import('./pages/DailyTrendScannerPage'));
 
 const theme = createTheme({
   palette: {
@@ -228,6 +229,7 @@ function Dashboard() {
                 <Tab icon={<TrendingUpIcon />} label="Lower Extension" />
                 <Tab icon={<TimelineIcon />} label="WFT Spectral Gating" />
                 <Tab icon={<TrendingUpIcon />} label="LEAPS Scanner" />
+                <Tab icon={<ShowChartIcon />} label="Daily Trend Scanner" />
               </Tabs>
             </Paper>
 
@@ -346,6 +348,12 @@ function Dashboard() {
             <TabPanel value={activeTab} index={12}>
               <React.Suspense fallback={suspenseFallback}>
                 <LEAPSStrategyPanel />
+              </React.Suspense>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={13}>
+              <React.Suspense fallback={suspenseFallback}>
+                <DailyTrendScannerPage ticker={selectedTicker} />
               </React.Suspense>
             </TabPanel>
           </>

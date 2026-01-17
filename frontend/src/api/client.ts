@@ -12,6 +12,8 @@ import type {
   RSIChartData,
   SymbolRiskDistanceData,
   RiskDistanceSummaryResponse,
+  DailyTrendBatchResponse,
+  DailyTrendSymbolData,
 } from '@/types';
 
 // Default to same-origin so:
@@ -190,6 +192,34 @@ export const riskDistanceApi = {
   getRiskDistanceSummary: async (symbol: string): Promise<RiskDistanceSummaryResponse> => {
     const response = await apiClient.get(`/api/risk-distance/${symbol}/summary`);
     return response.data.data;
+  },
+};
+
+/**
+ * Daily Trend Scanner API calls
+ */
+export const dailyTrendApi = {
+  getDailyTrend: async (
+    symbol: string,
+    params: {
+      interval?: string;
+      days?: number;
+      orb_minutes?: number;
+      include_candles?: boolean;
+    } = {}
+  ): Promise<DailyTrendSymbolData> => {
+    const response = await apiClient.get(`/api/daily-trend/${encodeURIComponent(symbol)}`, { params });
+    return response.data;
+  },
+
+  getDailyTrendBatch: async (request: {
+    symbols: string[];
+    interval?: string;
+    days?: number;
+    orb_minutes?: number;
+  }): Promise<DailyTrendBatchResponse> => {
+    const response = await apiClient.post('/api/daily-trend/batch', request);
+    return response.data;
   },
 };
 

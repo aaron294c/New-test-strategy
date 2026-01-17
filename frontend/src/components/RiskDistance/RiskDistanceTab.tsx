@@ -42,6 +42,7 @@ export const RiskDistanceTab: React.FC = () => {
   const [realPrices, setRealPrices] = useState<Map<string, number>>(new Map());
   const [lowerExtData, setLowerExtData] = useState<Map<string, number>>(new Map());
   const [nwLowerBandData, setNwLowerBandData] = useState<Map<string, number>>(new Map());
+  const [nwAtrPeriod, setNwAtrPeriod] = useState<number>(50);
 
   // Proximity settings state
   const [proximityConfig, setProximityConfig] = useState<ProximityConfig>({
@@ -50,6 +51,8 @@ export const RiskDistanceTab: React.FC = () => {
     useAbsoluteDistance: true,
   });
   const [settingsExpanded, setSettingsExpanded] = useState(false);
+
+  const nwAtrPeriodOptions = [15, 30, 50, 60] as const;
 
   // Fetch data from API
   const fetchData = useCallback(async (forceRefresh: boolean = false) => {
@@ -151,10 +154,12 @@ export const RiskDistanceTab: React.FC = () => {
       await Promise.all(
         symbolUniverse.map(async (symbol) => {
           try {
-            const response = await fetch(`${API_BASE_URL}/api/nadaraya-watson/metrics/${symbol}?length=200&bandwidth=8.0&atr_period=50&atr_mult=2.0&t=${Date.now()}`);
+            const response = await fetch(
+              `${API_BASE_URL}/api/nadaraya-watson/metrics/${symbol}?length=200&bandwidth=8.0&atr_period=${nwAtrPeriod}&atr_mult=2.0&t=${Date.now()}`
+            );
             if (response.ok) {
               const data = await response.json();
-              if (data.lower_band) {
+              if (typeof data.lower_band === 'number') {
                 nwMap.set(symbol, data.lower_band);
               }
             }
@@ -171,7 +176,7 @@ export const RiskDistanceTab: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [nwAtrPeriod]);
 
   // Auto-load data on mount
   useEffect(() => {
@@ -323,6 +328,32 @@ export const RiskDistanceTab: React.FC = () => {
           isExpanded={settingsExpanded}
           onToggleExpanded={() => setSettingsExpanded(!settingsExpanded)}
         />
+        <div style={styles.nwSettingsContainer}>
+          <div style={styles.nwSettingsHeader}>
+            <span style={styles.nwSettingsTitle}>NW Band Settings</span>
+            <span style={styles.nwSettingsSubtitle}>Matches TradingView ATR period</span>
+          </div>
+          <div style={styles.nwSettingsRow}>
+            <label style={styles.nwSettingsLabel} htmlFor="nw-atr-period">
+              ATR Period
+            </label>
+            <select
+              id="nw-atr-period"
+              value={nwAtrPeriod}
+              onChange={(e) => setNwAtrPeriod(Number(e.target.value))}
+              style={styles.nwSettingsSelect}
+            >
+              {nwAtrPeriodOptions.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div style={styles.nwSettingsNote}>
+            Changing ATR Period triggers a refresh and updates NW Lower Band values.
+          </div>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -478,6 +509,55 @@ const styles: Record<string, React.CSSProperties> = {
   settingsContainer: {
     padding: '16px 24px 0 24px',
     backgroundColor: '#0D1117',
+  },
+
+  nwSettingsContainer: {
+    backgroundColor: '#1C2128',
+    border: '1px solid #373E47',
+    borderRadius: '6px',
+    padding: '12px 16px',
+    marginBottom: '16px',
+  },
+  nwSettingsHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: '10px',
+  },
+  nwSettingsTitle: {
+    fontSize: '13px',
+    fontWeight: 600,
+    color: '#D1D4DC',
+  },
+  nwSettingsSubtitle: {
+    fontSize: '11px',
+    color: '#6E7681',
+  },
+  nwSettingsRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+  },
+  nwSettingsLabel: {
+    fontSize: '12px',
+    color: '#8B949E',
+    minWidth: '74px',
+  },
+  nwSettingsSelect: {
+    flex: 1,
+    backgroundColor: '#0D1117',
+    border: '1px solid #373E47',
+    color: '#D1D4DC',
+    borderRadius: '6px',
+    padding: '8px 10px',
+    fontSize: '12px',
+    fontFamily: 'monospace',
+    outline: 'none',
+  },
+  nwSettingsNote: {
+    marginTop: '8px',
+    fontSize: '11px',
+    color: '#6E7681',
   },
 
   // Toolbar

@@ -258,6 +258,45 @@ export interface GammaFlipData {
   net_gex_below?: number;   // Net GEX below flip
 }
 
+// Daily Trend Scanner (PDH/PDL + PMH/PML)
+export interface DailyTrendLevels {
+  pmh: number | null;
+  pml: number | null;
+  pdh: number | null;
+  pdl: number | null;
+  orb_high?: number | null;
+  orb_low?: number | null;
+}
+
+export interface DailyTrendCandle {
+  time: string; // ISO timestamp
+  open: number | null;
+  high: number | null;
+  low: number | null;
+  close: number | null;
+  volume: number | null;
+}
+
+export interface DailyTrendSymbolData {
+  symbol: string;
+  as_of: string;
+  timezone: string;
+  interval: string;
+  days: number;
+  data_source: string;
+  price: number | null;
+  prev_close: number | null;
+  chg_pct: number | null;
+  levels: DailyTrendLevels;
+  candles?: DailyTrendCandle[];
+}
+
+export interface DailyTrendBatchResponse {
+  data: Record<string, DailyTrendSymbolData>;
+  errors: Record<string, string>;
+  as_of: string;
+}
+
 export interface MarketRegime {
   regime: 'High Volatility' | 'Low Volatility' | 'Normal Volatility';
   vix_value: number;

@@ -19,6 +19,9 @@ import {
   Typography,
 } from '@mui/material';
 import {
+  CandlestickData,
+  ColorType,
+  CrosshairMode,
   createChart,
   IChartApi,
   ISeriesApi,
@@ -40,6 +43,12 @@ type Candle = {
 };
 
 type PercentileTarget = 'freq pass' | 'data' | 'DC component';
+
+declare global {
+  interface Window {
+    TradingView?: any;
+  }
+}
 
 type Percentiles = {
   p5: number;
@@ -343,17 +352,70 @@ function computeWFTSeries(params: {
   return { points, percentiles, reconWindow };
 }
 
-function WFTChart(props: {
+function TradingViewChart(props: { ticker: string }) {
+  const { ticker } = props;
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const widgetId = useMemo(() => `tv-wft-${ticker}-${Math.random().toString(36).slice(2, 7)}`, [ticker]);
+
+  useEffect(() => {
+    const ensureScript = () =>
+      new Promise<void>((resolve) => {
+        if (window.TradingView) return resolve();
+        const script = document.createElement('script');
+        script.id = 'tradingview-widget-script';
+        script.src = 'https://s3.tradingview.com/tv.js';
+        script.async = true;
+        script.onload = () => resolve();
+        document.head.appendChild(script);
+      });
+
+    let cancelled = false;
+    ensureScript().then(() => {
+      if (cancelled || !window.TradingView || !containerRef.current) return;
+      containerRef.current.innerHTML = '';
+      new window.TradingView.widget({
+        width: '100%',
+        height: 520,
+        symbol: ticker,
+        interval: 'D',
+        timezone: 'Etc/UTC',
+        theme: 'dark',
+        style: '1',
+        locale: 'en',
+        toolbar_bg: '#1E222D',
+        hide_top_toolbar: false,
+        hide_legend: false,
+        allow_symbol_change: true,
+        save_image: false,
+        container_id: widgetId,
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ticker, widgetId]);
+
+  return <div id={widgetId} ref={containerRef} style={{ width: '100%', minHeight: 520 }} />;
+}
+
+function WFTStackedChart(props: {
+  candles: Candle[];
   points: WFTPoint[];
   reconWindow: LineData<UTCTimestamp>[];
   percentileTarget: PercentileTarget;
   percentiles: Percentiles | null;
   showPercentileLines: boolean;
 }) {
-  const { points, reconWindow, percentileTarget, percentiles, showPercentileLines } = props;
+  const { candles, points, reconWindow, percentileTarget, percentiles, showPercentileLines } = props;
 
-  const chartContainerRef = useRef<HTMLDivElement | null>(null);
-  const chartRef = useRef<IChartApi | null>(null);
+  const priceContainerRef = useRef<HTMLDivElement | null>(null);
+  const indicatorContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const priceChartRef = useRef<IChartApi | null>(null);
+  const indicatorChartRef = useRef<IChartApi | null>(null);
+
+  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const dataSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const freqSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const dcSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
@@ -364,6 +426,7 @@ function WFTChart(props: {
       line: ReturnType<ISeriesApi<'Line'>['createPriceLine']>;
     }>
   >([]);
+  const isSyncingRef = useRef(false);
 
   const rankColor = useMemo(() => {
     if (!percentiles || !Number.isFinite(percentiles.currentRank)) return '#9C27B0';
@@ -371,54 +434,112 @@ function WFTChart(props: {
   }, [percentiles]);
 
   useEffect(() => {
-    const el = chartContainerRef.current;
-    if (!el) return;
+    const priceEl = priceContainerRef.current;
+    const indicatorEl = indicatorContainerRef.current;
+    if (!priceEl || !indicatorEl) return;
 
-    const chart = createChart(el, {
-      width: el.clientWidth,
-      height: 520,
-      layout: { background: { color: '#1a1a1a' }, textColor: '#d1d4dc' },
+    const priceChart = createChart(priceEl, {
+      width: priceEl.clientWidth,
+      height: 360,
+      layout: {
+        background: { type: ColorType.Solid, color: '#1a1a1a' },
+        textColor: '#d1d4dc',
+      },
+      grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
+      rightPriceScale: { borderColor: '#485c7b' },
+      timeScale: { borderColor: '#485c7b', timeVisible: false, secondsVisible: false },
+      crosshair: { mode: CrosshairMode.Normal },
+    });
+
+    const indicatorChart = createChart(indicatorEl, {
+      width: indicatorEl.clientWidth,
+      height: 360,
+      layout: {
+        background: { type: ColorType.Solid, color: '#1a1a1a' },
+        textColor: '#d1d4dc',
+      },
       grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
       rightPriceScale: { borderColor: '#485c7b' },
       timeScale: { borderColor: '#485c7b', timeVisible: true, secondsVisible: false },
-      crosshair: { mode: 1 },
+      crosshair: { mode: CrosshairMode.Normal },
     });
 
-    chartRef.current = chart;
+    priceChartRef.current = priceChart;
+    indicatorChartRef.current = indicatorChart;
 
-    dataSeriesRef.current = chart.addLineSeries({
+    candleSeriesRef.current = priceChart.addCandlestickSeries({
+      upColor: '#26a69a',
+      downColor: '#ef5350',
+      borderUpColor: '#26a69a',
+      borderDownColor: '#ef5350',
+      wickUpColor: '#26a69a',
+      wickDownColor: '#ef5350',
+    });
+
+    dataSeriesRef.current = indicatorChart.addLineSeries({
       color: '#9C27B0',
       lineWidth: 2,
       title: 'data',
     });
-    freqSeriesRef.current = chart.addLineSeries({
+    freqSeriesRef.current = indicatorChart.addLineSeries({
       color: '#9CA3AF',
       lineWidth: 2,
       title: 'freq pass',
     });
-    dcSeriesRef.current = chart.addLineSeries({
+    dcSeriesRef.current = indicatorChart.addLineSeries({
       color: '#FF9800',
       lineWidth: 2,
       title: 'DC component',
     });
-    reconSeriesRef.current = chart.addLineSeries({
+    reconSeriesRef.current = indicatorChart.addLineSeries({
       color: '#26A69A',
       lineWidth: 2,
       lineStyle: LineStyle.Dashed,
       title: 'recon (window)',
     });
 
+    const sync = (source: IChartApi, target: IChartApi) => {
+      const handler = (range: unknown) => {
+        if (isSyncingRef.current) return;
+        isSyncingRef.current = true;
+        try {
+          if (!range) {
+            target.timeScale().fitContent();
+          } else {
+            target.timeScale().setVisibleRange(range as never);
+          }
+        } finally {
+          isSyncingRef.current = false;
+        }
+      };
+
+      source.timeScale().subscribeVisibleTimeRangeChange(handler);
+      return () => source.timeScale().unsubscribeVisibleTimeRangeChange(handler);
+    };
+
+    const unsyncPrice = sync(priceChart, indicatorChart);
+    const unsyncIndicator = sync(indicatorChart, priceChart);
+
     const handleResize = () => {
-      const container = chartContainerRef.current;
-      if (!container || !chartRef.current) return;
-      chartRef.current.applyOptions({ width: container.clientWidth });
+      const priceContainer = priceContainerRef.current;
+      const indicatorContainer = indicatorContainerRef.current;
+      if (!priceContainer || !indicatorContainer || !priceChartRef.current || !indicatorChartRef.current) return;
+      priceChartRef.current.applyOptions({ width: priceContainer.clientWidth });
+      indicatorChartRef.current.applyOptions({ width: indicatorContainer.clientWidth });
     };
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      chart.remove();
-      chartRef.current = null;
+      unsyncPrice();
+      unsyncIndicator();
+      priceChart.remove();
+      indicatorChart.remove();
+
+      priceChartRef.current = null;
+      indicatorChartRef.current = null;
+      candleSeriesRef.current = null;
+
       dataSeriesRef.current = null;
       freqSeriesRef.current = null;
       dcSeriesRef.current = null;
@@ -428,7 +549,27 @@ function WFTChart(props: {
   }, []);
 
   useEffect(() => {
-    if (!dataSeriesRef.current || !freqSeriesRef.current || !dcSeriesRef.current || !reconSeriesRef.current) return;
+    if (
+      !candleSeriesRef.current ||
+      !dataSeriesRef.current ||
+      !freqSeriesRef.current ||
+      !dcSeriesRef.current ||
+      !reconSeriesRef.current
+    )
+      return;
+
+    const candleData: CandlestickData<UTCTimestamp>[] = candles
+      .filter(c => c.time && Number.isFinite(c.open) && Number.isFinite(c.high) && Number.isFinite(c.low) && Number.isFinite(c.close))
+      .map((c) => ({
+        time: (new Date(c.time).getTime() / 1000) as UTCTimestamp,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      }))
+      .sort((a, b) => a.time - b.time);
+
+    candleSeriesRef.current.setData(candleData);
 
     const dataLine: LineData<UTCTimestamp>[] = points.map(p => ({ time: p.time, value: p.dataValue }));
     const freqLine: LineData<UTCTimestamp>[] = points.map(p => ({ time: p.time, value: p.freqPassValue }));
@@ -483,10 +624,21 @@ function WFTChart(props: {
       addLine(percentiles.p95, '95%', 'rgba(239,83,80,0.55)', 1, LineStyle.Dashed);
     }
 
-    chartRef.current?.timeScale().fitContent();
-  }, [percentileTarget, percentiles, points, rankColor, reconWindow, showPercentileLines]);
+    isSyncingRef.current = true;
+    try {
+      indicatorChartRef.current?.timeScale().fitContent();
+      priceChartRef.current?.timeScale().fitContent();
+    } finally {
+      isSyncingRef.current = false;
+    }
+  }, [candles, percentileTarget, percentiles, points, rankColor, reconWindow, showPercentileLines]);
 
-  return <div ref={chartContainerRef} style={{ width: '100%' }} />;
+  return (
+    <Box sx={{ display: 'grid', gap: 1.5 }}>
+      <Box ref={priceContainerRef} sx={{ width: '100%' }} />
+      <Box ref={indicatorContainerRef} sx={{ width: '100%' }} />
+    </Box>
+  );
 }
 
 export default function WeightedFourierTransformPage(props: { ticker: string }) {
@@ -509,7 +661,9 @@ export default function WeightedFourierTransformPage(props: { ticker: string }) 
   const [percentileTarget, setPercentileTarget] = useState<PercentileTarget>('freq pass');
   const [showPercentileLines, setShowPercentileLines] = useState(true);
   const [showPercentileTable, setShowPercentileTable] = useState(true);
+  const [showTradingViewChart, setShowTradingViewChart] = useState(true);
 
+  const [candles, setCandles] = useState<Candle[]>([]);
   const [points, setPoints] = useState<WFTPoint[]>([]);
   const [reconWindow, setReconWindow] = useState<LineData<UTCTimestamp>[]>([]);
   const [percentiles, setPercentiles] = useState<Percentiles | null>(null);
@@ -535,6 +689,7 @@ export default function WeightedFourierTransformPage(props: { ticker: string }) 
       const json = (await res.json()) as { candles?: Candle[] };
       const candles = (json.candles ?? []).filter(c => c.time && Number.isFinite(c.close));
       if (candles.length < 10) throw new Error('Not enough candles returned');
+      setCandles(candles);
 
       const computed = computeWFTSeries({
         candles,
@@ -554,6 +709,7 @@ export default function WeightedFourierTransformPage(props: { ticker: string }) 
       setPercentiles(computed.percentiles);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to compute WFT');
+      setCandles([]);
     } finally {
       setIsLoading(false);
     }
@@ -686,6 +842,10 @@ export default function WeightedFourierTransformPage(props: { ticker: string }) 
             }
             label="Show percentile table"
           />
+          <FormControlLabel
+            control={<Checkbox checked={showTradingViewChart} onChange={(e) => setShowTradingViewChart(e.target.checked)} />}
+            label="Show TradingView chart"
+          />
         </Box>
 
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' }, mt: 2 }}>
@@ -726,13 +886,20 @@ export default function WeightedFourierTransformPage(props: { ticker: string }) 
         )}
       </Paper>
 
+      {showTradingViewChart && (
+        <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
+          <TradingViewChart ticker={ticker} />
+        </Paper>
+      )}
+
       <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
         {points.length === 0 && !isLoading ? (
           <Box sx={{ py: 6, textAlign: 'center' }}>
             <Typography color="text.secondary">No data yet.</Typography>
           </Box>
         ) : (
-          <WFTChart
+          <WFTStackedChart
+            candles={candles}
             points={points}
             reconWindow={reconWindow}
             percentileTarget={percentileTarget}

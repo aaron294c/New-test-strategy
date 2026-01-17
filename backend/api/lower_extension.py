@@ -4,7 +4,7 @@ Provides calculation functions for lower extension metrics
 """
 
 from fastapi import APIRouter, HTTPException
-from typing import Optional
+from typing import Dict, Optional, Tuple
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -19,12 +19,123 @@ from ticker_utils import resolve_yahoo_symbol
 router = APIRouter(prefix="/api/lower-extension", tags=["Lower Extension"])
 
 
+def _round_to_tick(value: float, tick_size: float = 0.01) -> float:
+    if tick_size <= 0:
+        return float(value)
+    return float(np.round(value / tick_size) * tick_size)
+
+
+def _weighted_moments(
+    src_current_to_past: np.ndarray, weights: np.ndarray
+) -> Tuple[float, float, float, float, float, float]:
+    """
+    PineScript-compatible weighted moments.
+    Inputs are ordered current->past to mirror src[i] access in PineScript loops.
+    """
+    weights = np.asarray(weights, dtype=float)
+    src = np.asarray(src_current_to_past, dtype=float)
+
+    if src.size == 0 or weights.size != src.size:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+
+    sum_w = float(np.sum(weights))
+    if not np.isfinite(sum_w) or sum_w <= 0:
+        # Fallback to unweighted moments if inferred-volume weights collapse to zero
+        weights = np.ones_like(src, dtype=float)
+        sum_w = float(src.size)
+
+    mean = float(np.sum(src * weights) / sum_w)
+    diffs = src - mean
+
+    m2 = float(np.sum((diffs**2) * weights) / sum_w)
+    dev = float(np.sqrt(max(m2, 0.0)))
+
+    if not np.isfinite(dev) or dev <= 0:
+        return mean, 0.0, 0.0, 0.0, 0.0, 0.0
+
+    m3 = float(np.sum((diffs**3) * weights) / sum_w)
+    m4 = float(np.sum((diffs**4) * weights) / sum_w)
+    m5 = float(np.sum((diffs**5) * weights) / sum_w)
+    m6 = float(np.sum((diffs**6) * weights) / sum_w)
+
+    dev2 = dev * dev
+    dev3 = dev2 * dev
+    dev4 = dev2 * dev2
+    dev5 = dev4 * dev
+    dev6 = dev3 * dev3
+
+    skew = float(m3 / dev3)
+    kurt = float(m4 / dev4)
+    hskew = float(m5 / dev5)
+    hkurt = float(m6 / dev6)
+    return mean, dev, skew, kurt, hskew, hkurt
+
+
+def _mbad_levels_for_index(
+    data: pd.DataFrame,
+    idx: int,
+    length: int,
+    *,
+    time_weighting: bool = True,
+    inferred_volume_weighting: bool = True,
+    tick_size: float = 0.01,
+) -> Dict[str, float]:
+    """
+    Compute MBAD levels for a specific bar index, matching the provided PineScript.
+    Uses source=close and weights: (len-i) * abs(close[i]-open[i]) by default.
+    """
+    window = data.iloc[idx - length + 1 : idx + 1]
+    close_window = window["Close"].to_numpy(dtype=float)
+    open_window = window["Open"].to_numpy(dtype=float)
+
+    # Convert to PineScript indexing: element 0 is "current bar" within the window
+    close_curr_to_past = close_window[::-1]
+    open_curr_to_past = open_window[::-1]
+
+    time_w = (np.arange(length, 0, -1, dtype=float) if time_weighting else 1.0)
+    iv_w = (
+        np.abs(close_curr_to_past - open_curr_to_past)
+        if inferred_volume_weighting
+        else 1.0
+    )
+    weights = time_w * iv_w
+
+    mean, dev, skew, kurt, hskew, hkurt = _weighted_moments(close_curr_to_past, weights)
+
+    # PineScript MBAD levels
+    lim_lower = _round_to_tick(mean - dev * hkurt + dev * hskew, tick_size)
+    ext_lower = _round_to_tick(mean - dev * kurt + dev * skew, tick_size)
+    dev_lower = _round_to_tick(mean - dev, tick_size)
+    dev_lower2 = _round_to_tick(mean - 2 * dev, tick_size)
+    basis = _round_to_tick(mean, tick_size)
+    dev_upper = _round_to_tick(mean + dev, tick_size)
+    ext_upper = _round_to_tick(mean + dev * kurt + dev * skew, tick_size)
+    lim_upper = _round_to_tick(mean + dev * hkurt + dev * hskew, tick_size)
+
+    close_val = float(data["Close"].iloc[idx])
+    zscore = float((close_val - mean) / dev) if dev > 0 else 0.0
+
+    return {
+        "lim_lower": lim_lower,
+        "ext_lower": ext_lower,
+        "dev_lower": dev_lower,
+        "dev_lower2": dev_lower2,
+        "basis": basis,
+        "dev_upper": dev_upper,
+        "ext_upper": ext_upper,
+        "lim_upper": lim_upper,
+        "zscore": zscore,
+    }
+
+
 def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30):
-    """Calculate MBAD (Moving Baseline Adaptive Detection) levels with comprehensive metrics."""
+    """Calculate MBAD levels and signed distance-to-lower-extension metrics (PineScript-aligned)."""
     try:
         symbol = resolve_yahoo_symbol(ticker)
         end_date = datetime.now()
-        start_date = end_date - timedelta(days=lookback_days + length)
+        # Calendar-day padding so we reliably get enough trading bars for `length`
+        padding_days = int((lookback_days + length) * 2) + 10
+        start_date = end_date - timedelta(days=padding_days)
 
         data = yf.download(
             symbol, start=start_date, end=end_date, progress=False, timeout=10
@@ -33,39 +144,55 @@ def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30
         if data.empty:
             raise ValueError(f"No data available for {ticker}")
 
-        close = data["Close"]
-        ma = close.rolling(window=length).mean()
-        std = close.rolling(window=length).std()
+        # Flatten yfinance MultiIndex columns if present
+        if isinstance(data.columns, pd.MultiIndex):
+            data.columns = [c[0] for c in data.columns]
 
-        lower_1 = ma - (std * 1.0)
-        lower_2 = ma - (std * 2.0)
-        lower_3 = ma - (std * 3.0)
+        data = data.dropna(subset=["Open", "Close"]).copy()
+        if len(data) < length:
+            raise ValueError(
+                f"Insufficient bars for MBAD: have {len(data)}, need {length}"
+            )
 
-        current_price = float(close.iloc[-1])
-        lower_ext_value = float(lower_1.iloc[-1])
+        # MBAD settings requested: source=close, interpretation=mean reversion (levels unaffected)
+        tick_size = 0.01
+        current_idx = len(data) - 1
+        current_levels = _mbad_levels_for_index(
+            data, current_idx, length, tick_size=tick_size
+        )
+
+        current_price = float(data["Close"].iloc[-1])
+        lower_ext_value = float(current_levels["ext_lower"])
+        basis_value = float(current_levels["basis"])
 
         # Calculate comprehensive metrics for frontend
-        pct_dist_lower_ext = ((current_price - lower_ext_value) / lower_ext_value) * 100
+        pct_dist_lower_ext = (
+            ((current_price - lower_ext_value) / lower_ext_value) * 100
+            if lower_ext_value != 0
+            else 0.0
+        )
         is_below_lower_ext = pct_dist_lower_ext < 0
         abs_pct_dist_lower_ext = abs(pct_dist_lower_ext)
 
-        # Calculate 30-day lookback metrics
-        recent_data = close.tail(min(30, len(close)))
+        # Calculate lookback metrics using each day's MBAD ext_lower (not a static 1σ band)
+        lookback_rows = min(int(lookback_days), len(data))
+        recent_data = data.tail(lookback_rows)
         pct_dists = []
         breach_count = 0
 
-        for i in range(len(recent_data)):
-            if i >= length:  # Only calculate when we have enough data for MA
-                hist_ma = recent_data.iloc[max(0, i - length):i + 1].mean()
-                hist_std = recent_data.iloc[max(0, i - length):i + 1].std()
-                hist_lower = hist_ma - hist_std
-
-                if pd.notna(hist_lower) and hist_lower > 0:
-                    hist_price = recent_data.iloc[i]
-                    dist = ((hist_price - hist_lower) / hist_lower) * 100
-                    pct_dists.append(dist)
-                    if dist < 0:
-                        breach_count += 1
+        start_i = len(data) - lookback_rows
+        for i in range(start_i, len(data)):
+            if i < length - 1:
+                continue
+            hist_levels = _mbad_levels_for_index(data, i, length, tick_size=tick_size)
+            hist_lower_ext = float(hist_levels["ext_lower"])
+            if not np.isfinite(hist_lower_ext) or hist_lower_ext == 0:
+                continue
+            hist_price = float(data["Close"].iloc[i])
+            dist = ((hist_price - hist_lower_ext) / hist_lower_ext) * 100
+            pct_dists.append(float(dist))
+            if dist < 0:
+                breach_count += 1
 
         min_pct_dist_30d = min(pct_dists) if pct_dists else 0
         median_abs_pct_dist_30d = np.median([abs(d) for d in pct_dists]) if pct_dists else 0
@@ -83,7 +210,7 @@ def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30
                 "timestamp": idx.isoformat(),
                 "price": float(price)
             }
-            for idx, price in recent_data.items()
+            for idx, price in recent_data["Close"].items()
         ]
 
         return {
@@ -92,19 +219,34 @@ def calculate_mbad_levels(ticker: str, length: int = 30, lookback_days: int = 30
             "price": current_price,
             "current_price": current_price,  # Keep both for compatibility
             "lower_ext": lower_ext_value,
-            "ma_baseline": float(ma.iloc[-1]),
+            "ma_baseline": basis_value,
             "levels": {
+                # Preferred MBAD names (used by MBADIndicatorPage)
+                "lim_lower": float(current_levels["lim_lower"]),
+                "ext_lower": lower_ext_value,
+                "dev_lower": float(current_levels["dev_lower"]),
+                "dev_lower2": float(current_levels["dev_lower2"]),
+                "basis": basis_value,
+                "dev_upper": float(current_levels["dev_upper"]),
+                "ext_upper": float(current_levels["ext_upper"]),
+                "lim_upper": float(current_levels["lim_upper"]),
+                # Back-compat aliases (legacy frontend keys)
                 "lower_1sd": lower_ext_value,
-                "lower_2sd": float(lower_2.iloc[-1]),
-                "lower_3sd": float(lower_3.iloc[-1]),
             },
             "all_levels": {
+                "lim_lower": float(current_levels["lim_lower"]),
+                "ext_lower": lower_ext_value,
+                "dev_lower": float(current_levels["dev_lower"]),
+                "dev_lower2": float(current_levels["dev_lower2"]),
+                "basis": basis_value,
+                "dev_upper": float(current_levels["dev_upper"]),
+                "ext_upper": float(current_levels["ext_upper"]),
+                "lim_upper": float(current_levels["lim_upper"]),
+                "zscore": float(current_levels["zscore"]),
                 "lower_1sd": lower_ext_value,
-                "lower_2sd": float(lower_2.iloc[-1]),
-                "lower_3sd": float(lower_3.iloc[-1]),
             },
             "distance_from_baseline": float(
-                (current_price - ma.iloc[-1]) / ma.iloc[-1] * 100
+                ((current_price - basis_value) / basis_value) * 100 if basis_value != 0 else 0.0
             ),
             # Comprehensive metrics for frontend
             "pct_dist_lower_ext": round(pct_dist_lower_ext, 2),
@@ -177,6 +319,8 @@ async def get_lower_extension_candles(
 
             candles.append(
                 {
+                    # Back-compat: some pages expect `time`, older code used `date`
+                    "time": idx.strftime("%Y-%m-%d"),
                     "date": idx.strftime("%Y-%m-%d"),
                     "open": float(row["Open"]),
                     "high": float(row["High"]),
