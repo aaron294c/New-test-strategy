@@ -174,7 +174,10 @@ def calculate_nadaraya_watson_lower_band(
             "timestamp": datetime.now().isoformat(),
         }
 
-    min_bars = max(int(length), int(atr_period)) + 1
+    # PineScript behavior:
+    # - NW estimate uses as many bars as available up to `length`
+    # - ATR is `na` until `atr_period` bars exist (Wilder/RMA warmup)
+    min_bars = max(int(atr_period), 1)
     current_price = float(closes[-1])
     if closes.size < min_bars:
         return {

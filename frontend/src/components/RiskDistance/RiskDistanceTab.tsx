@@ -58,6 +58,27 @@ export const RiskDistanceTab: React.FC = () => {
     atrPeriod: 50,
     atrMult: 2.0,
   });
+  const [nwSettingsExpanded, setNwSettingsExpanded] = useState(false);
+
+  const clampInt = (value: number, min: number, max: number) => {
+    if (!Number.isFinite(value)) return min;
+    return Math.max(min, Math.min(max, Math.trunc(value)));
+  };
+
+  const clampFloat = (value: number, min: number, max: number) => {
+    if (!Number.isFinite(value)) return min;
+    return Math.max(min, Math.min(max, value));
+  };
+
+  const updateNwConfigNumber = <K extends keyof typeof nwConfig>(
+    key: K,
+    rawValue: string,
+    clamp: (value: number) => number
+  ) => {
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) return;
+    setNwConfig((prev) => ({ ...prev, [key]: clamp(parsed) }));
+  };
 
   // Fetch data from API
   const fetchData = useCallback(async (forceRefresh: boolean = false) => {
@@ -135,15 +156,15 @@ export const RiskDistanceTab: React.FC = () => {
       setRealPrices(priceMap);
 
       // Fetch lower extension data for all symbols
-      const lowerExtMap = new Map<string, number>();
+      const lowerExtUpdates = new Map<string, number>();
       await Promise.all(
         symbolUniverse.map(async (symbol) => {
           try {
             const response = await fetch(`${API_BASE_URL}/api/lower-extension/metrics/${symbol}?length=30&lookback_days=30&t=${Date.now()}`);
             if (response.ok) {
               const data = await response.json();
-              if (data.lower_ext) {
-                lowerExtMap.set(symbol, data.lower_ext);
+              if (typeof data.lower_ext === 'number') {
+                lowerExtUpdates.set(symbol, data.lower_ext);
               }
             }
           } catch (err) {
@@ -152,10 +173,14 @@ export const RiskDistanceTab: React.FC = () => {
         })
       );
 
-      setLowerExtData(lowerExtMap);
+      setLowerExtData((prev) => {
+        const next = new Map(prev);
+        lowerExtUpdates.forEach((v, k) => next.set(k, v));
+        return next;
+      });
 
       // Fetch Nadaraya-Watson lower band data for all symbols
-      const nwMap = new Map<string, number>();
+      const nwUpdates = new Map<string, number>();
       await Promise.all(
         symbolUniverse.map(async (symbol) => {
           try {
@@ -164,8 +189,14 @@ export const RiskDistanceTab: React.FC = () => {
             );
             if (response.ok) {
               const data = await response.json();
-              if (typeof data.lower_band === 'number') {
-                nwMap.set(symbol, data.lower_band);
+              const lowerBand =
+                typeof data.lower_band === 'number'
+                  ? data.lower_band
+                  : typeof data.lower_band === 'string'
+                    ? Number(data.lower_band)
+                    : null;
+              if (typeof lowerBand === 'number' && Number.isFinite(lowerBand)) {
+                nwUpdates.set(symbol, lowerBand);
               }
             }
           } catch (err) {
@@ -174,7 +205,11 @@ export const RiskDistanceTab: React.FC = () => {
         })
       );
 
-      setNwLowerBandData(nwMap);
+      setNwLowerBandData((prev) => {
+        const next = new Map(prev);
+        nwUpdates.forEach((v, k) => next.set(k, v));
+        return next;
+      });
     } catch (err: any) {
       console.error('Failed to fetch gamma data:', err);
       setError(err.message || 'Failed to fetch data');
@@ -229,8 +264,8 @@ export const RiskDistanceTab: React.FC = () => {
         lt_put: ltPut,
         q_put: qPut,
         max_pain: maxPain,
-        lower_ext: lowerExtData.get(symbolName) || null,
-        nw_lower_band: nwLowerBandData.get(symbolName) || null,
+        lower_ext: lowerExtData.get(symbolName) ?? null,
+        nw_lower_band: nwLowerBandData.get(symbolName) ?? null,
         last_update: lastUpdate,
       };
     });
@@ -334,77 +369,91 @@ export const RiskDistanceTab: React.FC = () => {
           onToggleExpanded={() => setSettingsExpanded(!settingsExpanded)}
         />
         <div style={styles.nwSettingsContainer}>
-          <div style={styles.nwSettingsHeader}>
-            <span style={styles.nwSettingsTitle}>NW Envelope Settings</span>
-            <span style={styles.nwSettingsSubtitle}>Matches PineScript inputs</span>
+          <div style={styles.nwSettingsHeader} onClick={() => setNwSettingsExpanded((v) => !v)}>
+            <div style={styles.nwSettingsHeaderLeft}>
+              <span style={styles.nwSettingsChevron}>{nwSettingsExpanded ? '▼' : '▶'}</span>
+              <span style={styles.nwSettingsTitle}>NW Envelope Settings</span>
+              <span style={styles.nwSettingsSubtitle}>lower_band support</span>
+            </div>
+            <span style={styles.nwSettingsBadge}>
+              L:{nwConfig.length} h:{nwConfig.bandwidth} ATR:{nwConfig.atrPeriod}×{nwConfig.atrMult}
+            </span>
           </div>
 
-          <div style={styles.nwSettingsGrid}>
-            <label style={styles.nwSettingsLabel} htmlFor="nw-length">
-              Window Size
-            </label>
-            <input
-              id="nw-length"
-              type="number"
-              min={20}
-              max={500}
-              step={1}
-              value={nwConfig.length}
-              onChange={(e) => setNwConfig((prev) => ({ ...prev, length: Number(e.target.value) }))}
-              style={styles.nwSettingsInput}
-            />
+          {nwSettingsExpanded && (
+            <>
+              <div style={styles.nwSettingsGrid}>
+                <label style={styles.nwSettingsLabel} htmlFor="nw-length">
+                  Window Size
+                </label>
+                <input
+                  id="nw-length"
+                  type="number"
+                  min={20}
+                  max={500}
+                  step={1}
+                  value={nwConfig.length}
+                  onChange={(e) => updateNwConfigNumber('length', e.target.value, (v) => clampInt(v, 20, 500))}
+                  style={styles.nwSettingsInput}
+                />
 
-            <label style={styles.nwSettingsLabel} htmlFor="nw-bandwidth">
-              Bandwidth
-            </label>
-            <input
-              id="nw-bandwidth"
-              type="number"
-              min={0.1}
-              step={0.1}
-              value={nwConfig.bandwidth}
-              onChange={(e) => setNwConfig((prev) => ({ ...prev, bandwidth: Number(e.target.value) }))}
-              style={styles.nwSettingsInput}
-            />
+                <label style={styles.nwSettingsLabel} htmlFor="nw-bandwidth">
+                  Bandwidth
+                </label>
+                <input
+                  id="nw-bandwidth"
+                  type="number"
+                  min={0.1}
+                  step={0.1}
+                  value={nwConfig.bandwidth}
+                  onChange={(e) =>
+                    updateNwConfigNumber('bandwidth', e.target.value, (v) => clampFloat(v, 0.1, 1000))
+                  }
+                  style={styles.nwSettingsInput}
+                />
 
-            <label style={styles.nwSettingsLabel} htmlFor="nw-atr-period">
-              ATR Period
-            </label>
-            <input
-              id="nw-atr-period"
-              type="number"
-              min={10}
-              step={1}
-              value={nwConfig.atrPeriod}
-              onChange={(e) => setNwConfig((prev) => ({ ...prev, atrPeriod: Number(e.target.value) }))}
-              style={styles.nwSettingsInput}
-            />
+                <label style={styles.nwSettingsLabel} htmlFor="nw-atr-period">
+                  ATR Period
+                </label>
+                <input
+                  id="nw-atr-period"
+                  type="number"
+                  min={10}
+                  step={1}
+                  value={nwConfig.atrPeriod}
+                  onChange={(e) =>
+                    updateNwConfigNumber('atrPeriod', e.target.value, (v) => clampInt(v, 10, 500))
+                  }
+                  style={styles.nwSettingsInput}
+                />
 
-            <label style={styles.nwSettingsLabel} htmlFor="nw-atr-mult">
-              ATR Mult
-            </label>
-            <input
-              id="nw-atr-mult"
-              type="number"
-              min={0.1}
-              step={0.1}
-              value={nwConfig.atrMult}
-              onChange={(e) => setNwConfig((prev) => ({ ...prev, atrMult: Number(e.target.value) }))}
-              style={styles.nwSettingsInput}
-            />
-          </div>
+                <label style={styles.nwSettingsLabel} htmlFor="nw-atr-mult">
+                  ATR Mult
+                </label>
+                <input
+                  id="nw-atr-mult"
+                  type="number"
+                  min={0.1}
+                  step={0.1}
+                  value={nwConfig.atrMult}
+                  onChange={(e) => updateNwConfigNumber('atrMult', e.target.value, (v) => clampFloat(v, 0.1, 100))}
+                  style={styles.nwSettingsInput}
+                />
+              </div>
 
-          <div style={styles.nwSettingsNote}>
-            NW Band value used in Risk Distance is the indicator’s `lower_band` (support).
-          </div>
-          <div style={styles.nwSettingsFooter}>
-            <button
-              onClick={() => setNwConfig({ length: 200, bandwidth: 8.0, atrPeriod: 50, atrMult: 2.0 })}
-              style={styles.nwSettingsResetButton}
-            >
-              Reset NW Defaults
-            </button>
-          </div>
+              <div style={styles.nwSettingsNote}>
+                NW Band value used in Risk Distance is the indicator’s `lower_band` (support).
+              </div>
+              <div style={styles.nwSettingsFooter}>
+                <button
+                  onClick={() => setNwConfig({ length: 200, bandwidth: 8.0, atrPeriod: 50, atrMult: 2.0 })}
+                  style={styles.nwSettingsResetButton}
+                >
+                  Reset NW Defaults
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -574,7 +623,19 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'baseline',
-    marginBottom: '10px',
+    cursor: 'pointer',
+    userSelect: 'none' as const,
+  },
+  nwSettingsHeaderLeft: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '8px',
+  },
+  nwSettingsChevron: {
+    fontSize: '10px',
+    color: '#8B949E',
+    width: '12px',
+    display: 'inline-block',
   },
   nwSettingsTitle: {
     fontSize: '13px',
@@ -584,6 +645,16 @@ const styles: Record<string, React.CSSProperties> = {
   nwSettingsSubtitle: {
     fontSize: '11px',
     color: '#6E7681',
+  },
+  nwSettingsBadge: {
+    fontSize: '10px',
+    fontWeight: 600,
+    color: '#8B949E',
+    backgroundColor: 'rgba(55, 62, 71, 0.5)',
+    padding: '4px 8px',
+    borderRadius: '4px',
+    fontFamily: 'monospace',
+    whiteSpace: 'nowrap' as const,
   },
   nwSettingsLabel: {
     fontSize: '12px',
