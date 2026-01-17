@@ -6,7 +6,7 @@
  * WITH SORTABLE COLUMNS AND DATA FOR ALL PERCENTILE RANGES
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -35,6 +35,11 @@ import {
   Refresh,
 } from '@mui/icons-material';
 import axios from 'axios';
+import {
+  calculateWallStatus,
+  normalizeWallData,
+  WallStatusResult,
+} from './wallStatusUtils';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 type Timeframe = 'daily' | '4hour';
@@ -93,6 +98,9 @@ interface CurrentMarketStateProps {
   timeframe?: Timeframe;
 }
 
+// Wall data type for the ticker - matches normalizeWallData output
+type WallData = Record<string, number | null>;
+
 export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timeframe = 'daily' }) => {
   const [dailyData, setDailyData] = useState<MarketStateResponse | null>(null);
   const [fourHourData, setFourHourData] = useState<MarketStateResponse | null>(null);
@@ -101,6 +109,7 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('percentile');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [wallDataMap, setWallDataMap] = useState<Map<string, WallData>>(new Map());
 
   const formatDateStamp = (dateString: string | null | undefined): string => {
     if (!dateString) return '—';
@@ -133,6 +142,63 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
     }
   };
 
+  // Fetch wall data for all tickers (optimized using scanner-json cache)
+  const fetchWallData = useCallback(async (_tickers: string[]) => {
+    try {
+      // Use scanner-json endpoint which is pre-cached and fast
+      const response = await axios.get(`${API_BASE_URL}/api/gamma-data/scanner-json`, {
+        params: { t: Date.now() },
+      });
+
+      const newWallData = new Map<string, WallData>();
+
+      // Scanner JSON has symbols as an object with symbol keys
+      const symbols = response.data?.symbols;
+      if (symbols && typeof symbols === 'object') {
+        for (const [ticker, data] of Object.entries(symbols)) {
+          if (data && typeof data === 'object') {
+            const wallData = normalizeWallData(data);
+            if (wallData) {
+              newWallData.set(ticker, wallData);
+            }
+          }
+        }
+      }
+
+      setWallDataMap(newWallData);
+      console.log(`✅ Wall data loaded for ${newWallData.size} tickers`);
+    } catch (err: any) {
+      console.warn('⚠️ Could not fetch wall data from scanner-json, trying batch endpoint:', err.message);
+
+      // Fallback to batch endpoint if scanner-json fails
+      try {
+        const response = await axios.post(`${API_BASE_URL}/api/risk-distance/batch`, {
+          symbols: _tickers,
+        });
+
+        const newWallData = new Map<string, WallData>();
+        const data = response.data?.data;
+
+        if (data && typeof data === 'object') {
+          for (const [ticker, symbolData] of Object.entries(data)) {
+            if (symbolData && typeof symbolData === 'object') {
+              const wallData = normalizeWallData(symbolData);
+              if (wallData) {
+                newWallData.set(ticker, wallData);
+              }
+            }
+          }
+        }
+
+        setWallDataMap(newWallData);
+        console.log(`✅ Wall data loaded from batch for ${newWallData.size} tickers`);
+      } catch (batchErr: any) {
+        console.warn('⚠️ Could not fetch wall data:', batchErr.message);
+        // Non-blocking - continue without wall data
+      }
+    }
+  }, []);
+
   const fetchCurrentState = async (
     target: Timeframe,
     refresh: boolean = false,
@@ -159,6 +225,10 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
         setDailyData(response.data);
       }
       console.log(`✅ ${target === '4hour' ? '4H' : 'Daily'} current market state loaded:`, response.data.summary);
+
+      // Fetch wall data for the tickers (non-blocking)
+      const tickers = response.data.market_state.map(s => s.ticker);
+      fetchWallData(tickers);
     } catch (err: any) {
       console.error('❌ Error fetching current state:', err);
       setError(err.message || 'Failed to fetch current market state');
@@ -184,6 +254,19 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
   }, [timeframe]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const marketData = timeframe === '4hour' ? fourHourData : dailyData;
+
+  // Memoized wall status calculation for all tickers (performance optimization)
+  const wallStatusMap = useMemo(() => {
+    const result = new Map<string, WallStatusResult>();
+    if (!marketData?.market_state) return result;
+
+    for (const state of marketData.market_state) {
+      const wallData = wallDataMap.get(state.ticker);
+      const status = calculateWallStatus(state.current_price, wallData || null);
+      result.set(state.ticker, status);
+    }
+    return result;
+  }, [marketData?.market_state, wallDataMap]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -378,6 +461,11 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                 </TableSortLabel>
               </TableCell>
               <TableCell>Signal</TableCell>
+              <TableCell>
+                <Tooltip title="Walls breached (below) or approaching (within 1%): ST=Short-term Put, LT=Long-term Put, Q=Quarterly Put, MP=Max Pain, LE=Lower Ext, NW=NW Band">
+                  <span>Wall Status</span>
+                </Tooltip>
+              </TableCell>
               <TableCell align="right">
                 <TableSortLabel
                   active={sortField === 'percentile'}
@@ -472,6 +560,66 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
 
                 <TableCell>
                   {getBuySignalIcon(state)}
+                </TableCell>
+
+                {/* Wall Status Column */}
+                <TableCell>
+                  {(() => {
+                    const wallStatus = wallStatusMap.get(state.ticker);
+                    if (!wallStatus || !wallStatus.hasEngagement) {
+                      return (
+                        <Typography variant="body2" color="text.secondary">
+                          —
+                        </Typography>
+                      );
+                    }
+                    return (
+                      <Tooltip
+                        title={
+                          <Box>
+                            <Typography variant="caption" fontWeight="bold" sx={{ display: 'block', mb: 0.5 }}>
+                              Engaged Walls:
+                            </Typography>
+                            {wallStatus.engagedWalls.map((w, i) => (
+                              <Typography key={i} variant="caption" sx={{ display: 'block' }}>
+                                {w.name}: {w.status === 'breached' ? 'BREACHED' : 'Approaching'} ({w.distance.toFixed(2)}%)
+                              </Typography>
+                            ))}
+                          </Box>
+                        }
+                      >
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 0.5,
+                            maxWidth: 180,
+                          }}
+                        >
+                          {wallStatus.engagedWalls.slice(0, 3).map((w, i) => (
+                            <Chip
+                              key={i}
+                              label={`${w.shortName}${w.distance < 0 ? '' : '+'}${w.distance.toFixed(1)}%`}
+                              size="small"
+                              sx={{
+                                height: 20,
+                                fontSize: '0.7rem',
+                                backgroundColor: w.status === 'breached' ? `${w.color}40` : `${w.color}20`,
+                                color: w.color,
+                                border: w.status === 'breached' ? `1px solid ${w.color}` : 'none',
+                                fontWeight: w.status === 'breached' ? 'bold' : 'normal',
+                              }}
+                            />
+                          ))}
+                          {wallStatus.engagedWalls.length > 3 && (
+                            <Typography variant="caption" color="text.secondary">
+                              +{wallStatus.engagedWalls.length - 3}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Tooltip>
+                    );
+                  })()}
                 </TableCell>
 
                 <TableCell align="right">
