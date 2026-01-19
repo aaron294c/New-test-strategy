@@ -21,7 +21,10 @@ _YAHOO_ALIASES: dict[str, str] = {
     "FTSE": "^FTSE",
     # London Stock Exchange (Yahoo suffix: .L)
     "CNX1": "CNX1.L",
+    "CSP1": "CSP1.L",
     "IGLS": "IGLS.L",
+    # Crypto
+    "BTCUSD": "BTC-USD",
     # Currency Pairs (FX)
     "USDGBP": "USDGBP=X",
     # Treasury Yields

@@ -240,6 +240,51 @@ def _is_cache_valid(cache: Dict | None, cache_timestamp: datetime | None, ttl_se
     return (datetime.now(timezone.utc) - cache_timestamp).total_seconds() < ttl_seconds
 
 
+def clean_price_spikes(data: pd.DataFrame, max_daily_change_pct: float = 15.0) -> pd.DataFrame:
+    """
+    Remove data points with suspicious price spikes (likely bad data from Yahoo Finance).
+
+    Detects single-day moves > max_daily_change_pct that reverse the next day,
+    which are typically data errors rather than real price movements.
+
+    Args:
+        data: DataFrame with OHLCV data
+        max_daily_change_pct: Maximum allowed single-day change (default 15%)
+
+    Returns:
+        Cleaned DataFrame with spike rows removed
+    """
+    if data.empty or 'Close' not in data.columns:
+        return data
+
+    df = data.copy()
+
+    # Calculate daily returns
+    daily_returns = df['Close'].pct_change() * 100
+
+    # Identify suspicious spikes: large move followed by reversal
+    # A spike is when: |day_return| > threshold AND next_day reverses significantly
+    spikes_to_remove = []
+
+    for i in range(1, len(df) - 1):
+        current_return = daily_returns.iloc[i]
+        next_return = daily_returns.iloc[i + 1] if i + 1 < len(daily_returns) else 0
+
+        # Check for spike pattern: large move that reverses
+        if abs(current_return) > max_daily_change_pct:
+            # Check if next day reverses (opposite sign and significant)
+            if (current_return > 0 and next_return < -max_daily_change_pct * 0.5) or \
+               (current_return < 0 and next_return > max_daily_change_pct * 0.5):
+                spikes_to_remove.append(df.index[i])
+                print(f"  ⚠️  Removing spike on {df.index[i].date()}: {current_return:.1f}% change (bad data)")
+
+    if spikes_to_remove:
+        df = df.drop(spikes_to_remove)
+        print(f"  Cleaned {len(spikes_to_remove)} suspicious data points")
+
+    return df
+
+
 def fetch_daily_batch(tickers: List[str], period: str = "2y") -> Dict[str, pd.DataFrame]:
     """
     Batch-fetch daily OHLCV for multiple tickers using a single yfinance.download call.
@@ -288,6 +333,8 @@ def fetch_daily_batch(tickers: List[str], period: str = "2y") -> Dict[str, pd.Da
             required_columns = {"Open", "High", "Low", "Close"}
             if required_columns.issubset(frame.columns):
                 frame = frame.dropna(subset=["Close"])
+                # Clean suspicious price spikes (bad data from Yahoo Finance)
+                frame = clean_price_spikes(frame, max_daily_change_pct=15.0)
             else:
                 frame = pd.DataFrame()
 
@@ -776,7 +823,7 @@ async def get_swing_framework_data():
     """
 
     # Include both stocks and market indices
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
     results = {}
 
     bin_data_map = {
@@ -1173,7 +1220,7 @@ async def get_current_market_state(
             return dict(_current_state_cache)
         # NOTE: Keep the expensive work inside the lock to prevent a cache stampede
         # (e.g., current-state and current-state-enriched arriving concurrently).
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
 
         # Get cached cohort stats (fast when loaded from snapshot or in-memory cache).
         #
@@ -1406,7 +1453,7 @@ async def get_current_market_state_4h(
             _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
         ):
             return dict(_current_state_4h_cache)
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
         current_states = []
 
         print("Fetching 4H current percentiles...")
@@ -1626,7 +1673,7 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
         from multi_timeframe_analyzer import MultiTimeframeAnalyzer
         from percentile_threshold_analyzer import PercentileThresholdAnalyzer
 
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
 
         # First get base market state and 4H market state (run concurrently)
         base_response, four_h_response = await asyncio.gather(
@@ -1660,6 +1707,7 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
                     'AAPL': 24.3, 'MSFT': 22.1, 'NVDA': 31.5, 'GOOGL': 28.4,
                     'TSLA': 35.2, 'NFLX': 26.8, 'AMZN': 29.7, 'BRK-B': 18.9,
                     'AVGO': 25.6, 'SPY': 19.2, 'QQQ': 27.3, 'CNX1': 21.4,
+                    'CSP1': 20.5, 'BTCUSD': 38.0,  # New tickers
                     'VIX': 33.5, 'IGLS': 23.8,
                     # Energy sector
                     'XOM': 26.75, 'CVX': 24.06, 'OXY': 26.95,
@@ -1682,6 +1730,7 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
                     'AAPL': 36.8, 'MSFT': 33.9, 'NVDA': 47.3, 'GOOGL': 36.8,
                     'TSLA': 52.1, 'NFLX': 40.2, 'AMZN': 44.5, 'BRK-B': 28.1,
                     'AVGO': 38.4, 'SPY': 28.6, 'QQQ': 40.9, 'CNX1': 32.1,
+                    'CSP1': 30.5, 'BTCUSD': 55.0,  # New tickers
                     'VIX': 49.2, 'IGLS': 35.6,
                     # Energy sector
                     'XOM': 35.16, 'CVX': 34.95, 'OXY': 38.55,
