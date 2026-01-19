@@ -25,6 +25,9 @@ _YAHOO_ALIASES: dict[str, str] = {
     "IGLS": "IGLS.L",
     # Crypto
     "BTCUSD": "BTC-USD",
+    # Futures
+    "ES1": "ES=F",  # E-mini S&P 500 Futures
+    "NQ1": "NQ=F",  # E-mini Nasdaq 100 Futures
     # Currency Pairs (FX)
     "USDGBP": "USDGBP=X",
     # Treasury Yields

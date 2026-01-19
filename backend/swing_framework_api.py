@@ -823,7 +823,7 @@ async def get_swing_framework_data():
     """
 
     # Include both stocks and market indices
-    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
+    tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "ES1", "NQ1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
     results = {}
 
     bin_data_map = {
@@ -1220,7 +1220,7 @@ async def get_current_market_state(
             return dict(_current_state_cache)
         # NOTE: Keep the expensive work inside the lock to prevent a cache stampede
         # (e.g., current-state and current-state-enriched arriving concurrently).
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "ES1", "NQ1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
 
         # Get cached cohort stats (fast when loaded from snapshot or in-memory cache).
         #
@@ -1453,7 +1453,7 @@ async def get_current_market_state_4h(
             _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
         ):
             return dict(_current_state_4h_cache)
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "ES1", "NQ1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
         current_states = []
 
         print("Fetching 4H current percentiles...")
@@ -1673,7 +1673,7 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
         from multi_timeframe_analyzer import MultiTimeframeAnalyzer
         from percentile_threshold_analyzer import PercentileThresholdAnalyzer
 
-        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "ES1", "NQ1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
 
         # First get base market state and 4H market state (run concurrently)
         base_response, four_h_response = await asyncio.gather(
@@ -1707,7 +1707,8 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
                     'AAPL': 24.3, 'MSFT': 22.1, 'NVDA': 31.5, 'GOOGL': 28.4,
                     'TSLA': 35.2, 'NFLX': 26.8, 'AMZN': 29.7, 'BRK-B': 18.9,
                     'AVGO': 25.6, 'SPY': 19.2, 'QQQ': 27.3, 'CNX1': 21.4,
-                    'CSP1': 20.5, 'BTCUSD': 38.0,  # New tickers
+                    'CSP1': 20.5, 'BTCUSD': 38.0,  # LSE & Crypto
+                    'ES1': 19.5, 'NQ1': 27.5,  # Futures
                     'VIX': 33.5, 'IGLS': 23.8,
                     # Energy sector
                     'XOM': 26.75, 'CVX': 24.06, 'OXY': 26.95,
@@ -1730,7 +1731,8 @@ async def get_current_market_state_enriched(force_refresh: bool = False):
                     'AAPL': 36.8, 'MSFT': 33.9, 'NVDA': 47.3, 'GOOGL': 36.8,
                     'TSLA': 52.1, 'NFLX': 40.2, 'AMZN': 44.5, 'BRK-B': 28.1,
                     'AVGO': 38.4, 'SPY': 28.6, 'QQQ': 40.9, 'CNX1': 32.1,
-                    'CSP1': 30.5, 'BTCUSD': 55.0,  # New tickers
+                    'CSP1': 30.5, 'BTCUSD': 55.0,  # LSE & Crypto
+                    'ES1': 29.0, 'NQ1': 41.0,  # Futures
                     'VIX': 49.2, 'IGLS': 35.6,
                     # Energy sector
                     'XOM': 35.16, 'CVX': 34.95, 'OXY': 38.55,

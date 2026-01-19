@@ -810,13 +810,74 @@
       "change_since_prev_midday": null,
       "prev_midday_price": null,
       "price_change_pct": null
+    },
+    {
+      "ticker": "ES1",
+      "name": "E-mini S&P 500 Futures",
+      "current_date": "2026-01-19",
+      "current_price": 6901.0,
+      "current_percentile": 7.41,
+      "percentile_cohort": "low",
+      "zone_label": "5-15th percentile (Low)",
+      "in_entry_zone": true,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "Medium",
+      "live_expectancy": {
+        "expected_win_rate": 0.7105263157894737,
+        "expected_return_pct": 0.4987654321098765,
+        "expected_holding_days": 5.565789473684211,
+        "expected_return_per_day_pct": 0.089621456789012,
+        "risk_adjusted_expectancy_pct": 0.354357654321098,
+        "sample_size": 76
+      },
+      "last_extreme_low_date": "2025-12-15",
+      "prev_midday_percentile": null,
+      "change_since_prev_midday": null,
+      "prev_midday_price": null,
+      "price_change_pct": null
+    },
+    {
+      "ticker": "NQ1",
+      "name": "E-mini Nasdaq 100 Futures",
+      "current_date": "2026-01-19",
+      "current_price": 25321.75,
+      "current_percentile": 10.22,
+      "percentile_cohort": "low",
+      "zone_label": "5-15th percentile (Low)",
+      "in_entry_zone": true,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": true,
+      "volatility_level": "Medium-High",
+      "live_expectancy": {
+        "expected_win_rate": 0.6805555555555556,
+        "expected_return_pct": 0.5876543210987654,
+        "expected_holding_days": 5.472222222222222,
+        "expected_return_per_day_pct": 0.107396543210987,
+        "risk_adjusted_expectancy_pct": 0.399893654321098,
+        "sample_size": 72
+      },
+      "last_extreme_low_date": "2025-12-18",
+      "prev_midday_percentile": null,
+      "change_since_prev_midday": null,
+      "prev_midday_price": null,
+      "price_change_pct": null
     }
   ],
   "summary": {
+<<<<<<< HEAD
     "total_tickers": 30,
     "in_entry_zone": 4,
     "extreme_low_opportunities": 1,
     "low_opportunities": 3
+=======
+    "total_tickers": 32,
+    "in_entry_zone": 8,
+    "extreme_low_opportunities": 1,
+    "low_opportunities": 7
+>>>>>>> 350f877 (ytyy)
   },
   "prev_midday_snapshot": {
     "market_date": "2026-01-16",
