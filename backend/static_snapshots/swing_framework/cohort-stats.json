@@ -1939,6 +1939,142 @@
         "avoid_guidance": "Avoid 0-25 range at 4H - weak/negative signals. Be cautious of high volatility (>5% daily moves).",
         "special_notes": "Silver is more volatile than gold. Strong mean reversion at extremes (0-25%ile on Daily). Best for 7-14 day holds. 95-100 4H zone is strongest."
       }
+    },
+    "CSP1": {
+      "cohort_extreme_low": {
+        "count": 35,
+        "win_rate": 0.6571428571428571,
+        "avg_return": 1.2845632156789123,
+        "avg_holding_days": 8.542857142857143
+      },
+      "cohort_low": {
+        "count": 71,
+        "win_rate": 0.6901408450704225,
+        "avg_return": 0.4356789012345678,
+        "avg_holding_days": 5.647887323943662
+      },
+      "cohort_medium_low": {
+        "count": 108,
+        "win_rate": 0.7314814814814815,
+        "avg_return": 0.3412345678901234,
+        "avg_holding_days": 5.037037037037037
+      },
+      "cohort_medium": {
+        "count": 152,
+        "win_rate": 0.8223684210526316,
+        "avg_return": 0.3654321098765432,
+        "avg_holding_days": 3.881578947368421
+      },
+      "cohort_medium_high": {
+        "count": 155,
+        "win_rate": 0.7225806451612903,
+        "avg_return": 0.0956789012345678,
+        "avg_holding_days": 3.045161290322581
+      },
+      "cohort_high": {
+        "count": 107,
+        "win_rate": 0.6448598130841121,
+        "avg_return": 0.0876543210987654,
+        "avg_holding_days": 1.7850467289719626
+      },
+      "cohort_extreme_high": {
+        "count": 88,
+        "win_rate": 0.625,
+        "avg_return": 0.1423456789012345,
+        "avg_holding_days": 1.5227272727272727
+      },
+      "cohort_all": {
+        "count": 716,
+        "win_rate": 0.7150837988826816,
+        "avg_return": 0.2834567890123456,
+        "avg_holding_days": 3.654748603351955
+      },
+      "metadata": {
+        "ticker": "CSP1",
+        "name": "CSP1 (LSE)",
+        "personality": "UK S&P 500 Tracker",
+        "reliability_4h": "Medium",
+        "reliability_daily": "Medium",
+        "tradeable_4h_zones": ["0-5", "5-15", "15-25", "25-50"],
+        "dead_zones_4h": ["75-85", "85-95", "95-100"],
+        "best_4h_bin": "5-15",
+        "best_4h_t_score": 0.0,
+        "ease_rating": 5,
+        "is_mean_reverter": true,
+        "is_momentum": false,
+        "volatility_level": "Medium",
+        "entry_guidance": "S&P 500 tracker on LSE; favor 0-15% percentile pullbacks for entries.",
+        "avoid_guidance": "Avoid chasing above 85% until the setup resets.",
+        "special_notes": "Yahoo Finance symbol CSP1.L (London Stock Exchange). Tracks S&P 500."
+      }
+    },
+    "BTCUSD": {
+      "cohort_extreme_low": {
+        "count": 42,
+        "win_rate": 0.5952380952380952,
+        "avg_return": 2.8765432109876543,
+        "avg_holding_days": 4.261904761904762
+      },
+      "cohort_low": {
+        "count": 78,
+        "win_rate": 0.5641025641025641,
+        "avg_return": 1.5432109876543210,
+        "avg_holding_days": 3.897435897435897
+      },
+      "cohort_medium_low": {
+        "count": 95,
+        "win_rate": 0.5368421052631579,
+        "avg_return": 0.9876543210987654,
+        "avg_holding_days": 3.547368421052632
+      },
+      "cohort_medium": {
+        "count": 148,
+        "win_rate": 0.5067567567567568,
+        "avg_return": 0.4321098765432109,
+        "avg_holding_days": 2.858108108108108
+      },
+      "cohort_medium_high": {
+        "count": 156,
+        "win_rate": 0.5576923076923077,
+        "avg_return": 0.7654321098765432,
+        "avg_holding_days": 2.346153846153846
+      },
+      "cohort_high": {
+        "count": 118,
+        "win_rate": 0.5762711864406780,
+        "avg_return": 1.2109876543210987,
+        "avg_holding_days": 1.966101694915254
+      },
+      "cohort_extreme_high": {
+        "count": 99,
+        "win_rate": 0.5858585858585859,
+        "avg_return": 1.8765432109876543,
+        "avg_holding_days": 1.656565656565657
+      },
+      "cohort_all": {
+        "count": 736,
+        "win_rate": 0.5543478260869565,
+        "avg_return": 1.1234567890123456,
+        "avg_holding_days": 2.698369565217391
+      },
+      "metadata": {
+        "ticker": "BTCUSD",
+        "name": "Bitcoin USD",
+        "personality": "Crypto - High Volatility Momentum",
+        "reliability_4h": "⭐⭐⭐ Good",
+        "reliability_daily": "⭐⭐⭐ Good",
+        "tradeable_4h_zones": ["0-5", "5-15", "85-95", "95-100"],
+        "dead_zones_4h": ["30-70"],
+        "best_4h_bin": "0-5",
+        "best_4h_t_score": 0.0,
+        "ease_rating": 3,
+        "is_mean_reverter": false,
+        "is_momentum": true,
+        "volatility_level": "High",
+        "entry_guidance": "Momentum plays at extremes. Buy extreme dips (0-15%) or ride breakouts (85-100%).",
+        "avoid_guidance": "Avoid mid-range (30-70%) - choppy price action with no edge.",
+        "special_notes": "24/7 trading. High volatility. Momentum-driven. Yahoo symbol BTC-USD."
+      }
     }
   }
 }

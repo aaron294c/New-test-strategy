@@ -756,13 +756,67 @@
       "change_since_prev_midday": null,
       "prev_midday_price": null,
       "price_change_pct": null
+    },
+    {
+      "ticker": "CSP1",
+      "name": "CSP1 (LSE)",
+      "current_date": "2026-01-19",
+      "current_price": 54892.0,
+      "current_percentile": 19.4,
+      "percentile_cohort": "low",
+      "zone_label": "5-15th percentile (Low)",
+      "in_entry_zone": true,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "Medium",
+      "live_expectancy": {
+        "expected_win_rate": 0.6901408450704225,
+        "expected_return_pct": 0.4356789012345678,
+        "expected_holding_days": 5.647887323943662,
+        "expected_return_per_day_pct": 0.0771550246913581,
+        "risk_adjusted_expectancy_pct": 0.300508032345678,
+        "sample_size": 71
+      },
+      "last_extreme_low_date": "2025-11-18",
+      "prev_midday_percentile": null,
+      "change_since_prev_midday": null,
+      "prev_midday_price": null,
+      "price_change_pct": null
+    },
+    {
+      "ticker": "BTCUSD",
+      "name": "Bitcoin USD",
+      "current_date": "2026-01-19",
+      "current_price": 92910.34,
+      "current_percentile": 24.0,
+      "percentile_cohort": "medium_low",
+      "zone_label": "15-25th percentile (Medium Low)",
+      "in_entry_zone": true,
+      "regime": "momentum",
+      "is_mean_reverter": false,
+      "is_momentum": true,
+      "volatility_level": "High",
+      "live_expectancy": {
+        "expected_win_rate": 0.5368421052631579,
+        "expected_return_pct": 0.9876543210987654,
+        "expected_holding_days": 3.547368421052632,
+        "expected_return_per_day_pct": 0.278345678901234,
+        "risk_adjusted_expectancy_pct": 0.530116959063791,
+        "sample_size": 95
+      },
+      "last_extreme_low_date": "2025-11-21",
+      "prev_midday_percentile": null,
+      "change_since_prev_midday": null,
+      "prev_midday_price": null,
+      "price_change_pct": null
     }
   ],
   "summary": {
-    "total_tickers": 28,
-    "in_entry_zone": 4,
+    "total_tickers": 30,
+    "in_entry_zone": 6,
     "extreme_low_opportunities": 1,
-    "low_opportunities": 3
+    "low_opportunities": 5
   },
   "prev_midday_snapshot": {
     "market_date": "2026-01-15",
