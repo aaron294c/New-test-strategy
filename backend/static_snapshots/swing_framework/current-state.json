@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-19T18:13:56.133662+00:00",
+  "timestamp": "2026-01-19T21:02:01.705802+00:00",
   "market_state": [
     {
       "ticker": "IGLS",
@@ -329,8 +329,8 @@
       "ticker": "BTCUSD",
       "name": "Bitcoin USD",
       "current_date": "2026-01-19",
-      "current_price": 93134.109375,
-      "current_percentile": 28.256513026052104,
+      "current_price": 93077.25,
+      "current_percentile": 27.054108216432866,
       "percentile_cohort": "medium_low",
       "zone_label": "15-30th percentile (Medium Low)",
       "in_entry_zone": false,
@@ -626,8 +626,8 @@
       "ticker": "USDGBP",
       "name": "USD/GBP Currency Pair",
       "current_date": "2026-01-19",
-      "current_price": 0.7444900274276733,
-      "current_percentile": 65.33066132264528,
+      "current_price": 0.7446900010108948,
+      "current_percentile": 66.73346693386773,
       "percentile_cohort": "medium_high",
       "zone_label": "50-70th percentile (Medium High)",
       "in_entry_zone": false,

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-19T18:14:10.730756+00:00",
+  "timestamp": "2026-01-19T21:02:16.573740+00:00",
   "timeframe": "4h",
   "market_state": [
     {
@@ -49,33 +49,6 @@
         "expected_return_per_day_pct": 0.2437854870021651,
         "risk_adjusted_expectancy_pct": 0.30521556011580586,
         "sample_size": 56
-      },
-      "data_source": "4h",
-      "prev_midday_percentile": null,
-      "change_since_prev_midday": null,
-      "prev_midday_price": null,
-      "price_change_pct": null
-    },
-    {
-      "ticker": "USDGBP",
-      "name": "USD/GBP Currency Pair",
-      "current_date": "2026-01-19 16:00",
-      "current_price": 0.7444900274276733,
-      "current_percentile": 5.577689243027888,
-      "percentile_cohort": "low",
-      "zone_label": "5-15th percentile (Low)",
-      "in_entry_zone": true,
-      "regime": "mean_reversion",
-      "is_mean_reverter": true,
-      "is_momentum": false,
-      "volatility_level": "Low",
-      "live_expectancy": {
-        "expected_win_rate": 0.5409836065573771,
-        "expected_return_pct": -0.044900304000562906,
-        "expected_holding_days": 1.6147540983606563,
-        "expected_return_per_day_pct": -0.027806279634866357,
-        "risk_adjusted_expectancy_pct": -0.044900304000562906,
-        "sample_size": 122
       },
       "data_source": "4h",
       "prev_midday_percentile": null,
@@ -165,6 +138,33 @@
       "price_change_pct": null
     },
     {
+      "ticker": "USDGBP",
+      "name": "USD/GBP Currency Pair",
+      "current_date": "2026-01-19 20:00",
+      "current_price": 0.7446900010108948,
+      "current_percentile": 13.94422310756972,
+      "percentile_cohort": "low",
+      "zone_label": "5-15th percentile (Low)",
+      "in_entry_zone": true,
+      "regime": "mean_reversion",
+      "is_mean_reverter": true,
+      "is_momentum": false,
+      "volatility_level": "Low",
+      "live_expectancy": {
+        "expected_win_rate": 0.5409836065573771,
+        "expected_return_pct": -0.044900304000562906,
+        "expected_holding_days": 1.6147540983606563,
+        "expected_return_per_day_pct": -0.027806279634866357,
+        "risk_adjusted_expectancy_pct": -0.044900304000562906,
+        "sample_size": 122
+      },
+      "data_source": "4h",
+      "prev_midday_percentile": null,
+      "change_since_prev_midday": null,
+      "prev_midday_price": null,
+      "price_change_pct": null
+    },
+    {
       "ticker": "IGLS",
       "name": "IGLS (London)",
       "current_date": "2026-01-19 16:00",
@@ -192,33 +192,6 @@
       "price_change_pct": null
     },
     {
-      "ticker": "BTCUSD",
-      "name": "Bitcoin USD",
-      "current_date": "2026-01-19 16:00",
-      "current_price": 93134.109375,
-      "current_percentile": 17.52988047808765,
-      "percentile_cohort": "medium_low",
-      "zone_label": "15-30th percentile (Medium Low)",
-      "in_entry_zone": false,
-      "regime": "momentum",
-      "is_mean_reverter": false,
-      "is_momentum": true,
-      "volatility_level": "High",
-      "live_expectancy": {
-        "expected_win_rate": 0.6423611111111112,
-        "expected_return_pct": -0.05198304899951576,
-        "expected_holding_days": 0.7945601851851849,
-        "expected_return_per_day_pct": -0.06542367710936872,
-        "risk_adjusted_expectancy_pct": -0.02599152449975788,
-        "sample_size": 288
-      },
-      "data_source": "4h",
-      "prev_midday_percentile": null,
-      "change_since_prev_midday": null,
-      "prev_midday_price": null,
-      "price_change_pct": null
-    },
-    {
       "ticker": "UNH",
       "name": "UnitedHealth Group Inc.",
       "current_date": "2026-01-16 12:00",
@@ -238,6 +211,33 @@
         "expected_return_per_day_pct": 0.43061619757989156,
         "risk_adjusted_expectancy_pct": 0.6847993697624667,
         "sample_size": 48
+      },
+      "data_source": "4h",
+      "prev_midday_percentile": null,
+      "change_since_prev_midday": null,
+      "prev_midday_price": null,
+      "price_change_pct": null
+    },
+    {
+      "ticker": "BTCUSD",
+      "name": "Bitcoin USD",
+      "current_date": "2026-01-19 20:00",
+      "current_price": 93077.25,
+      "current_percentile": 23.107569721115535,
+      "percentile_cohort": "medium_low",
+      "zone_label": "15-30th percentile (Medium Low)",
+      "in_entry_zone": false,
+      "regime": "momentum",
+      "is_mean_reverter": false,
+      "is_momentum": true,
+      "volatility_level": "High",
+      "live_expectancy": {
+        "expected_win_rate": 0.6445993031358885,
+        "expected_return_pct": -0.04412249349365483,
+        "expected_holding_days": 0.7967479674796746,
+        "expected_return_per_day_pct": -0.05537823162979128,
+        "risk_adjusted_expectancy_pct": -0.022061246746827416,
+        "sample_size": 287
       },
       "data_source": "4h",
       "prev_midday_percentile": null,
