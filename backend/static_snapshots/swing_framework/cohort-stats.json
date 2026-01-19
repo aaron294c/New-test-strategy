@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-01-19T14:42:41.244536+00:00",
+  "timestamp": "2026-01-19T18:14:10.733528+00:00",
   "cohort_stats": {
     "SPY": {
       "cohort_extreme_low": {
@@ -2096,7 +2096,7 @@
       "cohort_extreme_low": {
         "count": 38,
         "win_rate": 0.6842105263157895,
-        "avg_return": 1.4523456789012345,
+        "avg_return": 1.4523456789012346,
         "avg_holding_days": 7.921052631578948
       },
       "cohort_low": {
@@ -2145,17 +2145,26 @@
         "ticker": "ES1",
         "name": "E-mini S&P 500 Futures",
         "personality": "S&P 500 Futures - Mean Reverter",
-        "reliability_4h": "⭐⭐⭐⭐ Very Good",
-        "reliability_daily": "⭐⭐⭐⭐⭐ Excellent",
-        "tradeable_4h_zones": ["0-5", "5-15", "15-25", "25-50"],
-        "dead_zones_4h": ["75-85", "85-95", "95-100"],
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-5",
+          "5-15",
+          "15-25",
+          "25-50"
+        ],
+        "dead_zones_4h": [
+          "75-85",
+          "85-95",
+          "95-100"
+        ],
         "best_4h_bin": "0-5",
         "best_4h_t_score": 2.8,
         "ease_rating": 6,
         "is_mean_reverter": true,
         "is_momentum": false,
         "volatility_level": "Medium",
-        "entry_guidance": "Buy dips at ≤15% percentile. Futures track SPY closely with leverage. Good for mean reversion.",
+        "entry_guidance": "Buy dips at \u226415% percentile. Futures track SPY closely with leverage. Good for mean reversion.",
         "avoid_guidance": "Avoid entering above 75% - mean reversion weakens at highs.",
         "special_notes": "E-mini S&P 500 futures (ES=F). Nearly 24/5 trading. High liquidity. Tracks SPY."
       }
@@ -2164,7 +2173,7 @@
       "cohort_extreme_low": {
         "count": 40,
         "win_rate": 0.6500000000000001,
-        "avg_return": 1.6234567890123456,
+        "avg_return": 1.6234567890123457,
         "avg_holding_days": 6.325
       },
       "cohort_low": {
@@ -2195,13 +2204,13 @@
         "count": 110,
         "win_rate": 0.6909090909090909,
         "avg_return": 0.3456789012345678,
-        "avg_holding_days": 1.6636363636363637
+        "avg_holding_days": 1.6636363636363638
       },
       "cohort_extreme_high": {
         "count": 86,
         "win_rate": 0.5697674418604651,
         "avg_return": 0.1234567890123456,
-        "avg_holding_days": 1.4186046511627907
+        "avg_holding_days": 1.4186046511627908
       },
       "cohort_all": {
         "count": 736,
@@ -2213,17 +2222,26 @@
         "ticker": "NQ1",
         "name": "E-mini Nasdaq 100 Futures",
         "personality": "Nasdaq 100 Futures - Tech Momentum",
-        "reliability_4h": "⭐⭐⭐⭐ Very Good",
-        "reliability_daily": "⭐⭐⭐⭐⭐ Excellent",
-        "tradeable_4h_zones": ["0-5", "5-15", "15-25", "25-50", "50-75"],
-        "dead_zones_4h": ["85-95", "95-100"],
+        "reliability_4h": "\u2b50\u2b50\u2b50\u2b50 Very Good",
+        "reliability_daily": "\u2b50\u2b50\u2b50\u2b50\u2b50 Excellent",
+        "tradeable_4h_zones": [
+          "0-5",
+          "5-15",
+          "15-25",
+          "25-50",
+          "50-75"
+        ],
+        "dead_zones_4h": [
+          "85-95",
+          "95-100"
+        ],
         "best_4h_bin": "0-5",
         "best_4h_t_score": 3.1,
         "ease_rating": 5,
         "is_mean_reverter": true,
         "is_momentum": true,
         "volatility_level": "Medium-High",
-        "entry_guidance": "Buy dips at ≤15% percentile. More volatile than ES. Can ride momentum above 50%.",
+        "entry_guidance": "Buy dips at \u226415% percentile. More volatile than ES. Can ride momentum above 50%.",
         "avoid_guidance": "Avoid entering above 85% without strong momentum confirmation.",
         "special_notes": "E-mini Nasdaq 100 futures (NQ=F). Nearly 24/5 trading. Tech-heavy, higher beta than ES."
       }
