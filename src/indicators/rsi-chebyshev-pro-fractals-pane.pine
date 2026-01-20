@@ -1,0 +1,585 @@
+//@version=6
+// =================================================================
+// RSI Chebyshev Pro with Goldilocks Fractals - Non-Repaint (Pane)
+// =================================================================
+// © 2025 NPR21 (TradingView: @NPR21)
+// All Rights Reserved
+//
+// Original ChartPrime RSI Chebyshev indicator converted to
+// Pine Script and enhanced by NPR21
+//
+// NPR21 ENHANCEMENTS:
+//
+// • Converted ChartPrime RSI Chebyshev to Pine Script v6 for TradingView
+// • Added Goldilocks Fractals for RSI pivot detection at extreme levels
+// • Implemented 100% non-repainting logic - signals delayed but locked forever
+// • Added BUY/SELL labels with full customization (colors, sizes, offsets)
+// • Integrated candlestick patterns (Engulfing, Morning/Evening Star) for confluence
+// • Multiple display styles (Candle Trend with hollow/solid differentiation)
+// • Comprehensive alert system for all signal types
+// • Visual enhancements: vertical lines, diamonds, arrows for quick scanning
+// • Optimized for reliable backtesting - history matches live results
+// • NEW: Early signal option (1 bar earlier firing)
+//
+// =================================================================
+// UNDERSTANDING "SIGNAL DELAY" VS "REPAINTING"
+// =================================================================
+//
+// ✅ THIS INDICATOR HAS SIGNAL DELAY (GOOD) NOT REPAINTING (BAD)
+//
+// SIGNAL DELAY means:
+// ✅ Signals appear after N bars (N = Fractal Periods, default 5)
+// ✅ Once a signal appears, it NEVER disappears or moves
+// ✅ Perfect for backtesting - signals are 100% reliable
+// ✅ You can trust every signal - permanently locked in
+//
+// REPAINTING would mean:
+// ❌ Signal appears, then later disappears
+// ❌ Signal moves from one location to another
+// ❌ Backtesting shows different results than live trading
+// ❌ Cannot be trusted for algorithmic trading
+//
+// EARLY SIGNAL OPTION:
+// When enabled, signals fire 1 bar earlier than normal.
+// This reduces the confirmation period but maintains non-repainting.
+// Use with caution - fewer confirmation bars may produce more false signals.
+//
+// =================================================================
+
+indicator("RSI Chebyshev Pro with Goldilocks Fractals - NR [NPR21]",
+     shorttitle="RSI Cheby Pro NR",
+     overlay=false,
+     max_labels_count=500)
+
+// =================================================================
+// Input Parameters - RSI
+// =================================================================
+colorBars = input.bool(false, "Color Bars",
+                      group="RSI Settings")
+
+styleChoice = input.string("Candle Trend", "Style",
+                options=["Candle", "Candle Trend"],
+                group="RSI Settings")
+
+colorRsiLine = input.bool(false, "Color RSI Line",
+                         group="RSI Settings")
+
+rsiLineWidth = input.int(2, "RSI Line Width",
+                         minval=1, maxval=10,
+                         group="RSI Settings")
+
+length = input.int(24, "Length",
+                  minval=1,
+                  group="RSI Settings")
+
+smoothing = input.int(3, "Smoothing",
+                     minval=1,
+                     group="RSI Settings")
+
+autoMovAvg = input.bool(true, "Auto MA",
+                       group="RSI Settings")
+
+movAvgMultiplier = input.int(1, "MA Multiplier",
+                            minval=1,
+                            group="RSI Settings")
+
+maLineWidth = input.int(2, "MA Line Width",
+                        minval=1, maxval=10,
+                        group="RSI Settings")
+
+// =================================================================
+// Input Parameters - Goldilocks Fractals
+// =================================================================
+n = input.int(title="Fractal Periods (n)",
+             defval=5, minval=2,
+             group="Fractals")
+
+showLabels = input.bool(title="Show BUY/SELL Labels",
+                       defval=true,
+                       group="Fractals")
+
+showShapes = input.bool(title="Show Fractal Shapes",
+                       defval=false,
+                       group="Fractals")
+
+buyOffsetTicks = input.int(title="BUY offset (ticks)",
+                          defval=8, minval=0,
+                          group="Fractals")
+
+sellOffsetTicks = input.int(title="SELL offset (ticks)",
+                           defval=8, minval=0,
+                           group="Fractals")
+
+buyLabelBgColor = input.color(title="BUY label background",
+                             defval=#2962FF,
+                             group="Fractals")
+
+sellLabelBgColor = input.color(title="SELL label background",
+                              defval=#DD0000,
+                              group="Fractals")
+
+buyTextColor = input.color(title="BUY text color",
+                          defval=color.white,
+                          group="Fractals")
+
+sellTextColor = input.color(title="SELL text color",
+                           defval=#FFFF00,
+                           group="Fractals")
+
+labelSizeOpt = input.string(title="Label size",
+                           defval="normal",
+                           options=["tiny","small","normal",
+                                    "large","huge"],
+                           group="Fractals")
+
+// =================================================================
+// NEW: Early Signal Option
+// =================================================================
+enableEarlySignal = input.bool(false, "Enable Early Signal (1 Bar Earlier)",
+                               tooltip="Fire fractal signals 1 bar earlier. Reduces confirmation but maintains non-repainting. Use with caution.",
+                               group="Fractals")
+
+lblSize = switch labelSizeOpt
+    "tiny" => size.tiny
+    "small" => size.small
+    "normal" => size.normal
+    "large" => size.large
+    => size.huge
+
+// Calculate effective fractal period based on early signal setting
+int effectiveN = enableEarlySignal ? math.max(2, n - 1) : n
+
+// =================================================================
+// Helper Functions
+// =================================================================
+
+mamaPeriod(float src, float dynLow, float dynHigh) =>
+    var float period = 0.0
+    float C1 = 0.0962
+    float C2 = 0.5769
+    float C3 = 0.075 * nz(period[1]) + 0.54
+    float smooth = (4 * src + 3 * nz(src[1]) +
+                   2 * nz(src[2]) + nz(src[3])) / 10
+    float detrend = C3 * (C1 * smooth + C2 * nz(smooth[2]) -
+                   C2 * nz(smooth[4]) - C1 * nz(smooth[6]))
+
+    float Q1 = C3 * (C1 * detrend + C2 * nz(detrend[2]) -
+              C2 * nz(detrend[4]) - C1 * nz(detrend[6]))
+    float I1 = nz(detrend[3])
+
+    float jI = C3 * (C1 * I1 + C2 * nz(I1[2]) -
+              C2 * nz(I1[4]) - C1 * nz(I1[6]))
+    float jQ = C3 * (C1 * Q1 + C2 * nz(Q1[2]) -
+              C2 * nz(Q1[4]) - C1 * nz(Q1[6]))
+
+    float I2_temp = I1 - jQ
+    float Q2_temp = Q1 + jI
+
+    var float I2 = 0.0
+    var float Q2 = 0.0
+    I2 := 0.2 * I2_temp + 0.8 * nz(I2[1])
+    Q2 := 0.2 * Q2_temp + 0.8 * nz(Q2[1])
+
+    float Re_temp = I2 * nz(I2[1]) + Q2 * nz(Q2[1])
+    float Im_temp = I2 * nz(Q2[1]) - Q2 * nz(I2[1])
+    var float Re = 0.0
+    var float Im = 0.0
+    Re := 0.2 * Re_temp + 0.8 * nz(Re[1])
+    Im := 0.2 * Im_temp + 0.8 * nz(Im[1])
+
+    float period1 = Re != 0 and Im != 0 ?
+                   2 * math.pi / math.atan(Im/Re) : 0
+    float period2 = math.min(period1, 1.5 * nz(period[1]))
+    float period3 = math.max(period2, (2/3) * nz(period[1]))
+    float period4 = math.min(math.max(period3, dynLow), dynHigh)
+
+    period := period4 * 0.2 + nz(period[1]) * 0.8
+    period
+
+dma(float source) =>
+    var float ema1 = source
+    var float ema2 = source
+    var int count = 0
+
+    count += 1
+    ema1 := (1.0 - 2.0 / (count + 1)) * ema1 + 2.0 / (count + 1) * source
+    ema2 := (1.0 - 2.0 / (count + 1)) * ema2 + 2.0 / (count + 1) * ema1
+
+    2 * ema1 - ema2
+
+cosh(float x) => (math.exp(x) + math.exp(-x)) / 2
+sinh(float x) => (math.exp(x) - math.exp(-x)) / 2
+asinh(float x) => math.log(x + math.sqrt(x * x + 1))
+acosh(float x) => x < 1 ? 1 :
+                 math.log(x + math.sqrt(x * x - 1))
+
+chebyshevI(float src, float len, float ripple) =>
+    float alpha = 1 / len
+    float acoshRi = 1 / (1 - ripple)
+    float asinhRi = 1 / ripple
+    float acosh_val = acosh(acoshRi)
+    float asinh_val = asinh(asinhRi)
+    float a = cosh(alpha * acosh_val)
+    float b = sinh(alpha * asinh_val)
+    float g = (a - b) / (a + b)
+
+    var float chebyshev = src
+    chebyshev := (1 - g) * src + g * nz(chebyshev[1])
+    chebyshev
+
+ema_custom(float source) =>
+    var int count = 0
+    var float ema = source
+    count += 1
+    ema := (1 - 2 / (count + 1.0)) * ema +
+           2 / (count + 1) * source
+    ema
+
+getLength(float source, int harmonic) =>
+    float mama = mamaPeriod(source[1], 1, 2048)
+    int cycle = math.round(mama)
+    int cycles = na(cycle) ? 1 : cycle
+    int max_cycle = (cycles + 1) * harmonic
+    max_cycle
+
+customRSI(float source, int rsi_length, int rsi_smoothing) =>
+    float close_filtered = chebyshevI(source, rsi_smoothing, 0.5)
+    float change = close_filtered - nz(close_filtered[1])
+    float up = math.max(change, 0)
+    float down = -math.min(change, 0)
+    float up_filtered = chebyshevI(up, rsi_length, 0.5)
+    float down_filtered = chebyshevI(down, rsi_length, 0.5)
+    float rsi = down_filtered == 0 ? 100 :
+               100 - (100 / (1 + up_filtered / down_filtered))
+    rsi
+
+patterns(float o, float h, float l, float c,
+        float ohlc, float ma) =>
+    bool c_down_trend = ohlc < ma
+    bool c_up_trend = ohlc > ma
+    bool rsi_low = h < 40
+    bool rsi_high = l > 60
+
+    float c_body_hi = math.max(c, o)
+    float c_body_lo = math.min(c, o)
+    float c_body = c_body_hi - c_body_lo
+    float c_body_avg = dma(c_body)
+    float c_body_middle = c_body / 2 + c_body_lo
+
+    bool c_small_body = c_body < c_body_avg
+    bool c_long_body = c_body > c_body_avg
+    bool c_white_body = o < c
+    bool c_black_body = o > c
+
+    bool c_engulfing_bearish = c_up_trend and c_black_body and
+         c_long_body and c_white_body[1] and c_small_body[1] and
+         c <= o[1] and o >= c[1] and (c < o[1] or o > c[1]) and
+         rsi_high
+
+    bool c_engulfing_bullish = c_down_trend and c_white_body and
+         c_long_body and c_black_body[1] and c_small_body[1] and
+         c >= o[1] and o <= c[1] and (c > o[1] or o < c[1]) and
+         rsi_low
+
+    bool c_morning_star = false
+    bool c_evening_star = false
+
+    if c_long_body[2] and c_small_body[1] and c_long_body
+        c_morning_star := c_down_trend and c_black_body[2] and
+             c_white_body and c >= c_body_middle[2] and rsi_low
+
+        c_evening_star := c_up_trend and c_white_body[2] and
+             c_black_body and c <= c_body_middle[2] and rsi_high
+
+    [c_engulfing_bearish, c_engulfing_bullish,
+     c_morning_star, c_evening_star]
+
+// =================================================================
+// Main RSI Calculations - Using confirmed (closed) bars
+// =================================================================
+
+rsi_open = customRSI(open[1], length, smoothing)
+rsi_high = customRSI(high[1], length, smoothing)
+rsi_low = customRSI(low[1], length, smoothing)
+rsi_close = customRSI(close[1], length, smoothing)
+
+float OHLC = (rsi_close + rsi_open + rsi_high + rsi_low) / 4
+
+int ma_length = getLength(OHLC, movAvgMultiplier)
+float aema = chebyshevI(OHLC, ma_length, 0.05)
+
+[engulfing_bearish, engulfing_bullish,
+ morning_star_bullish, evening_star_bearish] =
+     patterns(rsi_open, rsi_high, rsi_low, rsi_close, OHLC, aema)
+
+// =================================================================
+// Goldilocks Fractals Logic - NON-REPAINTING VERSION
+// =================================================================
+// Fractals confirmed only after n bars have passed AFTER pivot
+// This means signals appear n bars delayed but will NEVER repaint
+// With early signal enabled, uses n-1 bars for faster (but still non-repaint) signals
+
+upPivot = ta.pivothigh(rsi_high, effectiveN, effectiveN)
+downPivot = ta.pivotlow(rsi_low, effectiveN, effectiveN)
+
+// Confirmed fractals - appeared n bars ago and now confirmed
+upFractal = not na(upPivot)
+downFractal = not na(downPivot)
+
+// Store confirmed fractal values for plotting
+var float confirmedUpFractal = na
+var float confirmedDownFractal = na
+var int confirmedUpBar = na
+var int confirmedDownBar = na
+
+if upFractal
+    confirmedUpFractal := rsi_high[effectiveN]
+    confirmedUpBar := bar_index - effectiveN
+
+if downFractal
+    confirmedDownFractal := rsi_low[effectiveN]
+    confirmedDownBar := bar_index - effectiveN
+
+// =================================================================
+// Plotting
+// =================================================================
+
+float col_val = OHLC > 65 ? 255 : OHLC < 35 ? 0 : OHLC * 2.55
+color grad_color = color.rgb(255 - col_val, col_val, 0)
+
+color upCandleColor = #00FF00
+color dnCandleColor = color.rgb(239, 83, 80)
+color rsiLineColor = color.rgb(115, 82, 255)
+
+bool isTrendStyle = styleChoice == "Candle Trend"
+bool up = rsi_close > rsi_open
+
+// CANDLE TREND: Hollow green (bullish), Solid red (bearish)
+// Hollow green candles (bullish)
+plotcandle(isTrendStyle and up ? rsi_open : na,
+           isTrendStyle and up ? rsi_high : na,
+           isTrendStyle and up ? rsi_low : na,
+           isTrendStyle and up ? rsi_close : na,
+           "Trend Up Candle",
+           na,
+           wickcolor=upCandleColor,
+           bordercolor=upCandleColor)
+
+// Solid red candles (bearish)
+plotcandle(isTrendStyle and not up ? rsi_open : na,
+           isTrendStyle and not up ? rsi_high : na,
+           isTrendStyle and not up ? rsi_low : na,
+           isTrendStyle and not up ? rsi_close : na,
+           "Trend Down Candle",
+           dnCandleColor,
+           wickcolor=dnCandleColor,
+           bordercolor=dnCandleColor)
+
+// CANDLE: All solid (both colors)
+// Solid green candles
+plotcandle(not isTrendStyle and up ? rsi_open : na,
+           not isTrendStyle and up ? rsi_high : na,
+           not isTrendStyle and up ? rsi_low : na,
+           not isTrendStyle and up ? rsi_close : na,
+           "Up Candle",
+           upCandleColor,
+           wickcolor=upCandleColor,
+           bordercolor=upCandleColor)
+
+// Solid red candles
+plotcandle(not isTrendStyle and not up ? rsi_open : na,
+           not isTrendStyle and not up ? rsi_high : na,
+           not isTrendStyle and not up ? rsi_low : na,
+           not isTrendStyle and not up ? rsi_close : na,
+           "Down Candle",
+           dnCandleColor,
+           wickcolor=dnCandleColor,
+           bordercolor=dnCandleColor)
+
+plot(autoMovAvg ? aema : na, "MA", grad_color,
+     linewidth=maLineWidth)
+
+hline(70, "Overbought", color.gray, hline.style_dashed)
+hline(50, "Midline", color.gray, hline.style_dashed)
+hline(30, "Oversold", color.gray, hline.style_dashed)
+
+// Pattern vertical lines - confirmed patterns only
+if engulfing_bullish and isTrendStyle
+    line.new(bar_index, 0, bar_index, 100,
+            color=color.new(#00FF00, 0),
+            style=line.style_dashed, width=1)
+
+if morning_star_bullish and isTrendStyle
+    line.new(bar_index, 0, bar_index, 100,
+            color=color.new(#00FF00, 0),
+            style=line.style_dashed, width=1)
+
+if engulfing_bearish and isTrendStyle
+    line.new(bar_index, 0, bar_index, 100,
+            color=color.new(#FF0000, 0),
+            style=line.style_dashed, width=1)
+
+if evening_star_bearish and isTrendStyle
+    line.new(bar_index, 0, bar_index, 100,
+            color=color.new(#FF0000, 0),
+            style=line.style_dashed, width=1)
+
+// Engulfing patterns ONLY - triangles with Eng label
+plotshape(engulfing_bullish and isTrendStyle ? -8 : na,
+     "Eng Bull",
+     shape.triangleup, location.absolute,
+     color.new(#00FF00, 0), text="Eng",
+     textcolor=color.white, size=size.small)
+
+plotshape(engulfing_bearish and isTrendStyle ? rsi_high + 8 : na,
+     "Eng Bear",
+     shape.triangledown, location.absolute,
+     color.new(#FF0000, 0), text="Eng",
+     textcolor=color.white, size=size.small)
+
+// Morning Star - BRIGHT GREEN diamond + label + arrow (BLACK TEXT)
+plotshape(morning_star_bullish and isTrendStyle ? -8 : na,
+     "Morn Star Diamond",
+     shape.diamond, location.absolute,
+     color.new(#00FF00, 0), size=size.small)
+
+plotshape(morning_star_bullish and isTrendStyle ? -8 : na,
+     "Morn Star Label",
+     shape.labelup, location.absolute,
+     color.new(#00FF00, 0), text="Morn Star",
+     textcolor=color.black, size=size.small)
+
+plotshape(morning_star_bullish and isTrendStyle ? -16 : na,
+     "Morn Star Arrow",
+     shape.arrowup, location.absolute,
+     color.new(#00FF00, 0), size=size.large)
+
+// Evening Star - BRIGHT RED diamond + label + arrow
+plotshape(evening_star_bearish and isTrendStyle ?
+         rsi_high + 8 : na,
+     "Eve Star Diamond",
+     shape.diamond, location.absolute,
+     color.new(#FF0000, 0), size=size.small)
+
+plotshape(evening_star_bearish and isTrendStyle ?
+         rsi_high + 8 : na,
+     "Eve Star Label",
+     shape.labeldown, location.absolute,
+     color.new(#FF0000, 0), text="Eve Star",
+     textcolor=color.white, size=size.small)
+
+plotshape(evening_star_bearish and isTrendStyle ?
+         rsi_high + 16 : na,
+     "Eve Star Arrow",
+     shape.arrowdown, location.absolute,
+     color.new(#FF0000, 0), size=size.large)
+
+// =================================================================
+// Goldilocks Fractals - Labels & Shapes (NON-REPAINTING)
+// =================================================================
+// These signals appear ONLY when confirmed (after n bars passed)
+
+if showLabels and downFractal
+    label.new(bar_index - effectiveN,
+             rsi_low[effectiveN] - buyOffsetTicks, "BUY",
+             xloc=xloc.bar_index, yloc=yloc.price,
+             style=label.style_label_up,
+             color=buyLabelBgColor, textcolor=buyTextColor,
+             size=lblSize)
+
+if showLabels and upFractal
+    label.new(bar_index - effectiveN,
+             rsi_high[effectiveN] + sellOffsetTicks, "SELL",
+             xloc=xloc.bar_index, yloc=yloc.price,
+             style=label.style_label_down,
+             color=sellLabelBgColor, textcolor=sellTextColor,
+             size=lblSize)
+
+// Goldilocks Fractals - Arrows using labels for stable sizing
+if showShapes and upFractal
+    label.new(bar_index - effectiveN,
+             rsi_high[effectiveN] + sellOffsetTicks + 4, "▼",
+             xloc=xloc.bar_index, yloc=yloc.price,
+             style=label.style_none,
+             color=color.new(color.white, 100),
+             textcolor=#FF0000, size=size.large,
+             tooltip="Fractal Sell (Confirmed)")
+
+if showShapes and downFractal
+    label.new(bar_index - effectiveN,
+             rsi_low[effectiveN] - buyOffsetTicks - 4, "▲",
+             xloc=xloc.bar_index, yloc=yloc.price,
+             style=label.style_none,
+             color=color.new(color.white, 100),
+             textcolor=#00FF00, size=size.large,
+             tooltip="Fractal Buy (Confirmed)")
+
+barcolor(colorBars ? grad_color : na, title="Bar Color")
+
+// =================================================================
+// Information Table showing Early Signal status
+// =================================================================
+var table infoTable = table.new(position.top_left, 2, 3,
+                                bgcolor=color.new(#1E1E1E, 10),
+                                frame_color=color.new(#00FF00, 50),
+                                frame_width=1,
+                                border_width=1,
+                                border_color=color.new(#444444, 70))
+
+if barstate.islast
+    table.cell(infoTable, 0, 0, "RSI Cheby Pro",
+               text_color=color.new(#00FF00, 0),
+               text_size=size.small,
+               bgcolor=color.new(#0A0A0A, 0))
+    table.cell(infoTable, 1, 0, "NR",
+               text_color=color.new(#00FF00, 0),
+               text_size=size.small,
+               bgcolor=color.new(#0A0A0A, 0))
+
+    table.cell(infoTable, 0, 1, "Early Signal:",
+               text_color=color.white,
+               text_size=size.tiny,
+               bgcolor=color.new(#1E1E1E, 0))
+    table.cell(infoTable, 1, 1, enableEarlySignal ? "ON" : "OFF",
+               text_color=enableEarlySignal ? color.yellow : color.gray,
+               text_size=size.tiny,
+               bgcolor=color.new(#1E1E1E, 0))
+
+    table.cell(infoTable, 0, 2, "Fractal N:",
+               text_color=color.white,
+               text_size=size.tiny,
+               bgcolor=color.new(#1E1E1E, 0))
+    table.cell(infoTable, 1, 2, str.tostring(effectiveN),
+               text_color=color.aqua,
+               text_size=size.tiny,
+               bgcolor=color.new(#1E1E1E, 0))
+
+// =================================================================
+// Alert Conditions for Non-Repainting Signals
+// =================================================================
+alertcondition(downFractal, title="Fractal BUY Signal",
+               message="RSI Chebyshev: Confirmed Fractal BUY")
+
+alertcondition(upFractal, title="Fractal SELL Signal",
+               message="RSI Chebyshev: Confirmed Fractal SELL")
+
+alertcondition(engulfing_bullish, title="Engulfing Bullish",
+               message="RSI Chebyshev: Engulfing Bullish confirmed")
+
+alertcondition(engulfing_bearish, title="Engulfing Bearish",
+               message="RSI Chebyshev: Engulfing Bearish confirmed")
+
+alertcondition(morning_star_bullish, title="Morning Star Bullish",
+               message="RSI Chebyshev: Morning Star Bullish confirmed")
+
+alertcondition(evening_star_bearish, title="Evening Star Bearish",
+               message="RSI Chebyshev: Evening Star Bearish confirmed")
+
+// Combined alerts for early signal users
+alertcondition(downFractal and enableEarlySignal,
+               title="Early Fractal BUY",
+               message="RSI Chebyshev: EARLY Fractal BUY (1 bar earlier)")
+
+alertcondition(upFractal and enableEarlySignal,
+               title="Early Fractal SELL",
+               message="RSI Chebyshev: EARLY Fractal SELL (1 bar earlier)")
