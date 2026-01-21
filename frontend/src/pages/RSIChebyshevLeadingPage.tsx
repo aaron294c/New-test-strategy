@@ -732,6 +732,11 @@ function RSIChebyshevChart(props: {
   // Current values
   const currentRsiClose = rsiClose[rsiClose.length - 1] || 50;
   const currentMA = ma[ma.length - 1] || 50;
+  const currentOHLC = ohlc[ohlc.length - 1] || 50;
+
+  // Calculate MA gradient color based on current OHLC
+  const currentColVal = currentOHLC > 65 ? 255 : currentOHLC < 35 ? 0 : currentOHLC * 2.55;
+  const currentMAColor = `rgb(${Math.round(255 - currentColVal)}, ${Math.round(currentColVal)}, 0)`;
 
   useEffect(() => {
     const el = chartContainerRef.current;
@@ -761,11 +766,13 @@ function RSIChebyshevChart(props: {
       wickDownColor: '#EF5350',
     });
 
-    // MA line
+    // MA line (will be colored per-bar based on OHLC value)
     maSeriesRef.current = chart.addLineSeries({
-      color: '#FFA500',
+      color: '#00FF00', // Default, will be overridden per point
       lineWidth: 2,
       title: 'Adaptive MA',
+      lastValueVisible: true,
+      priceLineVisible: false,
     });
 
     // Reference lines
@@ -821,12 +828,22 @@ function RSIChebyshevChart(props: {
     }));
     candleSeriesRef.current.setData(candleData);
 
-    // Set MA data
+    // Set MA data with gradient color based on OHLC value
+    // Pine Script formula: col_val = OHLC > 65 ? 255 : OHLC < 35 ? 0 : OHLC * 2.55
+    // color = rgb(255 - col_val, col_val, 0)
     if (showMA) {
-      const maData: LineData<UTCTimestamp>[] = times.map((t, i) => ({
-        time: t,
-        value: ma[i],
-      }));
+      const maData: (LineData<UTCTimestamp> & { color?: string })[] = times.map((t, i) => {
+        const ohlcVal = ohlc[i] || 50;
+        const colVal = ohlcVal > 65 ? 255 : ohlcVal < 35 ? 0 : ohlcVal * 2.55;
+        const r = Math.round(255 - colVal);
+        const g = Math.round(colVal);
+        const gradColor = `rgb(${r}, ${g}, 0)`;
+        return {
+          time: t,
+          value: ma[i],
+          color: gradColor,
+        };
+      });
       maSeriesRef.current.setData(maData);
     } else {
       maSeriesRef.current.setData([]);
@@ -907,7 +924,7 @@ function RSIChebyshevChart(props: {
     candleSeriesRef.current.setMarkers(markers);
 
     chartRef.current?.timeScale().fitContent();
-  }, [candles, ma, times, showMA, showStandardSignals, showLeadingSignals, showPatterns, standardSignals, leadingSignals, patterns, styleChoice]);
+  }, [candles, ma, ohlc, times, showMA, showStandardSignals, showLeadingSignals, showPatterns, standardSignals, leadingSignals, patterns, styleChoice]);
 
   return (
     <Box>
@@ -926,8 +943,14 @@ function RSIChebyshevChart(props: {
         </Box>
         <Box sx={{ textAlign: 'center' }}>
           <Typography variant="caption" color="text.secondary">Adaptive MA</Typography>
-          <Typography variant="h6" sx={{ color: '#FFA500', fontWeight: 700 }}>
+          <Typography variant="h6" sx={{ color: currentMAColor, fontWeight: 700 }}>
             {currentMA.toFixed(2)}
+          </Typography>
+        </Box>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="caption" color="text.secondary">RSI OHLC Avg</Typography>
+          <Typography variant="h6" sx={{ color: currentMAColor, fontWeight: 700 }}>
+            {currentOHLC.toFixed(2)}
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'center' }}>
