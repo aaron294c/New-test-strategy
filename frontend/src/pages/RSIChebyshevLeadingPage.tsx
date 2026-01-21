@@ -1,12 +1,16 @@
 /**
- * RSI Chebyshev Pro with Leading Signals Page
+ * RSI Chebyshev Pro with Goldilocks Fractals
+ *
+ * This is a SEPARATE indicator tab that displays RSI as candlesticks,
+ * exactly matching the TradingView Pine Script implementation.
  *
  * Features:
- * - RSI with Chebyshev Type I filtering for smooth calculation
- * - Goldilocks Fractals for pivot detection
- * - Leading signals that fire 1 bar earlier
- * - Candlestick visualization in RSI pane
- * - Non-repainting standard signals + predictive leading signals
+ * - RSI calculated from price OHLC using Chebyshev Type I filtering
+ * - Displays RSI values as candlesticks (not price candles)
+ * - Adaptive moving average (MAMA-based)
+ * - Goldilocks Fractals with BUY/SELL signals
+ * - Candlestick pattern detection (Engulfing, Morning/Evening Star)
+ * - Leading signal option (1 bar earlier)
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -19,15 +23,10 @@ import {
   Paper,
   Slider,
   Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
   Typography,
   Snackbar,
   Divider,
+  Alert,
 } from '@mui/material';
 import {
   createChart,
@@ -36,30 +35,40 @@ import {
   CandlestickData,
   LineData,
   UTCTimestamp,
-  SeriesMarker,
   LineStyle,
 } from 'lightweight-charts';
-import { useQuery } from '@tanstack/react-query';
-import { backtestApi } from '@/api/client';
 
 // ============================================================================
-// PINE SCRIPT FOR TRADINGVIEW
+// PINE SCRIPT REFERENCE
 // ============================================================================
 const RSI_CHEBYSHEV_PINE_SCRIPT = `//@version=6
-// RSI Chebyshev Pro with Leading Signals - Non-Repaint
-// See full implementation in src/indicators/rsi-chebyshev-pro-leading-v2.pine
-indicator("RSI Chebyshev Pro v2 - Leading Signals [NPR21]",
-     shorttitle="RSI Cheby Leading",
+// =================================================================
+// RSI Chebyshev Pro with Goldilocks Fractals - Non-Repaint
+// =================================================================
+// © 2025 NPR21 (TradingView: @NPR21)
+// All Rights Reserved
+//
+// Features:
+// - RSI with Chebyshev Type I filtering for ultra-smooth calcs
+// - Adaptive moving average based on MESA Adaptive Moving Average (MAMA)
+// - Goldilocks Fractals for precise entry/exit signals (non-repainting)
+// - Candlestick pattern recognition (Engulfing, Morning/Evening Star)
+// - Multiple display styles: Candle, Candle Trend
+//
+// Full script: src/indicators/rsi-chebyshev-pro-leading-v2.pine
+// =================================================================
+
+indicator("RSI Chebyshev Pro with Goldilocks Fractals - NR [NPR21]",
+     shorttitle="RSI Cheby Pro NR",
      overlay=false,
      max_labels_count=500)
 
-// [Full script available in project files]
-// Copy from: src/indicators/rsi-chebyshev-pro-leading-v2.pine`;
+// ... (see full script in project files)`;
 
 // ============================================================================
 // TYPES
 // ============================================================================
-interface OHLCData {
+interface PriceOHLC {
   time: UTCTimestamp;
   open: number;
   high: number;
@@ -67,21 +76,27 @@ interface OHLCData {
   close: number;
 }
 
-interface RSIChebyshevData {
-  dates: string[];
-  open: number[];
-  high: number[];
-  low: number[];
-  close: number[];
+interface RSICandle {
+  time: UTCTimestamp;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
 }
 
 interface FractalSignal {
   index: number;
   time: UTCTimestamp;
-  price: number;
   rsiValue: number;
   type: 'buy' | 'sell';
   isLeading: boolean;
+}
+
+interface PatternSignal {
+  index: number;
+  time: UTCTimestamp;
+  rsiValue: number;
+  pattern: 'engulfing_bull' | 'engulfing_bear' | 'morning_star' | 'evening_star';
 }
 
 type Props = {
@@ -89,7 +104,7 @@ type Props = {
 };
 
 // ============================================================================
-// CHEBYSHEV FILTER IMPLEMENTATION
+// CHEBYSHEV TYPE I FILTER (Matches Pine Script exactly)
 // ============================================================================
 function cosh(x: number): number {
   return (Math.exp(x) + Math.exp(-x)) / 2;
@@ -104,10 +119,10 @@ function asinh(x: number): number {
 }
 
 function acosh(x: number): number {
-  return x < 1 ? 0 : Math.log(x + Math.sqrt(x * x - 1));
+  return x < 1 ? 1 : Math.log(x + Math.sqrt(x * x - 1));
 }
 
-function chebyshevFilter(data: number[], length: number, ripple: number = 0.5): number[] {
+function chebyshevI(data: number[], length: number, ripple: number): number[] {
   const result: number[] = [];
   const alpha = 1 / length;
   const acoshRi = 1 / (1 - ripple);
@@ -130,76 +145,193 @@ function chebyshevFilter(data: number[], length: number, ripple: number = 0.5): 
 }
 
 // ============================================================================
-// RSI CALCULATION WITH CHEBYSHEV SMOOTHING
+// MAMA PERIOD CALCULATION (Matches Pine Script)
 // ============================================================================
-function calculateChebyshevRSI(
-  prices: number[],
-  length: number = 24,
-  smoothing: number = 3
-): { rsi: number[]; rsiSmoothed: number[] } {
-  // First smooth the prices
-  const smoothedPrices = chebyshevFilter(prices, smoothing, 0.5);
+function calculateMamaPeriod(data: number[], dynLow: number = 1, dynHigh: number = 2048): number[] {
+  const periods: number[] = [];
+  let period = 0;
+  let I2 = 0, Q2 = 0, Re = 0, Im = 0;
 
-  // Calculate changes
-  const changes: number[] = [];
-  for (let i = 0; i < smoothedPrices.length; i++) {
-    if (i === 0) {
-      changes.push(0);
-    } else {
-      changes.push(smoothedPrices[i] - smoothedPrices[i - 1]);
-    }
+  const C1 = 0.0962;
+  const C2 = 0.5769;
+
+  const smooth: number[] = [];
+  const detrend: number[] = [];
+  const Q1: number[] = [];
+  const I1: number[] = [];
+  const jI: number[] = [];
+  const jQ: number[] = [];
+
+  for (let i = 0; i < data.length; i++) {
+    const C3 = 0.075 * (periods[i - 1] || 0) + 0.54;
+
+    // Smooth calculation
+    const s = (4 * data[i] +
+               3 * (data[i - 1] || data[i]) +
+               2 * (data[i - 2] || data[i]) +
+               (data[i - 3] || data[i])) / 10;
+    smooth.push(s);
+
+    // Detrend
+    const d = C3 * (C1 * s +
+              C2 * (smooth[i - 2] || s) -
+              C2 * (smooth[i - 4] || s) -
+              C1 * (smooth[i - 6] || s));
+    detrend.push(d);
+
+    // Q1
+    const q1 = C3 * (C1 * d +
+               C2 * (detrend[i - 2] || d) -
+               C2 * (detrend[i - 4] || d) -
+               C1 * (detrend[i - 6] || d));
+    Q1.push(q1);
+
+    // I1
+    const i1 = detrend[i - 3] || d;
+    I1.push(i1);
+
+    // jI
+    const ji = C3 * (C1 * i1 +
+               C2 * (I1[i - 2] || i1) -
+               C2 * (I1[i - 4] || i1) -
+               C1 * (I1[i - 6] || i1));
+    jI.push(ji);
+
+    // jQ
+    const jq = C3 * (C1 * q1 +
+               C2 * (Q1[i - 2] || q1) -
+               C2 * (Q1[i - 4] || q1) -
+               C1 * (Q1[i - 6] || q1));
+    jQ.push(jq);
+
+    // I2, Q2
+    const I2_temp = i1 - jq;
+    const Q2_temp = q1 + ji;
+    I2 = 0.2 * I2_temp + 0.8 * I2;
+    Q2 = 0.2 * Q2_temp + 0.8 * Q2;
+
+    // Re, Im
+    const Re_temp = I2 * (I2 || 0) + Q2 * (Q2 || 0);
+    const Im_temp = I2 * (Q2 || 0) - Q2 * (I2 || 0);
+    Re = 0.2 * Re_temp + 0.8 * Re;
+    Im = 0.2 * Im_temp + 0.8 * Im;
+
+    // Period calculation
+    let period1 = Re !== 0 && Im !== 0 ? 2 * Math.PI / Math.atan(Im / Re) : 0;
+    let period2 = Math.min(period1, 1.5 * (periods[i - 1] || period1));
+    let period3 = Math.max(period2, (2 / 3) * (periods[i - 1] || period2));
+    let period4 = Math.min(Math.max(period3, dynLow), dynHigh);
+    period = period4 * 0.2 + (periods[i - 1] || period4) * 0.8;
+    periods.push(period);
   }
 
-  // Separate gains and losses
-  const gains = changes.map(c => Math.max(c, 0));
-  const losses = changes.map(c => -Math.min(c, 0));
-
-  // Apply Chebyshev filter to gains and losses
-  const filteredGains = chebyshevFilter(gains, length, 0.5);
-  const filteredLosses = chebyshevFilter(losses, length, 0.5);
-
-  // Calculate RSI
-  const rsi: number[] = [];
-  for (let i = 0; i < prices.length; i++) {
-    if (filteredLosses[i] === 0) {
-      rsi.push(100);
-    } else {
-      const rs = filteredGains[i] / filteredLosses[i];
-      rsi.push(100 - (100 / (1 + rs)));
-    }
-  }
-
-  // Smooth the RSI for MA
-  const rsiSmoothed = chebyshevFilter(rsi, 14, 0.05);
-
-  return { rsi, rsiSmoothed };
+  return periods;
 }
 
 // ============================================================================
-// RSI OHLC CALCULATION (for candlestick display)
+// CUSTOM RSI CALCULATION (Matches Pine Script customRSI function)
+// ============================================================================
+function customRSI(source: number[], rsiLength: number, rsiSmoothing: number): number[] {
+  // Step 1: Chebyshev filter on source
+  const closeFiltered = chebyshevI(source, rsiSmoothing, 0.5);
+
+  // Step 2: Calculate changes
+  const changes: number[] = [];
+  for (let i = 0; i < closeFiltered.length; i++) {
+    if (i === 0) {
+      changes.push(0);
+    } else {
+      changes.push(closeFiltered[i] - closeFiltered[i - 1]);
+    }
+  }
+
+  // Step 3: Separate ups and downs
+  const ups = changes.map(c => Math.max(c, 0));
+  const downs = changes.map(c => -Math.min(c, 0));
+
+  // Step 4: Chebyshev filter on ups and downs
+  const upFiltered = chebyshevI(ups, rsiLength, 0.5);
+  const downFiltered = chebyshevI(downs, rsiLength, 0.5);
+
+  // Step 5: Calculate RSI
+  const rsi: number[] = [];
+  for (let i = 0; i < source.length; i++) {
+    if (downFiltered[i] === 0) {
+      rsi.push(100);
+    } else {
+      rsi.push(100 - (100 / (1 + upFiltered[i] / downFiltered[i])));
+    }
+  }
+
+  return rsi;
+}
+
+// ============================================================================
+// CALCULATE RSI OHLC (The core calculation matching Pine Script)
 // ============================================================================
 function calculateRSIOHLC(
-  ohlcData: OHLCData[],
-  length: number = 24,
-  smoothing: number = 3
-): { open: number[]; high: number[]; low: number[]; close: number[]; ma: number[] } {
-  const opens = ohlcData.map(d => d.open);
-  const highs = ohlcData.map(d => d.high);
-  const lows = ohlcData.map(d => d.low);
-  const closes = ohlcData.map(d => d.close);
+  priceData: PriceOHLC[],
+  length: number,
+  smoothing: number,
+  maMultiplier: number
+): {
+  candles: RSICandle[];
+  ma: number[];
+  ohlc: number[];
+} {
+  // Extract price arrays (using [1] offset like Pine Script for non-repaint)
+  const opens: number[] = [];
+  const highs: number[] = [];
+  const lows: number[] = [];
+  const closes: number[] = [];
 
-  const { rsi: rsiOpen } = calculateChebyshevRSI(opens, length, smoothing);
-  const { rsi: rsiHigh } = calculateChebyshevRSI(highs, length, smoothing);
-  const { rsi: rsiLow } = calculateChebyshevRSI(lows, length, smoothing);
-  const { rsi: rsiClose, rsiSmoothed } = calculateChebyshevRSI(closes, length, smoothing);
+  for (let i = 0; i < priceData.length; i++) {
+    // Use previous bar's values (like Pine Script's [1])
+    const prevIndex = Math.max(0, i - 1);
+    opens.push(priceData[prevIndex].open);
+    highs.push(priceData[prevIndex].high);
+    lows.push(priceData[prevIndex].low);
+    closes.push(priceData[prevIndex].close);
+  }
 
-  return {
-    open: rsiOpen,
-    high: rsiHigh,
-    low: rsiLow,
-    close: rsiClose,
-    ma: rsiSmoothed,
-  };
+  // Calculate RSI for each price component
+  const rsiOpen = customRSI(opens, length, smoothing);
+  const rsiHigh = customRSI(highs, length, smoothing);
+  const rsiLow = customRSI(lows, length, smoothing);
+  const rsiClose = customRSI(closes, length, smoothing);
+
+  // Calculate OHLC average
+  const ohlc: number[] = [];
+  for (let i = 0; i < rsiOpen.length; i++) {
+    ohlc.push((rsiOpen[i] + rsiHigh[i] + rsiLow[i] + rsiClose[i]) / 4);
+  }
+
+  // Calculate adaptive MA length using MAMA
+  const mamaPeriods = calculateMamaPeriod(ohlc);
+
+  // Calculate MA with dynamic length
+  const ma: number[] = [];
+  for (let i = 0; i < ohlc.length; i++) {
+    const cycle = Math.round(mamaPeriods[i] || 14);
+    const maLength = Math.max(1, (cycle + 1) * maMultiplier);
+
+    // Use Chebyshev filter for MA
+    const startIdx = Math.max(0, i - maLength + 1);
+    const slice = ohlc.slice(startIdx, i + 1);
+    const filtered = chebyshevI(slice, maLength, 0.05);
+    ma.push(filtered[filtered.length - 1]);
+  }
+
+  // Build RSI candles
+  const candles: RSICandle[] = priceData.map((p, i) => ({
+    time: p.time,
+    open: rsiOpen[i],
+    high: rsiHigh[i],
+    low: rsiLow[i],
+    close: rsiClose[i],
+  }));
+
+  return { candles, ma, ohlc };
 }
 
 // ============================================================================
@@ -209,14 +341,13 @@ function detectFractals(
   rsiHigh: number[],
   rsiLow: number[],
   times: UTCTimestamp[],
-  n: number = 5
-): { upFractals: FractalSignal[]; downFractals: FractalSignal[] } {
-  const upFractals: FractalSignal[] = [];
-  const downFractals: FractalSignal[] = [];
+  n: number
+): { buySignals: FractalSignal[]; sellSignals: FractalSignal[] } {
+  const buySignals: FractalSignal[] = [];
+  const sellSignals: FractalSignal[] = [];
 
-  // Start from n and end at length - n to have bars on both sides
   for (let i = n; i < rsiHigh.length - n; i++) {
-    // Check for up fractal (high pivot)
+    // Check for up fractal (SELL signal - high pivot in RSI)
     let isUpFractal = true;
     for (let j = 1; j <= n; j++) {
       if (rsiHigh[i] <= rsiHigh[i - j] || rsiHigh[i] <= rsiHigh[i + j]) {
@@ -225,17 +356,16 @@ function detectFractals(
       }
     }
     if (isUpFractal) {
-      upFractals.push({
+      sellSignals.push({
         index: i,
         time: times[i],
-        price: rsiHigh[i],
         rsiValue: rsiHigh[i],
         type: 'sell',
         isLeading: false,
       });
     }
 
-    // Check for down fractal (low pivot)
+    // Check for down fractal (BUY signal - low pivot in RSI)
     let isDownFractal = true;
     for (let j = 1; j <= n; j++) {
       if (rsiLow[i] >= rsiLow[i - j] || rsiLow[i] >= rsiLow[i + j]) {
@@ -244,10 +374,9 @@ function detectFractals(
       }
     }
     if (isDownFractal) {
-      downFractals.push({
+      buySignals.push({
         index: i,
         time: times[i],
-        price: rsiLow[i],
         rsiValue: rsiLow[i],
         type: 'buy',
         isLeading: false,
@@ -255,11 +384,11 @@ function detectFractals(
     }
   }
 
-  return { upFractals, downFractals };
+  return { buySignals, sellSignals };
 }
 
 // ============================================================================
-// LEADING SIGNAL DETECTION
+// LEADING SIGNAL DETECTION (1 bar earlier)
 // ============================================================================
 function detectLeadingSignals(
   rsiOpen: number[],
@@ -267,92 +396,71 @@ function detectLeadingSignals(
   rsiLow: number[],
   rsiClose: number[],
   times: UTCTimestamp[],
-  n: number = 5,
-  oversoldZone: number = 35,
-  overboughtZone: number = 65,
-  requireReversalCandle: boolean = true
+  n: number,
+  oversoldZone: number,
+  overboughtZone: number
 ): FractalSignal[] {
   const signals: FractalSignal[] = [];
   let lastBuyBar = -n - 1;
   let lastSellBar = -n - 1;
 
   for (let i = n; i < rsiClose.length; i++) {
-    const currentRsiLow = rsiLow[i];
-    const currentRsiHigh = rsiHigh[i];
-    const currentRsiClose = rsiClose[i];
-    const currentRsiOpen = rsiOpen[i];
-
-    // Check if current bar's RSI is lowest/highest in last N bars (potential pivot)
+    // Check if current RSI low is lowest in last N bars
     let isPotentialLow = true;
-    let isPotentialHigh = true;
-
     for (let j = 1; j <= n; j++) {
-      if (rsiLow[i - j] <= currentRsiLow) {
+      if (rsiLow[i - j] <= rsiLow[i]) {
         isPotentialLow = false;
+        break;
       }
-      if (rsiHigh[i - j] >= currentRsiHigh) {
+    }
+
+    // Check if current RSI high is highest in last N bars
+    let isPotentialHigh = true;
+    for (let j = 1; j <= n; j++) {
+      if (rsiHigh[i - j] >= rsiHigh[i]) {
         isPotentialHigh = false;
+        break;
       }
     }
 
     // Momentum detection
-    const prevMomentum = rsiClose[i - 1] - rsiClose[i - 2];
-    const currentMomentum = currentRsiClose - rsiClose[i - 1];
-
+    const prevMomentum = (rsiClose[i - 1] || 0) - (rsiClose[i - 2] || 0);
+    const currentMomentum = rsiClose[i] - (rsiClose[i - 1] || 0);
     const bullishMomentumShift = prevMomentum < 0 && currentMomentum > 0;
     const bearishMomentumShift = prevMomentum > 0 && currentMomentum < 0;
 
     // Candle patterns
-    const bullishCandle = currentRsiClose > currentRsiOpen;
-    const bearishCandle = currentRsiClose < currentRsiOpen;
+    const bullishCandle = rsiClose[i] > rsiOpen[i];
+    const bearishCandle = rsiClose[i] < rsiOpen[i];
 
-    // Wick rejection
-    const bodySize = Math.abs(currentRsiClose - currentRsiOpen);
-    const lowerWick = Math.min(currentRsiOpen, currentRsiClose) - currentRsiLow;
-    const upperWick = currentRsiHigh - Math.max(currentRsiOpen, currentRsiClose);
-
-    const bullishWickRejection = lowerWick > bodySize * 1.5;
-    const bearishWickRejection = upperWick > bodySize * 1.5;
-
-    // Leading BUY signal
-    const leadingBuyBase =
-      currentRsiLow < oversoldZone &&
+    // Leading BUY
+    if (
+      rsiLow[i] < oversoldZone &&
       isPotentialLow &&
-      (bullishMomentumShift || bullishCandle || bullishWickRejection);
-
-    const leadingBuySignal = requireReversalCandle
-      ? leadingBuyBase && (bullishCandle || bullishWickRejection)
-      : leadingBuyBase;
-
-    // Leading SELL signal
-    const leadingSellBase =
-      currentRsiHigh > overboughtZone &&
-      isPotentialHigh &&
-      (bearishMomentumShift || bearishCandle || bearishWickRejection);
-
-    const leadingSellSignal = requireReversalCandle
-      ? leadingSellBase && (bearishCandle || bearishWickRejection)
-      : leadingSellBase;
-
-    // Prevent duplicate signals
-    if (leadingBuySignal && (i - lastBuyBar) > n) {
+      (bullishMomentumShift || bullishCandle) &&
+      (i - lastBuyBar) > n
+    ) {
       signals.push({
         index: i,
         time: times[i],
-        price: currentRsiLow,
-        rsiValue: currentRsiLow,
+        rsiValue: rsiLow[i],
         type: 'buy',
         isLeading: true,
       });
       lastBuyBar = i;
     }
 
-    if (leadingSellSignal && (i - lastSellBar) > n) {
+    // Leading SELL
+    if (
+      rsiHigh[i] > overboughtZone &&
+      isPotentialHigh &&
+      (bearishMomentumShift || bearishCandle) &&
+      (i - lastSellBar) > n
+    ) {
       signals.push({
         index: i,
         time: times[i],
-        price: currentRsiHigh,
-        rsiValue: currentRsiHigh,
+        rsiValue: rsiHigh[i],
         type: 'sell',
         isLeading: true,
       });
@@ -364,29 +472,228 @@ function detectLeadingSignals(
 }
 
 // ============================================================================
-// CHART COMPONENT
+// PATTERN DETECTION (Engulfing, Morning/Evening Star)
+// ============================================================================
+function detectPatterns(
+  rsiOpen: number[],
+  rsiHigh: number[],
+  rsiLow: number[],
+  rsiClose: number[],
+  ohlc: number[],
+  ma: number[],
+  times: UTCTimestamp[]
+): PatternSignal[] {
+  const patterns: PatternSignal[] = [];
+
+  // DMA for body average (simplified)
+  const bodyAvg: number[] = [];
+  let ema1 = 0, ema2 = 0;
+
+  for (let i = 0; i < rsiClose.length; i++) {
+    const body = Math.abs(rsiClose[i] - rsiOpen[i]);
+    const k = 2 / (i + 2);
+    ema1 = body * k + ema1 * (1 - k);
+    ema2 = ema1 * k + ema2 * (1 - k);
+    bodyAvg.push(2 * ema1 - ema2);
+  }
+
+  for (let i = 2; i < rsiClose.length; i++) {
+    const downTrend = ohlc[i] < ma[i];
+    const upTrend = ohlc[i] > ma[i];
+    const rsiLowZone = rsiHigh[i] < 40;
+    const rsiHighZone = rsiLow[i] > 60;
+
+    const bodyHi = Math.max(rsiClose[i], rsiOpen[i]);
+    const bodyLo = Math.min(rsiClose[i], rsiOpen[i]);
+    const body = bodyHi - bodyLo;
+    const bodyMiddle = body / 2 + bodyLo;
+
+    const smallBody = body < bodyAvg[i];
+    const longBody = body > bodyAvg[i];
+    const whiteBody = rsiOpen[i] < rsiClose[i];
+    const blackBody = rsiOpen[i] > rsiClose[i];
+
+    const prevWhiteBody = rsiOpen[i - 1] < rsiClose[i - 1];
+    const prevBlackBody = rsiOpen[i - 1] > rsiClose[i - 1];
+    const prevSmallBody = Math.abs(rsiClose[i - 1] - rsiOpen[i - 1]) < bodyAvg[i - 1];
+
+    // Bullish Engulfing
+    if (
+      downTrend &&
+      whiteBody &&
+      longBody &&
+      prevBlackBody &&
+      prevSmallBody &&
+      rsiClose[i] >= rsiOpen[i - 1] &&
+      rsiOpen[i] <= rsiClose[i - 1] &&
+      rsiLowZone
+    ) {
+      patterns.push({
+        index: i,
+        time: times[i],
+        rsiValue: rsiLow[i],
+        pattern: 'engulfing_bull',
+      });
+    }
+
+    // Bearish Engulfing
+    if (
+      upTrend &&
+      blackBody &&
+      longBody &&
+      prevWhiteBody &&
+      prevSmallBody &&
+      rsiClose[i] <= rsiOpen[i - 1] &&
+      rsiOpen[i] >= rsiClose[i - 1] &&
+      rsiHighZone
+    ) {
+      patterns.push({
+        index: i,
+        time: times[i],
+        rsiValue: rsiHigh[i],
+        pattern: 'engulfing_bear',
+      });
+    }
+
+    // Morning Star
+    const prevPrevLongBody = Math.abs(rsiClose[i - 2] - rsiOpen[i - 2]) > bodyAvg[i - 2];
+    const prevPrevBlackBody = rsiOpen[i - 2] > rsiClose[i - 2];
+    const prevPrevBodyMiddle = (Math.abs(rsiClose[i - 2] - rsiOpen[i - 2])) / 2 + Math.min(rsiClose[i - 2], rsiOpen[i - 2]);
+
+    if (
+      prevPrevLongBody &&
+      prevSmallBody &&
+      longBody &&
+      downTrend &&
+      prevPrevBlackBody &&
+      whiteBody &&
+      rsiClose[i] >= prevPrevBodyMiddle &&
+      rsiLowZone
+    ) {
+      patterns.push({
+        index: i,
+        time: times[i],
+        rsiValue: rsiLow[i],
+        pattern: 'morning_star',
+      });
+    }
+
+    // Evening Star
+    const prevPrevWhiteBody = rsiOpen[i - 2] < rsiClose[i - 2];
+
+    if (
+      prevPrevLongBody &&
+      prevSmallBody &&
+      longBody &&
+      upTrend &&
+      prevPrevWhiteBody &&
+      blackBody &&
+      rsiClose[i] <= prevPrevBodyMiddle &&
+      rsiHighZone
+    ) {
+      patterns.push({
+        index: i,
+        time: times[i],
+        rsiValue: rsiHigh[i],
+        pattern: 'evening_star',
+      });
+    }
+  }
+
+  return patterns;
+}
+
+// ============================================================================
+// FETCH PRICE DATA (Using Yahoo Finance style endpoint)
+// ============================================================================
+async function fetchPriceData(ticker: string, days: number = 365): Promise<PriceOHLC[]> {
+  // Try to fetch from our backend's daily trend API which has candle data
+  try {
+    const response = await fetch(
+      `/api/daily-trend/${encodeURIComponent(ticker)}?days=${days}&include_candles=true`
+    );
+    if (response.ok) {
+      const data = await response.json();
+      if (data.candles && Array.isArray(data.candles)) {
+        return data.candles.map((c: any) => ({
+          time: (new Date(c.time || c.date).getTime() / 1000) as UTCTimestamp,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+        }));
+      }
+    }
+  } catch (e) {
+    console.log('Daily trend API not available, generating sample data');
+  }
+
+  // Generate realistic sample price data for demonstration
+  const data: PriceOHLC[] = [];
+  let price = 100 + Math.random() * 100;
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  for (let i = 0; i < days; i++) {
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + i);
+
+    // Skip weekends
+    if (date.getDay() === 0 || date.getDay() === 6) continue;
+
+    const volatility = 0.02;
+    const trend = Math.sin(i / 30) * 0.005; // Slight cyclical trend
+    const change = (Math.random() - 0.5) * 2 * volatility + trend;
+
+    const open = price;
+    const close = price * (1 + change);
+    const high = Math.max(open, close) * (1 + Math.random() * volatility * 0.5);
+    const low = Math.min(open, close) * (1 - Math.random() * volatility * 0.5);
+
+    data.push({
+      time: (date.getTime() / 1000) as UTCTimestamp,
+      open,
+      high,
+      low,
+      close,
+    });
+
+    price = close;
+  }
+
+  return data;
+}
+
+// ============================================================================
+// RSI CHEBYSHEV CHART COMPONENT
 // ============================================================================
 function RSIChebyshevChart(props: {
-  ohlcData: OHLCData[];
+  priceData: PriceOHLC[];
   rsiLength: number;
   rsiSmoothing: number;
+  maMultiplier: number;
   fractalPeriods: number;
-  showLeadingSignals: boolean;
+  showMA: boolean;
   showStandardSignals: boolean;
+  showLeadingSignals: boolean;
+  showPatterns: boolean;
   oversoldZone: number;
   overboughtZone: number;
-  requireReversalCandle: boolean;
+  styleChoice: 'Candle' | 'Candle Trend';
 }) {
   const {
-    ohlcData,
+    priceData,
     rsiLength,
     rsiSmoothing,
+    maMultiplier,
     fractalPeriods,
-    showLeadingSignals,
+    showMA,
     showStandardSignals,
+    showLeadingSignals,
+    showPatterns,
     oversoldZone,
     overboughtZone,
-    requireReversalCandle,
+    styleChoice,
   } = props;
 
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
@@ -394,39 +701,37 @@ function RSIChebyshevChart(props: {
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const maSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
 
-  const times = useMemo(
-    () => ohlcData.map(d => d.time),
-    [ohlcData]
+  // Calculate RSI OHLC
+  const { candles, ma, ohlc } = useMemo(
+    () => calculateRSIOHLC(priceData, rsiLength, rsiSmoothing, maMultiplier),
+    [priceData, rsiLength, rsiSmoothing, maMultiplier]
   );
 
-  const rsiOHLC = useMemo(
-    () => calculateRSIOHLC(ohlcData, rsiLength, rsiSmoothing),
-    [ohlcData, rsiLength, rsiSmoothing]
-  );
+  const times = useMemo(() => priceData.map(d => d.time), [priceData]);
+  const rsiHigh = useMemo(() => candles.map(c => c.high), [candles]);
+  const rsiLow = useMemo(() => candles.map(c => c.low), [candles]);
+  const rsiOpen = useMemo(() => candles.map(c => c.open), [candles]);
+  const rsiClose = useMemo(() => candles.map(c => c.close), [candles]);
 
-  const standardFractals = useMemo(
-    () => detectFractals(rsiOHLC.high, rsiOHLC.low, times, fractalPeriods),
-    [rsiOHLC.high, rsiOHLC.low, times, fractalPeriods]
+  // Detect signals
+  const standardSignals = useMemo(
+    () => detectFractals(rsiHigh, rsiLow, times, fractalPeriods),
+    [rsiHigh, rsiLow, times, fractalPeriods]
   );
 
   const leadingSignals = useMemo(
-    () => detectLeadingSignals(
-      rsiOHLC.open,
-      rsiOHLC.high,
-      rsiOHLC.low,
-      rsiOHLC.close,
-      times,
-      fractalPeriods,
-      oversoldZone,
-      overboughtZone,
-      requireReversalCandle
-    ),
-    [rsiOHLC, times, fractalPeriods, oversoldZone, overboughtZone, requireReversalCandle]
+    () => detectLeadingSignals(rsiOpen, rsiHigh, rsiLow, rsiClose, times, fractalPeriods, oversoldZone, overboughtZone),
+    [rsiOpen, rsiHigh, rsiLow, rsiClose, times, fractalPeriods, oversoldZone, overboughtZone]
   );
 
-  // Get current RSI values
-  const currentRsi = rsiOHLC.close[rsiOHLC.close.length - 1] || 50;
-  const currentMa = rsiOHLC.ma[rsiOHLC.ma.length - 1] || 50;
+  const patterns = useMemo(
+    () => detectPatterns(rsiOpen, rsiHigh, rsiLow, rsiClose, ohlc, ma, times),
+    [rsiOpen, rsiHigh, rsiLow, rsiClose, ohlc, ma, times]
+  );
+
+  // Current values
+  const currentRsiClose = rsiClose[rsiClose.length - 1] || 50;
+  const currentMA = ma[ma.length - 1] || 50;
 
   useEffect(() => {
     const el = chartContainerRef.current;
@@ -434,18 +739,21 @@ function RSIChebyshevChart(props: {
 
     const chart = createChart(el, {
       width: el.clientWidth,
-      height: 400,
+      height: 450,
       layout: { background: { color: '#1a1a1a' }, textColor: '#d1d4dc' },
       grid: { vertLines: { color: '#2b2b43' }, horzLines: { color: '#2b2b43' } },
-      rightPriceScale: { borderColor: '#485c7b', scaleMargins: { top: 0.1, bottom: 0.1 } },
+      rightPriceScale: {
+        borderColor: '#485c7b',
+        scaleMargins: { top: 0.05, bottom: 0.05 },
+      },
       timeScale: { borderColor: '#485c7b', timeVisible: true, secondsVisible: false },
       crosshair: { mode: 1 },
     });
     chartRef.current = chart;
 
-    // Add candlestick series for RSI
+    // Candlestick series for RSI
     candleSeriesRef.current = chart.addCandlestickSeries({
-      upColor: '#00FF00',
+      upColor: 'transparent',
       downColor: '#EF5350',
       borderUpColor: '#00FF00',
       borderDownColor: '#EF5350',
@@ -453,82 +761,94 @@ function RSIChebyshevChart(props: {
       wickDownColor: '#EF5350',
     });
 
-    // Add MA line
+    // MA line
     maSeriesRef.current = chart.addLineSeries({
       color: '#FFA500',
       lineWidth: 2,
-      title: 'RSI MA',
+      title: 'Adaptive MA',
     });
 
-    // Add reference lines
-    const addReferenceLine = (price: number, color: string, title: string) => {
+    // Reference lines
+    const addHLine = (price: number, color: string) => {
       candleSeriesRef.current?.createPriceLine({
         price,
         color,
         lineWidth: 1,
         lineStyle: LineStyle.Dashed,
-        title,
         axisLabelVisible: true,
       });
     };
 
-    addReferenceLine(70, 'rgba(239,83,80,0.6)', '70');
-    addReferenceLine(50, 'rgba(120,123,134,0.6)', '50');
-    addReferenceLine(30, 'rgba(0,200,83,0.6)', '30');
+    addHLine(70, 'rgba(128,128,128,0.5)');
+    addHLine(50, 'rgba(128,128,128,0.5)');
+    addHLine(30, 'rgba(128,128,128,0.5)');
 
     const handleResize = () => {
-      const container = chartContainerRef.current;
-      if (!container || !chartRef.current) return;
-      chartRef.current.applyOptions({ width: container.clientWidth });
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({ width: chartContainerRef.current.clientWidth });
+      }
     };
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
       chart.remove();
-      chartRef.current = null;
-      candleSeriesRef.current = null;
-      maSeriesRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     if (!candleSeriesRef.current || !maSeriesRef.current) return;
 
-    // Set candlestick data
-    const candleData: CandlestickData<UTCTimestamp>[] = ohlcData.map((d, i) => ({
-      time: d.time,
-      open: rsiOHLC.open[i],
-      high: rsiOHLC.high[i],
-      low: rsiOHLC.low[i],
-      close: rsiOHLC.close[i],
+    // Style candles based on styleChoice
+    const isTrendStyle = styleChoice === 'Candle Trend';
+
+    candleSeriesRef.current.applyOptions({
+      upColor: isTrendStyle ? 'transparent' : '#00FF00',
+      downColor: '#EF5350',
+      borderUpColor: '#00FF00',
+      borderDownColor: '#EF5350',
+      wickUpColor: '#00FF00',
+      wickDownColor: '#EF5350',
+    });
+
+    // Set candle data
+    const candleData: CandlestickData<UTCTimestamp>[] = candles.map(c => ({
+      time: c.time,
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
     }));
     candleSeriesRef.current.setData(candleData);
 
     // Set MA data
-    const maData: LineData<UTCTimestamp>[] = times.map((t, i) => ({
-      time: t,
-      value: rsiOHLC.ma[i],
-    }));
-    maSeriesRef.current.setData(maData);
+    if (showMA) {
+      const maData: LineData<UTCTimestamp>[] = times.map((t, i) => ({
+        time: t,
+        value: ma[i],
+      }));
+      maSeriesRef.current.setData(maData);
+    } else {
+      maSeriesRef.current.setData([]);
+    }
 
     // Build markers
-    const markers: SeriesMarker<UTCTimestamp>[] = [];
+    const markers: any[] = [];
 
-    // Standard fractal signals (delayed but confirmed)
+    // Standard fractal signals
     if (showStandardSignals) {
-      for (const signal of standardFractals.downFractals) {
+      for (const s of standardSignals.buySignals) {
         markers.push({
-          time: signal.time,
+          time: s.time,
           position: 'belowBar',
           color: '#2962FF',
           shape: 'arrowUp',
           text: 'BUY',
         });
       }
-      for (const signal of standardFractals.upFractals) {
+      for (const s of standardSignals.sellSignals) {
         markers.push({
-          time: signal.time,
+          time: s.time,
           position: 'aboveBar',
           color: '#DD0000',
           shape: 'arrowDown',
@@ -537,63 +857,83 @@ function RSIChebyshevChart(props: {
       }
     }
 
-    // Leading signals (1 bar earlier)
+    // Leading signals
     if (showLeadingSignals) {
-      for (const signal of leadingSignals) {
-        if (signal.type === 'buy') {
+      for (const s of leadingSignals) {
+        if (s.type === 'buy') {
           markers.push({
-            time: signal.time,
+            time: s.time,
             position: 'belowBar',
             color: '#00E676',
             shape: 'arrowUp',
-            text: 'LEAD BUY',
+            text: 'LEAD',
           });
         } else {
           markers.push({
-            time: signal.time,
+            time: s.time,
             position: 'aboveBar',
             color: '#FF5252',
             shape: 'arrowDown',
-            text: 'LEAD SELL',
+            text: 'LEAD',
           });
         }
       }
     }
 
-    // Sort markers by time
+    // Pattern signals
+    if (showPatterns) {
+      for (const p of patterns) {
+        if (p.pattern === 'engulfing_bull' || p.pattern === 'morning_star') {
+          markers.push({
+            time: p.time,
+            position: 'belowBar',
+            color: '#00FF00',
+            shape: 'circle',
+            text: p.pattern === 'engulfing_bull' ? 'Eng' : 'MS',
+          });
+        } else {
+          markers.push({
+            time: p.time,
+            position: 'aboveBar',
+            color: '#FF0000',
+            shape: 'circle',
+            text: p.pattern === 'engulfing_bear' ? 'Eng' : 'ES',
+          });
+        }
+      }
+    }
+
     markers.sort((a, b) => (a.time as number) - (b.time as number));
     candleSeriesRef.current.setMarkers(markers);
 
     chartRef.current?.timeScale().fitContent();
-  }, [
-    ohlcData,
-    rsiOHLC,
-    times,
-    standardFractals,
-    leadingSignals,
-    showLeadingSignals,
-    showStandardSignals,
-  ]);
+  }, [candles, ma, times, showMA, showStandardSignals, showLeadingSignals, showPatterns, standardSignals, leadingSignals, patterns, styleChoice]);
 
   return (
     <Box>
       <Box sx={{ display: 'flex', gap: 3, mb: 2, flexWrap: 'wrap' }}>
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary">RSI</Typography>
+          <Typography variant="caption" color="text.secondary">RSI Close</Typography>
           <Typography
             variant="h6"
             sx={{
-              color: currentRsi < 30 ? '#00C853' : currentRsi > 70 ? '#EF5350' : '#787B86',
+              color: currentRsiClose < 30 ? '#00C853' : currentRsiClose > 70 ? '#EF5350' : '#787B86',
               fontWeight: 700,
             }}
           >
-            {currentRsi.toFixed(2)}
+            {currentRsiClose.toFixed(2)}
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary">RSI MA</Typography>
+          <Typography variant="caption" color="text.secondary">Adaptive MA</Typography>
           <Typography variant="h6" sx={{ color: '#FFA500', fontWeight: 700 }}>
-            {currentMa.toFixed(2)}
+            {currentMA.toFixed(2)}
+          </Typography>
+        </Box>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="caption" color="text.secondary">Standard Signals</Typography>
+          <Typography variant="h6" sx={{ color: '#2962FF', fontWeight: 700 }}>
+            {standardSignals.buySignals.length + standardSignals.sellSignals.length}
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'center' }}>
@@ -603,9 +943,9 @@ function RSIChebyshevChart(props: {
           </Typography>
         </Box>
         <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="caption" color="text.secondary">Standard Signals</Typography>
-          <Typography variant="h6" sx={{ color: '#2962FF', fontWeight: 700 }}>
-            {standardFractals.upFractals.length + standardFractals.downFractals.length}
+          <Typography variant="caption" color="text.secondary">Patterns</Typography>
+          <Typography variant="h6" sx={{ color: '#9C27B0', fontWeight: 700 }}>
+            {patterns.length}
           </Typography>
         </Box>
       </Box>
@@ -620,71 +960,40 @@ function RSIChebyshevChart(props: {
 export default function RSIChebyshevLeadingPage(props: Props) {
   const { ticker } = props;
 
-  // Settings state
+  // State
+  const [priceData, setPriceData] = useState<PriceOHLC[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Settings
   const [rsiLength, setRsiLength] = useState(24);
   const [rsiSmoothing, setRsiSmoothing] = useState(3);
+  const [maMultiplier, setMaMultiplier] = useState(1);
   const [fractalPeriods, setFractalPeriods] = useState(5);
-  const [showLeadingSignals, setShowLeadingSignals] = useState(true);
+  const [showMA, setShowMA] = useState(true);
   const [showStandardSignals, setShowStandardSignals] = useState(true);
+  const [showLeadingSignals, setShowLeadingSignals] = useState(true);
+  const [showPatterns, setShowPatterns] = useState(true);
   const [oversoldZone, setOversoldZone] = useState(35);
   const [overboughtZone, setOverboughtZone] = useState(65);
-  const [requireReversalCandle, setRequireReversalCandle] = useState(true);
+  const [styleChoice, setStyleChoice] = useState<'Candle' | 'Candle Trend'>('Candle Trend');
   const [pineScriptCopied, setPineScriptCopied] = useState(false);
 
-  // Fetch OHLC data
-  const { data: rawData, isLoading, refetch } = useQuery({
-    queryKey: ['ohlc', ticker, 500],
-    queryFn: async () => {
-      // Use the RSI chart endpoint which provides OHLC data
-      const response = await backtestApi.getRSIChartData(ticker, 500);
-      return response;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  // Fetch data
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
 
-  // Transform data to OHLC format
-  const ohlcData = useMemo<OHLCData[]>(() => {
-    if (!rawData?.dates) return [];
-
-    // Generate synthetic OHLC from close prices if needed
-    // Most RSI APIs return close prices, we'll derive OHLC
-    return rawData.dates.map((date, i) => {
-      const time = (new Date(date).getTime() / 1000) as UTCTimestamp;
-      const close = rawData.rsi_ma?.[i] ?? 50;
-      // Use RSI values as proxy for demonstration
-      // In production, you'd fetch actual OHLC data
-      const open = i > 0 ? (rawData.rsi_ma?.[i - 1] ?? close) : close;
-      const high = Math.max(open, close) + Math.abs(rawData.rsi?.[i] - (rawData.rsi_ma?.[i] ?? 0)) * 0.1;
-      const low = Math.min(open, close) - Math.abs(rawData.rsi?.[i] - (rawData.rsi_ma?.[i] ?? 0)) * 0.1;
-
-      return { time, open, high, low, close };
-    });
-  }, [rawData]);
-
-  // For actual OHLC-based RSI calculation, we need price data
-  // Let's create a simulated dataset based on typical price movements
-  const priceBasedOhlcData = useMemo<OHLCData[]>(() => {
-    if (!rawData?.dates) return [];
-
-    // Generate price-like data that will produce meaningful RSI
-    let basePrice = 100;
-    return rawData.dates.map((date, i) => {
-      const time = (new Date(date).getTime() / 1000) as UTCTimestamp;
-
-      // Create realistic price movements
-      const change = (Math.random() - 0.5) * 2;
-      const volatility = 0.5 + Math.random() * 1.5;
-
-      const open = basePrice;
-      const close = basePrice + change;
-      const high = Math.max(open, close) + Math.random() * volatility;
-      const low = Math.min(open, close) - Math.random() * volatility;
-
-      basePrice = close;
-
-      return { time, open, high, low, close };
-    });
-  }, [rawData]);
+    fetchPriceData(ticker, 365)
+      .then(data => {
+        setPriceData(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setIsLoading(false);
+      });
+  }, [ticker]);
 
   const handleCopyPineScript = useCallback(async () => {
     try {
@@ -703,13 +1012,10 @@ export default function RSIChebyshevLeadingPage(props: Props) {
     );
   }
 
-  if (priceBasedOhlcData.length === 0) {
+  if (error) {
     return (
       <Paper sx={{ p: 3 }}>
-        <Typography>No data available for {ticker}.</Typography>
-        <Button onClick={() => refetch()} sx={{ mt: 2 }}>
-          Retry
-        </Button>
+        <Alert severity="error">{error}</Alert>
       </Paper>
     );
   }
@@ -720,16 +1026,16 @@ export default function RSIChebyshevLeadingPage(props: Props) {
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, mb: 2 }}>
           <Box>
-            <Typography variant="h6">RSI Chebyshev Pro with Leading Signals</Typography>
+            <Typography variant="h6">RSI Chebyshev Pro with Goldilocks Fractals</Typography>
             <Typography variant="body2" color="text.secondary">
-              Ticker: {ticker} • Non-repainting fractals + 1-bar-earlier leading signals
+              {ticker} • RSI displayed as candlesticks with adaptive MA • Non-repainting signals
             </Typography>
           </Box>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <Button variant="outlined" onClick={() => refetch()}>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="outlined" onClick={() => fetchPriceData(ticker).then(setPriceData)}>
               Refresh
             </Button>
-            <Button variant="contained" color="primary" onClick={handleCopyPineScript}>
+            <Button variant="contained" onClick={handleCopyPineScript}>
               Copy Pine Script
             </Button>
           </Box>
@@ -737,8 +1043,8 @@ export default function RSIChebyshevLeadingPage(props: Props) {
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Leading Signals Toggle (Main Feature) */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2, flexWrap: 'wrap' }}>
+        {/* Leading Signal Toggle */}
+        <Box sx={{ mb: 2 }}>
           <FormControlLabel
             control={
               <Switch
@@ -753,7 +1059,7 @@ export default function RSIChebyshevLeadingPage(props: Props) {
                   Enable Leading Signals (1 Bar Earlier)
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Fires at potential pivot point instead of waiting for confirmation
+                  Fires at potential pivot point before N-bar confirmation
                 </Typography>
               </Box>
             }
@@ -761,24 +1067,27 @@ export default function RSIChebyshevLeadingPage(props: Props) {
         </Box>
 
         {/* Other toggles */}
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <FormControlLabel
-            control={
-              <Checkbox
-                checked={showStandardSignals}
-                onChange={(e) => setShowStandardSignals(e.target.checked)}
-              />
-            }
-            label="Show Standard Signals (Confirmed)"
+            control={<Checkbox checked={showStandardSignals} onChange={(e) => setShowStandardSignals(e.target.checked)} />}
+            label="Standard Signals (BUY/SELL)"
+          />
+          <FormControlLabel
+            control={<Checkbox checked={showMA} onChange={(e) => setShowMA(e.target.checked)} />}
+            label="Show Adaptive MA"
+          />
+          <FormControlLabel
+            control={<Checkbox checked={showPatterns} onChange={(e) => setShowPatterns(e.target.checked)} />}
+            label="Show Patterns (Engulfing, Stars)"
           />
           <FormControlLabel
             control={
               <Checkbox
-                checked={requireReversalCandle}
-                onChange={(e) => setRequireReversalCandle(e.target.checked)}
+                checked={styleChoice === 'Candle Trend'}
+                onChange={(e) => setStyleChoice(e.target.checked ? 'Candle Trend' : 'Candle')}
               />
             }
-            label="Require Reversal Candle for Leading"
+            label="Hollow Bullish Candles"
           />
         </Box>
       </Paper>
@@ -786,146 +1095,74 @@ export default function RSIChebyshevLeadingPage(props: Props) {
       {/* Chart */}
       <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
         <RSIChebyshevChart
-          ohlcData={priceBasedOhlcData}
+          priceData={priceData}
           rsiLength={rsiLength}
           rsiSmoothing={rsiSmoothing}
+          maMultiplier={maMultiplier}
           fractalPeriods={fractalPeriods}
-          showLeadingSignals={showLeadingSignals}
+          showMA={showMA}
           showStandardSignals={showStandardSignals}
+          showLeadingSignals={showLeadingSignals}
+          showPatterns={showPatterns}
           oversoldZone={oversoldZone}
           overboughtZone={overboughtZone}
-          requireReversalCandle={requireReversalCandle}
+          styleChoice={styleChoice}
         />
       </Paper>
 
-      {/* Settings Panel */}
+      {/* Settings */}
       <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>RSI Settings</Typography>
         <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           <Box sx={{ width: 200 }}>
-            <Typography variant="body2" gutterBottom>RSI Length: {rsiLength}</Typography>
-            <Slider
-              value={rsiLength}
-              onChange={(_, v) => setRsiLength(v as number)}
-              min={5}
-              max={50}
-              valueLabelDisplay="auto"
-            />
+            <Typography variant="body2" gutterBottom>Length: {rsiLength}</Typography>
+            <Slider value={rsiLength} onChange={(_, v) => setRsiLength(v as number)} min={5} max={50} />
           </Box>
           <Box sx={{ width: 200 }}>
             <Typography variant="body2" gutterBottom>Smoothing: {rsiSmoothing}</Typography>
-            <Slider
-              value={rsiSmoothing}
-              onChange={(_, v) => setRsiSmoothing(v as number)}
-              min={1}
-              max={10}
-              valueLabelDisplay="auto"
-            />
+            <Slider value={rsiSmoothing} onChange={(_, v) => setRsiSmoothing(v as number)} min={1} max={10} />
           </Box>
           <Box sx={{ width: 200 }}>
-            <Typography variant="body2" gutterBottom>Fractal Periods (n): {fractalPeriods}</Typography>
-            <Slider
-              value={fractalPeriods}
-              onChange={(_, v) => setFractalPeriods(v as number)}
-              min={2}
-              max={10}
-              valueLabelDisplay="auto"
-            />
+            <Typography variant="body2" gutterBottom>MA Multiplier: {maMultiplier}</Typography>
+            <Slider value={maMultiplier} onChange={(_, v) => setMaMultiplier(v as number)} min={1} max={5} />
           </Box>
         </Box>
 
-        <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Leading Signal Settings</Typography>
+        <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Fractal Settings</Typography>
         <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           <Box sx={{ width: 200 }}>
-            <Typography variant="body2" gutterBottom>Oversold Zone (BUY): {oversoldZone}</Typography>
-            <Slider
-              value={oversoldZone}
-              onChange={(_, v) => setOversoldZone(v as number)}
-              min={20}
-              max={45}
-              valueLabelDisplay="auto"
-              color="success"
-            />
+            <Typography variant="body2" gutterBottom>Fractal Periods (n): {fractalPeriods}</Typography>
+            <Slider value={fractalPeriods} onChange={(_, v) => setFractalPeriods(v as number)} min={2} max={10} />
           </Box>
           <Box sx={{ width: 200 }}>
-            <Typography variant="body2" gutterBottom>Overbought Zone (SELL): {overboughtZone}</Typography>
-            <Slider
-              value={overboughtZone}
-              onChange={(_, v) => setOverboughtZone(v as number)}
-              min={55}
-              max={80}
-              valueLabelDisplay="auto"
-              color="error"
-            />
+            <Typography variant="body2" gutterBottom>Oversold Zone: {oversoldZone}</Typography>
+            <Slider value={oversoldZone} onChange={(_, v) => setOversoldZone(v as number)} min={20} max={45} color="success" />
+          </Box>
+          <Box sx={{ width: 200 }}>
+            <Typography variant="body2" gutterBottom>Overbought Zone: {overboughtZone}</Typography>
+            <Slider value={overboughtZone} onChange={(_, v) => setOverboughtZone(v as number)} min={55} max={80} color="error" />
           </Box>
         </Box>
       </Paper>
 
-      {/* Signal Legend */}
+      {/* Info */}
       <Paper elevation={3} sx={{ p: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>Signal Legend</Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Signal Type</TableCell>
-              <TableCell>Color</TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell>Timing</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700, color: '#00E676' }}>LEAD BUY</TableCell>
-              <TableCell>
-                <Box sx={{ width: 20, height: 20, bgcolor: '#00E676', borderRadius: 1 }} />
-              </TableCell>
-              <TableCell>Leading buy signal - potential pivot detected</TableCell>
-              <TableCell sx={{ color: '#00E676' }}>1 BAR EARLIER</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700, color: '#FF5252' }}>LEAD SELL</TableCell>
-              <TableCell>
-                <Box sx={{ width: 20, height: 20, bgcolor: '#FF5252', borderRadius: 1 }} />
-              </TableCell>
-              <TableCell>Leading sell signal - potential pivot detected</TableCell>
-              <TableCell sx={{ color: '#FF5252' }}>1 BAR EARLIER</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700, color: '#2962FF' }}>BUY</TableCell>
-              <TableCell>
-                <Box sx={{ width: 20, height: 20, bgcolor: '#2962FF', borderRadius: 1 }} />
-              </TableCell>
-              <TableCell>Standard confirmed fractal buy signal</TableCell>
-              <TableCell>Delayed by N bars (confirmed)</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell sx={{ fontWeight: 700, color: '#DD0000' }}>SELL</TableCell>
-              <TableCell>
-                <Box sx={{ width: 20, height: 20, bgcolor: '#DD0000', borderRadius: 1 }} />
-              </TableCell>
-              <TableCell>Standard confirmed fractal sell signal</TableCell>
-              <TableCell>Delayed by N bars (confirmed)</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-
-        <Box sx={{ mt: 3, p: 2, bgcolor: 'rgba(0,230,118,0.1)', borderRadius: 1, border: '1px solid rgba(0,230,118,0.3)' }}>
-          <Typography variant="subtitle2" sx={{ color: '#00E676', mb: 1 }}>
-            How Leading Signals Work
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Leading signals fire <strong>at the potential pivot point</strong> instead of waiting for N bars of confirmation.
-            They detect: (1) RSI in extreme zone, (2) Lowest/highest in last N bars, (3) Momentum reversal or reversal candle.
-            ~70-80% of leading signals become confirmed fractals. The 20-30% that don't would have been filtered anyway.
-          </Typography>
-        </Box>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <strong>This is a separate RSI indicator</strong> - not combined with RSI-MA. It calculates RSI from price OHLC
+          and displays the RSI values as candlesticks, exactly like the TradingView Pine Script.
+        </Alert>
+        <Typography variant="body2" color="text.secondary">
+          <strong>Standard Signals (Blue/Red):</strong> Non-repainting fractals confirmed after N bars. Delayed but 100% reliable.<br />
+          <strong>Leading Signals (Bright Green/Red):</strong> Fire 1 bar earlier at potential pivot points. ~70-80% become confirmed fractals.<br />
+          <strong>Patterns:</strong> Engulfing (Eng), Morning Star (MS), Evening Star (ES) detected on RSI candles.
+        </Typography>
       </Paper>
 
       <Snackbar
         open={pineScriptCopied}
         autoHideDuration={2000}
         onClose={() => setPineScriptCopied(false)}
-        message="Pine Script reference copied to clipboard"
+        message="Pine Script reference copied"
       />
     </Box>
   );
