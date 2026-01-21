@@ -53,6 +53,7 @@ const WeightedFourierTransformPage = React.lazy(() => import('./pages/WeightedFo
 const LEAPSStrategyPanel = React.lazy(() => import('./components/LEAPSScanner/LEAPSStrategyPanel'));
 const DailyTrendScannerPage = React.lazy(() => import('./pages/DailyTrendScannerPage'));
 const RSIChebyshevLeadingPage = React.lazy(() => import('./pages/RSIChebyshevLeadingPage'));
+const RSIChebyshevProPage = React.lazy(() => import('./pages/RSIChebyshevProPage'));
 
 const theme = createTheme({
   palette: {
@@ -232,6 +233,7 @@ function Dashboard() {
                 <Tab icon={<TrendingUpIcon />} label="LEAPS Scanner" />
                 <Tab icon={<ShowChartIcon />} label="Daily Trend Scanner" />
                 <Tab icon={<TimelineIcon />} label="RSI Chebyshev Leading" />
+                <Tab icon={<ShowChartIcon />} label="RSI Chebyshev Pro (TV)" />
               </Tabs>
             </Paper>
 
@@ -362,6 +364,12 @@ function Dashboard() {
             <TabPanel value={activeTab} index={14}>
               <React.Suspense fallback={suspenseFallback}>
                 <RSIChebyshevLeadingPage ticker={selectedTicker} />
+              </React.Suspense>
+            </TabPanel>
+
+            <TabPanel value={activeTab} index={15}>
+              <React.Suspense fallback={suspenseFallback}>
+                <RSIChebyshevProPage ticker={selectedTicker} />
               </React.Suspense>
             </TabPanel>
           </>
