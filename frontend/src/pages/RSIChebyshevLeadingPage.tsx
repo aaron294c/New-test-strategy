@@ -25,7 +25,6 @@ import {
   Switch,
   Typography,
   Snackbar,
-  Divider,
   Alert,
 } from '@mui/material';
 import {
@@ -503,12 +502,7 @@ function detectPatterns(
     const rsiLowZone = rsiHigh[i] < 40;
     const rsiHighZone = rsiLow[i] > 60;
 
-    const bodyHi = Math.max(rsiClose[i], rsiOpen[i]);
-    const bodyLo = Math.min(rsiClose[i], rsiOpen[i]);
-    const body = bodyHi - bodyLo;
-    const bodyMiddle = body / 2 + bodyLo;
-
-    const smallBody = body < bodyAvg[i];
+    const body = Math.abs(rsiClose[i] - rsiOpen[i]);
     const longBody = body > bodyAvg[i];
     const whiteBody = rsiOpen[i] < rsiClose[i];
     const blackBody = rsiOpen[i] > rsiClose[i];
@@ -680,6 +674,14 @@ function RSIChebyshevChart(props: {
   oversoldZone: number;
   overboughtZone: number;
   styleChoice: 'Candle' | 'Candle Trend';
+  // New props matching Pine Script settings
+  maLineWidth: number;
+  showFractalShapes: boolean;
+  buyOffset: number;
+  sellOffset: number;
+  colorBars: boolean;
+  colorRSILine: boolean;
+  rsiLineWidth: number;
 }) {
   const {
     priceData,
@@ -694,6 +696,13 @@ function RSIChebyshevChart(props: {
     oversoldZone,
     overboughtZone,
     styleChoice,
+    maLineWidth,
+    showFractalShapes,
+    buyOffset,
+    sellOffset,
+    colorBars,
+    colorRSILine,
+    rsiLineWidth,
   } = props;
 
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
@@ -769,7 +778,7 @@ function RSIChebyshevChart(props: {
     // MA line (will be colored per-bar based on OHLC value)
     maSeriesRef.current = chart.addLineSeries({
       color: '#00FF00', // Default, will be overridden per point
-      lineWidth: 2,
+      lineWidth: maLineWidth as 1 | 2 | 3 | 4,
       title: 'Adaptive MA',
       lastValueVisible: true,
       priceLineVisible: false,
@@ -801,7 +810,7 @@ function RSIChebyshevChart(props: {
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, []);
+  }, [maLineWidth]);
 
   useEffect(() => {
     if (!candleSeriesRef.current || !maSeriesRef.current) return;
@@ -852,9 +861,10 @@ function RSIChebyshevChart(props: {
     // Build markers
     const markers: any[] = [];
 
-    // Standard fractal signals
+    // Standard fractal signals (BUY/SELL labels)
     if (showStandardSignals) {
       for (const s of standardSignals.buySignals) {
+        // Add label marker
         markers.push({
           time: s.time,
           position: 'belowBar',
@@ -862,6 +872,17 @@ function RSIChebyshevChart(props: {
           shape: 'arrowUp',
           text: 'BUY',
         });
+        // Add fractal shape (triangle) if enabled
+        if (showFractalShapes) {
+          markers.push({
+            time: s.time,
+            position: 'belowBar',
+            color: '#2962FF',
+            shape: 'arrowUp',
+            text: '',
+            size: 0.5,
+          });
+        }
       }
       for (const s of standardSignals.sellSignals) {
         markers.push({
@@ -871,6 +892,16 @@ function RSIChebyshevChart(props: {
           shape: 'arrowDown',
           text: 'SELL',
         });
+        if (showFractalShapes) {
+          markers.push({
+            time: s.time,
+            position: 'aboveBar',
+            color: '#DD0000',
+            shape: 'arrowDown',
+            text: '',
+            size: 0.5,
+          });
+        }
       }
     }
 
@@ -897,8 +928,8 @@ function RSIChebyshevChart(props: {
       }
     }
 
-    // Pattern signals
-    if (showPatterns) {
+    // Pattern signals (only show in Candle Trend mode as per Pine Script)
+    if (showPatterns && styleChoice === 'Candle Trend') {
       for (const p of patterns) {
         if (p.pattern === 'engulfing_bull' || p.pattern === 'morning_star') {
           markers.push({
@@ -924,7 +955,7 @@ function RSIChebyshevChart(props: {
     candleSeriesRef.current.setMarkers(markers);
 
     chartRef.current?.timeScale().fitContent();
-  }, [candles, ma, ohlc, times, showMA, showStandardSignals, showLeadingSignals, showPatterns, standardSignals, leadingSignals, patterns, styleChoice]);
+  }, [candles, ma, ohlc, times, showMA, showStandardSignals, showLeadingSignals, showPatterns, standardSignals, leadingSignals, patterns, styleChoice, showFractalShapes, buyOffset, sellOffset, colorBars, colorRSILine, rsiLineWidth]);
 
   return (
     <Box>
@@ -988,18 +1019,29 @@ export default function RSIChebyshevLeadingPage(props: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Settings
+  // RSI Settings (matching Pine Script exactly)
+  const [colorBars, setColorBars] = useState(false);
+  const [styleChoice, setStyleChoice] = useState<'Candle' | 'Candle Trend'>('Candle');
+  const [colorRSILine, setColorRSILine] = useState(false);
+  const [rsiLineWidth, setRsiLineWidth] = useState(2);
   const [rsiLength, setRsiLength] = useState(24);
   const [rsiSmoothing, setRsiSmoothing] = useState(3);
+  const [autoMA, setAutoMA] = useState(true);
   const [maMultiplier, setMaMultiplier] = useState(1);
+  const [maLineWidth, setMaLineWidth] = useState(2);
+
+  // Fractal Settings (matching Pine Script exactly)
   const [fractalPeriods, setFractalPeriods] = useState(5);
-  const [showMA, setShowMA] = useState(true);
-  const [showStandardSignals, setShowStandardSignals] = useState(true);
+  const [showBuySellLabels, setShowBuySellLabels] = useState(true);
+  const [showFractalShapes, setShowFractalShapes] = useState(false);
+  const [buyOffset, setBuyOffset] = useState(8);
+  const [sellOffset, setSellOffset] = useState(8);
+
+  // Additional display settings
   const [showLeadingSignals, setShowLeadingSignals] = useState(true);
   const [showPatterns, setShowPatterns] = useState(true);
   const [oversoldZone, setOversoldZone] = useState(35);
   const [overboughtZone, setOverboughtZone] = useState(65);
-  const [styleChoice, setStyleChoice] = useState<'Candle' | 'Candle Trend'>('Candle Trend');
   const [pineScriptCopied, setPineScriptCopied] = useState(false);
 
   // Fetch data
@@ -1063,11 +1105,210 @@ export default function RSIChebyshevLeadingPage(props: Props) {
             </Button>
           </Box>
         </Box>
+      </Paper>
 
-        <Divider sx={{ my: 2 }} />
+      {/* Chart */}
+      <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
+        <RSIChebyshevChart
+          priceData={priceData}
+          rsiLength={rsiLength}
+          rsiSmoothing={rsiSmoothing}
+          maMultiplier={maMultiplier}
+          fractalPeriods={fractalPeriods}
+          showMA={autoMA}
+          showStandardSignals={showBuySellLabels}
+          showLeadingSignals={showLeadingSignals}
+          showPatterns={showPatterns}
+          oversoldZone={oversoldZone}
+          overboughtZone={overboughtZone}
+          styleChoice={styleChoice}
+          maLineWidth={maLineWidth}
+          showFractalShapes={showFractalShapes}
+          buyOffset={buyOffset}
+          sellOffset={sellOffset}
+          colorBars={colorBars}
+          colorRSILine={colorRSILine}
+          rsiLineWidth={rsiLineWidth}
+        />
+      </Paper>
 
-        {/* Leading Signal Toggle */}
-        <Box sx={{ mb: 2 }}>
+      {/* RSI SETTINGS - Matching Pine Script exactly */}
+      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>RSI SETTINGS</Typography>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Color Bars */}
+          <FormControlLabel
+            control={<Checkbox checked={colorBars} onChange={(e) => setColorBars(e.target.checked)} />}
+            label="Color Bars"
+          />
+
+          {/* Style dropdown */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 80 }}>Style:</Typography>
+            <select
+              value={styleChoice}
+              onChange={(e) => setStyleChoice(e.target.value as 'Candle' | 'Candle Trend')}
+              style={{ padding: '8px 12px', borderRadius: 4, border: '1px solid #555', background: '#2a2a2a', color: '#fff', minWidth: 150 }}
+            >
+              <option value="Candle">Candle</option>
+              <option value="Candle Trend">Candle Trend</option>
+            </select>
+          </Box>
+
+          {/* Color RSI Line */}
+          <FormControlLabel
+            control={<Checkbox checked={colorRSILine} onChange={(e) => setColorRSILine(e.target.checked)} />}
+            label="Color RSI Line"
+          />
+
+          {/* RSI Line Width */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 120 }}>RSI Line Width:</Typography>
+            <Slider
+              value={rsiLineWidth}
+              onChange={(_, v) => setRsiLineWidth(v as number)}
+              min={1}
+              max={5}
+              step={1}
+              sx={{ width: 150 }}
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="body2" sx={{ minWidth: 30 }}>{rsiLineWidth}</Typography>
+          </Box>
+
+          {/* Length */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 120 }}>Length:</Typography>
+            <Slider
+              value={rsiLength}
+              onChange={(_, v) => setRsiLength(v as number)}
+              min={5}
+              max={50}
+              sx={{ width: 150 }}
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="body2" sx={{ minWidth: 30 }}>{rsiLength}</Typography>
+          </Box>
+
+          {/* Smoothing */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 120 }}>Smoothing:</Typography>
+            <Slider
+              value={rsiSmoothing}
+              onChange={(_, v) => setRsiSmoothing(v as number)}
+              min={1}
+              max={10}
+              sx={{ width: 150 }}
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="body2" sx={{ minWidth: 30 }}>{rsiSmoothing}</Typography>
+          </Box>
+
+          {/* Auto MA */}
+          <FormControlLabel
+            control={<Checkbox checked={autoMA} onChange={(e) => setAutoMA(e.target.checked)} />}
+            label="Auto MA"
+          />
+
+          {/* MA Multiplier */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 120 }}>MA Multiplier:</Typography>
+            <Slider
+              value={maMultiplier}
+              onChange={(_, v) => setMaMultiplier(v as number)}
+              min={1}
+              max={5}
+              sx={{ width: 150 }}
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="body2" sx={{ minWidth: 30 }}>{maMultiplier}</Typography>
+          </Box>
+
+          {/* MA Line Width */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 120 }}>MA Line Width:</Typography>
+            <Slider
+              value={maLineWidth}
+              onChange={(_, v) => setMaLineWidth(v as number)}
+              min={1}
+              max={5}
+              step={1}
+              sx={{ width: 150 }}
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="body2" sx={{ minWidth: 30 }}>{maLineWidth}</Typography>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* FRACTALS - Matching Pine Script exactly */}
+      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>FRACTALS</Typography>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Fractal Periods (n) */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 140 }}>Fractal Periods (n):</Typography>
+            <Slider
+              value={fractalPeriods}
+              onChange={(_, v) => setFractalPeriods(v as number)}
+              min={2}
+              max={10}
+              sx={{ width: 150 }}
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="body2" sx={{ minWidth: 30 }}>{fractalPeriods}</Typography>
+          </Box>
+
+          {/* Show BUY/SELL Labels */}
+          <FormControlLabel
+            control={<Checkbox checked={showBuySellLabels} onChange={(e) => setShowBuySellLabels(e.target.checked)} />}
+            label="Show BUY/SELL Labels"
+          />
+
+          {/* Show Fractal Shapes */}
+          <FormControlLabel
+            control={<Checkbox checked={showFractalShapes} onChange={(e) => setShowFractalShapes(e.target.checked)} />}
+            label="Show Fractal Shapes"
+          />
+
+          {/* BUY offset (ticks) */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 140 }}>BUY offset (ticks):</Typography>
+            <Slider
+              value={buyOffset}
+              onChange={(_, v) => setBuyOffset(v as number)}
+              min={1}
+              max={20}
+              sx={{ width: 150 }}
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="body2" sx={{ minWidth: 30 }}>{buyOffset}</Typography>
+          </Box>
+
+          {/* SELL offset (ticks) */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 140 }}>SELL offset (ticks):</Typography>
+            <Slider
+              value={sellOffset}
+              onChange={(_, v) => setSellOffset(v as number)}
+              min={1}
+              max={20}
+              sx={{ width: 150 }}
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="body2" sx={{ minWidth: 30 }}>{sellOffset}</Typography>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* Additional Settings */}
+      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>ADDITIONAL SETTINGS</Typography>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Leading Signals */}
           <FormControlLabel
             control={
               <Switch
@@ -1087,83 +1328,41 @@ export default function RSIChebyshevLeadingPage(props: Props) {
               </Box>
             }
           />
-        </Box>
 
-        {/* Other toggles */}
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-          <FormControlLabel
-            control={<Checkbox checked={showStandardSignals} onChange={(e) => setShowStandardSignals(e.target.checked)} />}
-            label="Standard Signals (BUY/SELL)"
-          />
-          <FormControlLabel
-            control={<Checkbox checked={showMA} onChange={(e) => setShowMA(e.target.checked)} />}
-            label="Show Adaptive MA"
-          />
+          {/* Show Patterns */}
           <FormControlLabel
             control={<Checkbox checked={showPatterns} onChange={(e) => setShowPatterns(e.target.checked)} />}
             label="Show Patterns (Engulfing, Stars)"
           />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={styleChoice === 'Candle Trend'}
-                onChange={(e) => setStyleChoice(e.target.checked ? 'Candle Trend' : 'Candle')}
-              />
-            }
-            label="Hollow Bullish Candles"
-          />
-        </Box>
-      </Paper>
 
-      {/* Chart */}
-      <Paper elevation={3} sx={{ p: 2, mb: 3 }}>
-        <RSIChebyshevChart
-          priceData={priceData}
-          rsiLength={rsiLength}
-          rsiSmoothing={rsiSmoothing}
-          maMultiplier={maMultiplier}
-          fractalPeriods={fractalPeriods}
-          showMA={showMA}
-          showStandardSignals={showStandardSignals}
-          showLeadingSignals={showLeadingSignals}
-          showPatterns={showPatterns}
-          oversoldZone={oversoldZone}
-          overboughtZone={overboughtZone}
-          styleChoice={styleChoice}
-        />
-      </Paper>
+          {/* Oversold Zone */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 120 }}>Oversold Zone:</Typography>
+            <Slider
+              value={oversoldZone}
+              onChange={(_, v) => setOversoldZone(v as number)}
+              min={20}
+              max={45}
+              sx={{ width: 150 }}
+              color="success"
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="body2" sx={{ minWidth: 30 }}>{oversoldZone}</Typography>
+          </Box>
 
-      {/* Settings */}
-      <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>RSI Settings</Typography>
-        <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          <Box sx={{ width: 200 }}>
-            <Typography variant="body2" gutterBottom>Length: {rsiLength}</Typography>
-            <Slider value={rsiLength} onChange={(_, v) => setRsiLength(v as number)} min={5} max={50} />
-          </Box>
-          <Box sx={{ width: 200 }}>
-            <Typography variant="body2" gutterBottom>Smoothing: {rsiSmoothing}</Typography>
-            <Slider value={rsiSmoothing} onChange={(_, v) => setRsiSmoothing(v as number)} min={1} max={10} />
-          </Box>
-          <Box sx={{ width: 200 }}>
-            <Typography variant="body2" gutterBottom>MA Multiplier: {maMultiplier}</Typography>
-            <Slider value={maMultiplier} onChange={(_, v) => setMaMultiplier(v as number)} min={1} max={5} />
-          </Box>
-        </Box>
-
-        <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Fractal Settings</Typography>
-        <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          <Box sx={{ width: 200 }}>
-            <Typography variant="body2" gutterBottom>Fractal Periods (n): {fractalPeriods}</Typography>
-            <Slider value={fractalPeriods} onChange={(_, v) => setFractalPeriods(v as number)} min={2} max={10} />
-          </Box>
-          <Box sx={{ width: 200 }}>
-            <Typography variant="body2" gutterBottom>Oversold Zone: {oversoldZone}</Typography>
-            <Slider value={oversoldZone} onChange={(_, v) => setOversoldZone(v as number)} min={20} max={45} color="success" />
-          </Box>
-          <Box sx={{ width: 200 }}>
-            <Typography variant="body2" gutterBottom>Overbought Zone: {overboughtZone}</Typography>
-            <Slider value={overboughtZone} onChange={(_, v) => setOverboughtZone(v as number)} min={55} max={80} color="error" />
+          {/* Overbought Zone */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Typography variant="body2" sx={{ minWidth: 120 }}>Overbought Zone:</Typography>
+            <Slider
+              value={overboughtZone}
+              onChange={(_, v) => setOverboughtZone(v as number)}
+              min={55}
+              max={80}
+              sx={{ width: 150 }}
+              color="error"
+              valueLabelDisplay="auto"
+            />
+            <Typography variant="body2" sx={{ minWidth: 30 }}>{overboughtZone}</Typography>
           </Box>
         </Box>
       </Paper>
