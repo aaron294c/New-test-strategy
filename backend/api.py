@@ -400,33 +400,23 @@ async def get_mapi_chart(ticker: str, days: int = 252):
     try:
         ticker_upper = ticker.upper()
 
-        # Get daily data for the ticker
-        data_map = {
-            'NVDA': NVDA_DAILY_DATA,
-            'MSFT': MSFT_DAILY_DATA,
-            'GOOGL': GOOGL_DAILY_DATA,
-            'AAPL': AAPL_DAILY_DATA,
-            'GLD': GLD_DAILY_DATA,
-            'SLV': SLV_DAILY_DATA,
-            'TSLA': TSLA_DAILY_DATA,
-            'NFLX': NFLX_DAILY_DATA,
-            'BRK-B': BRKB_DAILY_DATA,
-            'WMT': WMT_DAILY_DATA,
-            'UNH': UNH_DAILY_DATA,
-            'AVGO': AVGO_DAILY_DATA,
-            'LLY': LLY_DAILY_DATA,
-            'TSM': TSM_DAILY_DATA,
-            'ORCL': ORCL_DAILY_DATA,
-            'OXY': OXY_DAILY_DATA
-        }
+        # Create backtester instance to fetch data (same pattern as RSI chart)
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=[ticker_upper],
+            lookback_period=252,
+            rsi_length=14,
+            ma_length=14,
+            max_horizon=21
+        )
 
-        if ticker_upper not in data_map:
+        # Fetch data using yfinance
+        df = backtester.fetch_data(ticker_upper)
+
+        if df.empty:
             raise HTTPException(
                 status_code=404,
-                detail=f"Ticker {ticker_upper} not found. Available: {list(data_map.keys())}"
+                detail=f"Could not fetch data for {ticker_upper}"
             )
-
-        df = data_map[ticker_upper].copy()
 
         # Rename columns to lowercase for consistency
         df.columns = [col.lower() for col in df.columns]
@@ -460,6 +450,8 @@ async def get_mapi_chart(ticker: str, days: int = 252):
         raise
     except Exception as e:
         print(f"Error calculating MAPI for {ticker}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
