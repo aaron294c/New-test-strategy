@@ -71,6 +71,56 @@ _STATIC_SNAPSHOT_DIR = Path(__file__).resolve().parent / "static_snapshots" / "s
 _MIDDAY_SNAPSHOT_DIR = Path(__file__).resolve().parent / "cache" / "midday_snapshots"
 _MIDDAY_SNAPSHOT_TZ = os.getenv("SWING_MIDDAY_SNAPSHOT_TZ", "America/New_York")
 
+# Midday window configuration (Eastern Time)
+_MIDDAY_WINDOW_START_HOUR = 11
+_MIDDAY_WINDOW_START_MINUTE = 30
+_MIDDAY_WINDOW_END_HOUR = 12
+_MIDDAY_WINDOW_END_MINUTE = 30
+
+
+def _is_midday_window(now_utc: datetime | None = None) -> bool:
+    """
+    Check if current time is within the midday snapshot window (11:30 AM - 12:30 PM ET).
+    This window is when we automatically capture midday snapshots.
+    """
+    if now_utc is None:
+        now_utc = datetime.now(timezone.utc)
+    try:
+        tz = ZoneInfo(_MIDDAY_SNAPSHOT_TZ)
+    except Exception:
+        tz = timezone.utc
+    local_time = now_utc.astimezone(tz)
+
+    # Check if it's a weekday (Mon=0, Sun=6)
+    if local_time.weekday() >= 5:
+        return False
+
+    # Check time window
+    current_minutes = local_time.hour * 60 + local_time.minute
+    start_minutes = _MIDDAY_WINDOW_START_HOUR * 60 + _MIDDAY_WINDOW_START_MINUTE
+    end_minutes = _MIDDAY_WINDOW_END_HOUR * 60 + _MIDDAY_WINDOW_END_MINUTE
+
+    return start_minutes <= current_minutes <= end_minutes
+
+
+def _should_auto_save_midday_snapshot(timeframe: str, now_utc: datetime | None = None) -> bool:
+    """
+    Determine if we should automatically save a midday snapshot.
+    Returns True if:
+    1. It's within the midday window
+    2. No snapshot exists for today yet
+    """
+    if now_utc is None:
+        now_utc = datetime.now(timezone.utc)
+
+    if not _is_midday_window(now_utc):
+        return False
+
+    market_day = _get_market_date(now_utc)
+    path = _midday_snapshot_path(timeframe, market_day)
+
+    return not path.exists()
+
 
 def _get_market_date(now_utc: datetime) -> date:
     try:
@@ -134,10 +184,62 @@ def _save_midday_snapshot(
         return False
 
 
+def _compute_historical_prev_midday(tickers: List[str], prev_day: date, timeframe: str) -> Dict[str, Dict[str, Any]]:
+    """
+    Fallback: compute previous midday percentiles from historical data when no snapshot exists.
+    Returns dict of ticker -> {"percentile": float, "price": float} for the prev_day close.
+    """
+    result: Dict[str, Dict[str, Any]] = {}
+    LOOKBACK_PERIOD = 252  # 1 trading year
+
+    for ticker in tickers:
+        try:
+            yahoo_ticker = resolve_yahoo_symbol(ticker)
+            # Fetch data up to prev_day
+            end_date = prev_day + timedelta(days=1)
+            start_date = prev_day - timedelta(days=500)  # Enough for lookback
+            data = yf.download(
+                yahoo_ticker,
+                start=start_date.isoformat(),
+                end=end_date.isoformat(),
+                progress=False,
+                auto_adjust=True,
+                multi_level_index=False,
+            )
+            if data.empty or len(data) < LOOKBACK_PERIOD:
+                continue
+
+            # Filter to only include data up to prev_day
+            prev_day_datetime = pd.Timestamp(prev_day)
+            data = data[data.index <= prev_day_datetime]
+            if data.empty or len(data) < LOOKBACK_PERIOD:
+                continue
+
+            # Calculate RSI-MA indicator using a temporary backtester
+            backtester = EnhancedPerformanceMatrixBacktester(tickers=[ticker])
+            indicator = backtester.calculate_rsi_ma_indicator(data)
+            if indicator.empty:
+                continue
+
+            # Calculate percentile rank at the end (which is prev_day)
+            lookback = LOOKBACK_PERIOD
+            if len(indicator) >= lookback:
+                window = indicator.iloc[-lookback:]
+                current_value = indicator.iloc[-1]
+                percentile = (window < current_value).sum() / lookback * 100
+                price = float(data['Close'].iloc[-1])
+                result[ticker] = {"percentile": percentile, "price": price}
+        except Exception as e:
+            print(f"  Fallback compute failed for {ticker}: {e}")
+            continue
+    return result
+
+
 def _augment_with_prev_midday_snapshot(response: Dict[str, Any], timeframe: str) -> Dict[str, Any]:
     """
     Annotate `market_state` entries with the previous trading day's saved "midday" percentile,
-    price, and price change percentage, if such a snapshot exists on disk.
+    price, and price change percentage. If no snapshot exists, falls back to computing from
+    historical data.
     """
     now_utc = datetime.now(timezone.utc)
     market_day = _get_market_date(now_utc)
@@ -147,10 +249,26 @@ def _augment_with_prev_midday_snapshot(response: Dict[str, Any], timeframe: str)
     prev_percentiles: Dict[str, Any] = {}
     prev_prices: Dict[str, Any] = {}
     captured_at: str | None = None
+    from_fallback = False
+
     if snapshot:
         prev_percentiles = snapshot.get("percentiles") or {}
         prev_prices = snapshot.get("prices") or {}
         captured_at = snapshot.get("captured_at")
+    else:
+        # Fallback: compute from historical data
+        tickers = [
+            s.get("ticker") for s in (response.get("market_state") or [])
+            if isinstance(s, dict) and s.get("ticker")
+        ]
+        if tickers:
+            print(f"  No midday snapshot for {prev_day}, computing from historical data...")
+            fallback_data = _compute_historical_prev_midday(tickers, prev_day, timeframe)
+            for ticker, data in fallback_data.items():
+                prev_percentiles[ticker] = data.get("percentile")
+                prev_prices[ticker] = data.get("price")
+            from_fallback = True
+            captured_at = f"{prev_day.isoformat()}T16:00:00 (close, computed)"
 
     for state in response.get("market_state", []) or []:
         if not isinstance(state, dict):
@@ -197,6 +315,7 @@ def _augment_with_prev_midday_snapshot(response: Dict[str, Any], timeframe: str)
         "market_date": prev_day.isoformat(),
         "captured_at": captured_at,
         "timeframe": "4h" if timeframe in {"4h", "4hour"} else "daily",
+        "from_fallback": from_fallback,
     }
     return response
 
@@ -1397,9 +1516,13 @@ async def get_current_market_state(
 
         response = _augment_with_prev_midday_snapshot(response, "daily")
 
-        if capture_midday_snapshot:
-            now_utc = datetime.now(timezone.utc)
-            market_day = _get_market_date(now_utc)
+        # Auto-save midday snapshot if within window and no snapshot exists for today
+        now_utc = datetime.now(timezone.utc)
+        market_day = _get_market_date(now_utc)
+        should_auto_save = _should_auto_save_midday_snapshot("daily", now_utc)
+        should_save = capture_midday_snapshot or should_auto_save
+
+        if should_save:
             percentiles = {
                 s.get("ticker"): float(s.get("current_percentile"))
                 for s in (response.get("market_state") or [])
@@ -1419,6 +1542,7 @@ async def get_current_market_state(
                 overwrite=overwrite_midday_snapshot,
             )
             response["midday_snapshot_saved"] = saved
+            response["midday_snapshot_auto_saved"] = should_auto_save and not capture_midday_snapshot
 
         _current_state_cache = response
         _current_state_cache_timestamp = datetime.now(timezone.utc)
@@ -1602,9 +1726,13 @@ async def get_current_market_state_4h(
 
         response = _augment_with_prev_midday_snapshot(response, "4h")
 
-        if capture_midday_snapshot:
-            now_utc = datetime.now(timezone.utc)
-            market_day = _get_market_date(now_utc)
+        # Auto-save midday snapshot if within window and no snapshot exists for today
+        now_utc = datetime.now(timezone.utc)
+        market_day = _get_market_date(now_utc)
+        should_auto_save = _should_auto_save_midday_snapshot("4h", now_utc)
+        should_save = capture_midday_snapshot or should_auto_save
+
+        if should_save:
             percentiles = {
                 s.get("ticker"): float(s.get("current_percentile"))
                 for s in (response.get("market_state") or [])
@@ -1624,6 +1752,7 @@ async def get_current_market_state_4h(
                 overwrite=overwrite_midday_snapshot,
             )
             response["midday_snapshot_saved"] = saved
+            response["midday_snapshot_auto_saved"] = should_auto_save and not capture_midday_snapshot
 
         _current_state_4h_cache = response
         _current_state_4h_cache_timestamp = datetime.now(timezone.utc)
