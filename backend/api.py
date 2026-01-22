@@ -36,6 +36,7 @@ from enhanced_mtf_analyzer import run_enhanced_analysis
 from percentile_forward_mapping import run_percentile_forward_analysis
 from swing_duration_analysis_v2 import analyze_swing_duration_v2
 from swing_duration_intraday import analyze_swing_duration_intraday
+from mapi_calculator import MAPICalculator, prepare_mapi_chart_data
 from stock_statistics import (
     STOCK_METADATA,
     NVDA_4H_DATA, NVDA_DAILY_DATA,
@@ -377,6 +378,90 @@ async def root():
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+
+@app.get("/api/mapi-chart/{ticker}")
+async def get_mapi_chart(ticker: str, days: int = 252):
+    """
+    Get MAPI (Momentum-Adapted Percentile Indicator) chart data
+
+    MAPI is designed for momentum stocks and uses:
+    - EDR (EMA Distance Ratio) - Price distance from EMA normalized by ATR
+    - ESV (EMA Slope Velocity) - Rate of change of EMA
+    - Composite Momentum Score - Weighted combination with percentiles
+
+    Args:
+        ticker: Stock symbol (e.g., 'AAPL', 'TSLA')
+        days: Number of days to return (default: 252)
+
+    Returns:
+        Chart data with MAPI components, signals, and current values
+    """
+    try:
+        ticker_upper = ticker.upper()
+
+        # Get daily data for the ticker
+        data_map = {
+            'NVDA': NVDA_DAILY_DATA,
+            'MSFT': MSFT_DAILY_DATA,
+            'GOOGL': GOOGL_DAILY_DATA,
+            'AAPL': AAPL_DAILY_DATA,
+            'GLD': GLD_DAILY_DATA,
+            'SLV': SLV_DAILY_DATA,
+            'TSLA': TSLA_DAILY_DATA,
+            'NFLX': NFLX_DAILY_DATA,
+            'BRK-B': BRKB_DAILY_DATA,
+            'WMT': WMT_DAILY_DATA,
+            'UNH': UNH_DAILY_DATA,
+            'AVGO': AVGO_DAILY_DATA,
+            'LLY': LLY_DAILY_DATA,
+            'TSM': TSM_DAILY_DATA,
+            'ORCL': ORCL_DAILY_DATA,
+            'OXY': OXY_DAILY_DATA
+        }
+
+        if ticker_upper not in data_map:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Ticker {ticker_upper} not found. Available: {list(data_map.keys())}"
+            )
+
+        df = data_map[ticker_upper].copy()
+
+        # Rename columns to lowercase for consistency
+        df.columns = [col.lower() for col in df.columns]
+
+        # Initialize MAPI calculator
+        calculator = MAPICalculator(
+            ema_period=20,
+            ema_slope_period=5,
+            atr_period=14,
+            edr_lookback=60,
+            esv_lookback=90
+        )
+
+        # Prepare chart data
+        chart_data = prepare_mapi_chart_data(df, calculator, days)
+
+        return {
+            "success": True,
+            "ticker": ticker_upper,
+            "chart_data": chart_data,
+            "metadata": {
+                "ema_period": 20,
+                "ema_slope_period": 5,
+                "atr_period": 14,
+                "edr_lookback": 60,
+                "esv_lookback": 90
+            }
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error calculating MAPI for {ticker}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/api/leaps/vix-strategy")
 async def get_leaps_vix_strategy():

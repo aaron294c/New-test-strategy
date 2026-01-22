@@ -223,4 +223,19 @@ export const dailyTrendApi = {
   },
 };
 
+/**
+ * MAPI (Momentum-Adapted Percentile Indicator) API calls
+ */
+export const mapiApi = {
+  /**
+   * Get MAPI chart data for a ticker
+   */
+  getMAPIChartData: async (ticker: string, days: number = 252): Promise<any> => {
+    const response = await apiClient.get(`/api/mapi-chart/${ticker}`, {
+      params: { days },
+    });
+    return response.data;
+  },
+};
+
 export default apiClient;

@@ -54,6 +54,7 @@ const LEAPSStrategyPanel = React.lazy(() => import('./components/LEAPSScanner/LE
 const DailyTrendScannerPage = React.lazy(() => import('./pages/DailyTrendScannerPage'));
 const RSIChebyshevLeadingPage = React.lazy(() => import('./pages/RSIChebyshevLeadingPage'));
 const RSIChebyshevProPage = React.lazy(() => import('./pages/RSIChebyshevProPage'));
+const MAPIIndicatorPage = React.lazy(() => import('./pages/MAPIIndicatorPage'));
 
 const theme = createTheme({
   palette: {
@@ -234,6 +235,7 @@ function Dashboard() {
                 <Tab icon={<ShowChartIcon />} label="Daily Trend Scanner" />
                 <Tab icon={<TimelineIcon />} label="RSI Chebyshev Leading" />
                 <Tab icon={<ShowChartIcon />} label="RSI Chebyshev Pro (TV)" />
+                <Tab icon={<TrendingUpIcon />} label="MAPI (Momentum)" />
               </Tabs>
             </Paper>
 
@@ -370,6 +372,13 @@ function Dashboard() {
             <TabPanel value={activeTab} index={15}>
               <React.Suspense fallback={suspenseFallback}>
                 <RSIChebyshevProPage ticker={selectedTicker} />
+              </React.Suspense>
+            </TabPanel>
+
+            {/* Tab 16: MAPI (Momentum-Adapted Percentile Indicator) */}
+            <TabPanel value={activeTab} index={16}>
+              <React.Suspense fallback={suspenseFallback}>
+                <MAPIIndicatorPage ticker={selectedTicker} />
               </React.Suspense>
             </TabPanel>
           </>

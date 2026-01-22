@@ -49,6 +49,62 @@ export interface PercentileMovementDay {
   sample_size: number;
 }
 
+// MAPI (Momentum-Adapted Percentile Indicator) Types
+export interface MAPICurrentSignal {
+  date: string;
+  close: number;
+  composite_score: number;
+  edr_percentile: number;
+  esv_percentile: number;
+  ema20: number;
+  ema50: number;
+  adx: number;
+  regime: string;
+  strong_momentum_entry: boolean;
+  pullback_entry: boolean;
+  exit_signal: boolean;
+  distance_to_ema20_pct: number;
+}
+
+export interface MAPIThresholds {
+  strong_momentum: number;
+  pullback_zone_low: number;
+  pullback_zone_high: number;
+  exit_threshold: number;
+  adx_momentum: number;
+  adx_mean_reversion: number;
+}
+
+export interface MAPIChartData {
+  dates: string[];
+  close: number[];
+  composite_score: number[];
+  edr_percentile: number[];
+  esv_percentile: number[];
+  ema20: number[];
+  ema50: number[];
+  adx: number[];
+  regime: string[];
+  strong_momentum_signals: boolean[];
+  pullback_signals: boolean[];
+  exit_signals: boolean[];
+  current: MAPICurrentSignal;
+  thresholds: MAPIThresholds;
+}
+
+export interface MAPIResponse {
+  success: boolean;
+  ticker: string;
+  chart_data: MAPIChartData;
+  metadata: {
+    ema_period: number;
+    ema_slope_period: number;
+    atr_period: number;
+    edr_lookback: number;
+    esv_lookback: number;
+  };
+}
+
 export interface PercentileMovements {
   percentile_by_day: {
     [day: number]: PercentileMovementDay;
