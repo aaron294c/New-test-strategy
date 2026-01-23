@@ -78,16 +78,21 @@ class MAPICalculator:
         return esv
 
     def calculate_percentile_rank(self, series: pd.Series, lookback: int) -> pd.Series:
-        """Calculate rolling percentile rank"""
-        def percentile_rank(x):
-            if len(x) < 2:
-                return 50.0
-            rank = (x < x.iloc[-1]).sum()
-            return (rank / (len(x) - 1)) * 100
+        """Calculate rolling percentile rank using vectorized operations for performance"""
+        import numpy as np
 
-        percentiles = series.rolling(window=lookback, min_periods=10).apply(
-            percentile_rank, raw=False
-        )
+        percentiles = pd.Series(index=series.index, dtype=float)
+        values = series.values
+
+        for i in range(len(series)):
+            start_idx = max(0, i - lookback + 1)
+            window = values[start_idx:i+1]
+
+            if len(window) < 2:
+                percentiles.iloc[i] = 50.0
+            else:
+                rank = np.sum(window[:-1] < window[-1])
+                percentiles.iloc[i] = (rank / (len(window) - 1)) * 100
 
         return percentiles
 

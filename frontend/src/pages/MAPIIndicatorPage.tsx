@@ -5,7 +5,7 @@
  * Uses EMA distance and slope velocity with percentile framework
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -50,16 +50,104 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
   const current = chartData?.current;
   const thresholds = chartData?.thresholds;
 
-  // Create and update chart
+  // Memoize timestamp conversion to prevent recalculation
+  const timestamps = useMemo(() => {
+    if (!chartData?.dates) return [];
+    return chartData.dates.map((d: string) => {
+      const date = new Date(d);
+      return Math.floor(date.getTime() / 1000);
+    });
+  }, [chartData?.dates]);
+
+  // Memoize chart data transformations
+  const compositeData = useMemo(() => {
+    if (!timestamps.length || !chartData?.composite_score) return [];
+    return timestamps.map((time: number, i: number) => ({
+      time,
+      value: chartData.composite_score[i] ?? 50,
+    }));
+  }, [timestamps, chartData?.composite_score]);
+
+  const edrData = useMemo(() => {
+    if (!timestamps.length || !chartData?.edr_percentile) return [];
+    return timestamps.map((time: number, i: number) => ({
+      time,
+      value: chartData.edr_percentile[i] ?? 50,
+    }));
+  }, [timestamps, chartData?.edr_percentile]);
+
+  const esvData = useMemo(() => {
+    if (!timestamps.length || !chartData?.esv_percentile) return [];
+    return timestamps.map((time: number, i: number) => ({
+      time,
+      value: chartData.esv_percentile[i] ?? 50,
+    }));
+  }, [timestamps, chartData?.esv_percentile]);
+
+  const priceData = useMemo(() => {
+    if (!timestamps.length || !chartData?.close) return [];
+    return timestamps.map((time: number, i: number) => ({
+      time,
+      value: chartData.close[i],
+    }));
+  }, [timestamps, chartData?.close]);
+
+  const ema20Data = useMemo(() => {
+    if (!timestamps.length || !chartData?.ema20) return [];
+    return timestamps.map((time: number, i: number) => ({
+      time,
+      value: chartData.ema20[i],
+    }));
+  }, [timestamps, chartData?.ema20]);
+
+  const ema50Data = useMemo(() => {
+    if (!timestamps.length || !chartData?.ema50) return [];
+    return timestamps.map((time: number, i: number) => ({
+      time,
+      value: chartData.ema50[i],
+    }));
+  }, [timestamps, chartData?.ema50]);
+
+  // Memoize markers to prevent recalculation
+  const markers = useMemo(() => {
+    if (!timestamps.length || !chartData) return [];
+    const result: any[] = [];
+    timestamps.forEach((time: number, i: number) => {
+      if (chartData.strong_momentum_signals?.[i]) {
+        result.push({
+          time,
+          position: 'belowBar',
+          color: '#4caf50',
+          shape: 'arrowUp',
+          text: 'Strong',
+        });
+      }
+      if (chartData.pullback_signals?.[i]) {
+        result.push({
+          time,
+          position: 'belowBar',
+          color: '#2196f3',
+          shape: 'circle',
+          text: 'Pullback',
+        });
+      }
+      if (chartData.exit_signals?.[i]) {
+        result.push({
+          time,
+          position: 'aboveBar',
+          color: '#f44336',
+          shape: 'arrowDown',
+          text: 'Exit',
+        });
+      }
+    });
+    return result;
+  }, [timestamps, chartData?.strong_momentum_signals, chartData?.pullback_signals, chartData?.exit_signals]);
+
+  // Create chart only once
   useEffect(() => {
-    if (!chartContainerRef.current || !chartData) return;
+    if (!chartContainerRef.current || chartRef.current) return;
 
-    // Clean up existing chart
-    if (chartRef.current) {
-      chartRef.current.remove();
-    }
-
-    // Create new chart
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
       height: 500,
@@ -85,11 +173,36 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
     chartRef.current = chart;
 
-    // Convert dates to timestamps
-    const timestamps = chartData.dates.map((d: string) => {
-      const date = new Date(d);
-      return Math.floor(date.getTime() / 1000);
-    });
+    const handleResize = () => {
+      if (chartContainerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+        });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (chartRef.current) {
+        chartRef.current.remove();
+        chartRef.current = null;
+      }
+    };
+  }, []);
+
+  // Update chart series when data or chart type changes
+  useEffect(() => {
+    if (!chartRef.current || !timestamps.length) return;
+
+    const chart = chartRef.current;
+
+    // Remove all series
+    chart.options();
+
+    // Clear existing series - store references to avoid memory leaks
+    const seriesMap = new Map();
 
     if (chartType === 'composite') {
       // Composite Score Chart
@@ -98,11 +211,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
         lineWidth: 2,
         title: 'Composite Momentum Score',
       });
-
-      const compositeData = timestamps.map((time: number, i: number) => ({
-        time,
-        value: chartData.composite_score[i],
-      }));
+      seriesMap.set('composite', compositeSeries);
 
       compositeSeries.setData(compositeData);
 
@@ -120,43 +229,12 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
           lastValueVisible: false,
         });
         line.setData(thresholdData);
+        return line;
       };
 
-      addThresholdLine(thresholds?.strong_momentum || 65, '#4caf50', LineStyle.Dashed);
-      addThresholdLine(thresholds?.exit_threshold || 40, '#f44336', LineStyle.Dashed);
-      addThresholdLine(50, '#888888', LineStyle.Dotted);
-
-      // Add entry signals as markers
-      const markers: any[] = [];
-      timestamps.forEach((time: number, i: number) => {
-        if (chartData.strong_momentum_signals[i]) {
-          markers.push({
-            time,
-            position: 'belowBar',
-            color: '#4caf50',
-            shape: 'arrowUp',
-            text: 'Strong',
-          });
-        }
-        if (chartData.pullback_signals[i]) {
-          markers.push({
-            time,
-            position: 'belowBar',
-            color: '#2196f3',
-            shape: 'circle',
-            text: 'Pullback',
-          });
-        }
-        if (chartData.exit_signals[i]) {
-          markers.push({
-            time,
-            position: 'aboveBar',
-            color: '#f44336',
-            shape: 'arrowDown',
-            text: 'Exit',
-          });
-        }
-      });
+      seriesMap.set('threshold1', addThresholdLine(thresholds?.strong_momentum || 65, '#4caf50', LineStyle.Dashed));
+      seriesMap.set('threshold2', addThresholdLine(thresholds?.exit_threshold || 40, '#f44336', LineStyle.Dashed));
+      seriesMap.set('threshold3', addThresholdLine(50, '#888888', LineStyle.Dotted));
 
       compositeSeries.setMarkers(markers);
 
@@ -167,22 +245,14 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
         lineWidth: 2,
         title: 'EDR Percentile',
       });
+      seriesMap.set('edr', edrSeries);
 
       const esvSeries = chart.addLineSeries({
         color: '#f50057',
         lineWidth: 2,
         title: 'ESV Percentile',
       });
-
-      const edrData = timestamps.map((time: number, i: number) => ({
-        time,
-        value: chartData.edr_percentile[i],
-      }));
-
-      const esvData = timestamps.map((time: number, i: number) => ({
-        time,
-        value: chartData.esv_percentile[i],
-      }));
+      seriesMap.set('esv', esvSeries);
 
       edrSeries.setData(edrData);
       esvSeries.setData(esvData);
@@ -200,6 +270,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
         lastValueVisible: false,
       });
       refLine.setData(refData);
+      seriesMap.set('ref', refLine);
 
     } else if (chartType === 'ema') {
       // Price with EMAs
@@ -208,33 +279,21 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
         lineWidth: 2,
         title: 'Price',
       });
+      seriesMap.set('price', priceSeries);
 
       const ema20Series = chart.addLineSeries({
         color: '#2962FF',
         lineWidth: 2,
         title: 'EMA(20)',
       });
+      seriesMap.set('ema20', ema20Series);
 
       const ema50Series = chart.addLineSeries({
         color: '#f50057',
         lineWidth: 2,
         title: 'EMA(50)',
       });
-
-      const priceData = timestamps.map((time: number, i: number) => ({
-        time,
-        value: chartData.close[i],
-      }));
-
-      const ema20Data = timestamps.map((time: number, i: number) => ({
-        time,
-        value: chartData.ema20[i],
-      }));
-
-      const ema50Data = timestamps.map((time: number, i: number) => ({
-        time,
-        value: chartData.ema50[i],
-      }));
+      seriesMap.set('ema50', ema50Series);
 
       priceSeries.setData(priceData);
       ema20Series.setData(ema20Data);
@@ -243,24 +302,18 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
     chart.timeScale().fitContent();
 
-    // Handle resize
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-        });
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-
     return () => {
-      window.removeEventListener('resize', handleResize);
-      if (chartRef.current) {
-        chartRef.current.remove();
-      }
+      // Clean up series when chart type changes
+      seriesMap.forEach(series => {
+        try {
+          chart.removeSeries(series);
+        } catch (e) {
+          // Series might already be removed
+        }
+      });
+      seriesMap.clear();
     };
-  }, [chartData, chartType, thresholds]);
+  }, [chartType, compositeData, edrData, esvData, priceData, ema20Data, ema50Data, timestamps, thresholds, markers]);
 
   if (isLoading) {
     return (
