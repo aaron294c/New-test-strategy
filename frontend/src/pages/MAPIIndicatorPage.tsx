@@ -42,9 +42,15 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
   // Fetch MAPI data
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['mapi-chart', ticker],
-    queryFn: () => mapiApi.getMAPIChartData(ticker, 252),
+    queryFn: async () => {
+      console.log(`[MAPI] Fetching data for ${ticker}...`);
+      const result = await mapiApi.getMAPIChartData(ticker, 252);
+      console.log(`[MAPI] Data received:`, result);
+      return result;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     refetchOnWindowFocus: false,
+    retry: 3,
   });
 
   const chartData = data?.chart_data;
@@ -394,9 +400,19 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
   }
 
   if (error) {
+    console.error('[MAPI] Error loading data:', error);
     return (
       <Alert severity="error">
         Failed to load MAPI data: {error instanceof Error ? error.message : 'Unknown error'}
+        <br />
+        <br />
+        <strong>Debug info:</strong>
+        <br />
+        API URL: {import.meta.env.VITE_API_URL || '(same origin)'}
+        <br />
+        Ticker: {ticker}
+        <br />
+        Error: {JSON.stringify(error, null, 2)}
       </Alert>
     );
   }
