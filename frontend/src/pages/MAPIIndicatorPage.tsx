@@ -26,7 +26,9 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
+import ScannerIcon from '@mui/icons-material/Scanner';
 import { mapiApi } from '@/api/client';
+import MAPIScanner from '@/components/MAPIScanner';
 
 interface MAPIIndicatorPageProps {
   ticker: string;
@@ -34,6 +36,7 @@ interface MAPIIndicatorPageProps {
 }
 
 const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
+  const [activeTab, setActiveTab] = useState<'chart' | 'scanner'>('chart');
   const [chartType, setChartType] = useState<'composite' | 'components' | 'ema'>('composite');
   const [chartReady, setChartReady] = useState(false); // Track when chart is created
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -539,6 +542,32 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
         </Grid>
       </Paper>
 
+      {/* Tab Navigation */}
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <ToggleButtonGroup
+          value={activeTab}
+          exclusive
+          onChange={(_, value) => value && setActiveTab(value)}
+          size="small"
+        >
+          <ToggleButton value="chart">
+            <ShowChartIcon sx={{ mr: 1 }} />
+            Chart Analysis
+          </ToggleButton>
+          <ToggleButton value="scanner">
+            <ScannerIcon sx={{ mr: 1 }} />
+            Market Scanner
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </Paper>
+
+      {/* Show chart tab or scanner tab */}
+      {activeTab === 'scanner' ? (
+        <MAPIScanner />
+      ) : (
+        <>
+          {/* Rest of chart view */}
+
       {/* Current Metrics */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={12} md={3}>
@@ -726,6 +755,8 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
           </Card>
         </Grid>
       </Grid>
+        </>
+      )}
     </Box>
   );
 };
