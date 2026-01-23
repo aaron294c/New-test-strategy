@@ -28,9 +28,8 @@ console.log('API_BASE_URL:', API_BASE_URL);
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   timeout: 120000, // 2 minutes for long-running backtests
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // Note: No default Content-Type header to avoid triggering OPTIONS preflight on GETs
+  // Content-Type will be set automatically by axios for POST/PUT requests with JSON data
 });
 
 export interface BacktestRequest {

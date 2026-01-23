@@ -64,11 +64,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware for React frontend
-# Allow both frontend domains
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+def _cors_config():
+    """
+    Resolve CORS configuration.
+
+    CRITICAL FIX: When using allow_credentials=True, we CANNOT use allow_origins=["*"]
+    as that's explicitly forbidden by browsers. Instead:
+    - For production: explicitly list allowed origins (frontend domains)
+    - For wildcard behavior: use allow_origin_regex with specific pattern matching
+
+    This ensures Access-Control-Allow-Origin is properly set in responses.
+    """
+    allowed = (os.getenv("ALLOWED_ORIGINS") or "").strip()
+
+    # Default allowed origins (explicitly listed for credentials support)
+    default = [
         "https://rsi-ma-frontend.onrender.com",
         "https://new-test-strategy.vercel.app",
         "https://new-test-strategy.onrender.com",
@@ -76,11 +86,34 @@ app.add_middleware(
         "http://localhost:5173",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
-    ],
+    ]
+
+    if allowed == "*":
+        # Use regex to match any origin (for credentials support)
+        # This reflects the Origin header back, which is allowed with credentials
+        return {
+            "allow_origins": [],
+            "allow_origin_regex": r"https?://.*",
+        }
+
+    # Add any extra origins from environment
+    extra = [o.strip() for o in allowed.split(",") if o.strip()]
+    return {
+        "allow_origins": sorted(set(default + extra)),
+        "allow_origin_regex": None,
+    }
+
+
+cors = _cors_config()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors["allow_origins"],
+    allow_origin_regex=cors["allow_origin_regex"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["Content-Type", "X-Total-Count"],
+    max_age=3600,  # Cache preflight for 1 hour
 )
 
 # Compress large JSON responses (matrices/series) to reduce transfer + parse time.
