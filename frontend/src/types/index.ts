@@ -54,6 +54,7 @@ export interface MAPICurrentSignal {
   date: string;
   close: number;
   composite_score: number;
+  composite_percentile_rank: number;
   edr_percentile: number;
   esv_percentile: number;
   ema20: number;
@@ -79,6 +80,7 @@ export interface MAPIChartData {
   dates: string[];
   close: number[];
   composite_score: number[];
+  composite_percentile_rank: number[];
   edr_percentile: number[];
   esv_percentile: number[];
   ema20: number[];
@@ -90,6 +92,13 @@ export interface MAPIChartData {
   exit_signals: boolean[];
   current: MAPICurrentSignal;
   thresholds: MAPIThresholds;
+  composite_thresholds_raw: {
+    p30: number;
+    p40: number;
+    p45: number;
+    p50: number;
+    p65: number;
+  };
 }
 
 export interface MAPIResponse {

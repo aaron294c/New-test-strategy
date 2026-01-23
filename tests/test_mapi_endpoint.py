@@ -5,44 +5,67 @@ Tests all three sub-tab data sources and signal generation
 """
 
 import sys
-sys.path.insert(0, '../backend')
+from pathlib import Path
 
-from fastapi.testclient import TestClient
-from api import app
-import json
+BACKEND_DIR = (Path(__file__).resolve().parents[1] / 'backend').as_posix()
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
 
-client = TestClient(app)
+import pandas as pd
+import numpy as np
+
+from mapi_calculator import MAPICalculator, prepare_mapi_chart_data
+
+def _synthetic_ohlc(days: int = 320, seed: int = 7) -> pd.DataFrame:
+    rng = np.random.default_rng(seed)
+    dates = pd.date_range(end=pd.Timestamp.today().normalize(), periods=days, freq="B")
+
+    # Small daily drift + noise
+    rets = rng.normal(loc=0.0003, scale=0.01, size=len(dates))
+    close = 100 * np.exp(np.cumsum(rets))
+
+    open_ = np.roll(close, 1)
+    open_[0] = close[0]
+    high = np.maximum(open_, close) * (1 + rng.uniform(0.0005, 0.01, size=len(dates)))
+    low = np.minimum(open_, close) * (1 - rng.uniform(0.0005, 0.01, size=len(dates)))
+    volume = rng.integers(1_000_000, 5_000_000, size=len(dates))
+
+    return pd.DataFrame(
+        {
+            "open": open_,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": volume,
+        },
+        index=dates,
+    )
 
 def test_mapi_endpoint():
-    """Test MAPI endpoint returns correct data structure"""
+    """Test MAPI chart data preparation returns correct structure (offline, deterministic)."""
     print("=" * 60)
-    print("MAPI ENDPOINT TEST SUITE")
+    print("MAPI CHART DATA TEST SUITE")
     print("=" * 60)
 
-    # Test with AAPL
-    ticker = "AAPL"
     days = 252
+    print(f"\n1. Building synthetic OHLC and preparing chart data (days={days})")
 
-    print(f"\n1. Testing endpoint: /api/mapi-chart/{ticker}?days={days}")
-    response = client.get(f'/api/mapi-chart/{ticker}?days={days}')
+    df = _synthetic_ohlc(days=360)
+    calculator = MAPICalculator()
+    chart_data = prepare_mapi_chart_data(df, calculator, days=days)
 
-    assert response.status_code == 200, f"Expected 200, got {response.status_code}"
-    print("   ✓ Status code: 200")
-
-    data = response.json()
-
-    # Verify response structure
-    assert data['success'] == True, "Response not successful"
-    assert data['ticker'] == ticker, f"Expected ticker {ticker}, got {data['ticker']}"
-    print(f"   ✓ Ticker: {data['ticker']}")
-
-    chart_data = data['chart_data']
-
-    # Verify data length
     assert len(chart_data['dates']) == days, f"Expected {days} dates, got {len(chart_data['dates'])}"
     print(f"   ✓ Data points: {len(chart_data['dates'])}")
 
-    return chart_data, data['metadata']
+    metadata = {
+        "ema_period": calculator.ema_period,
+        "ema_slope_period": calculator.ema_slope_period,
+        "atr_period": calculator.atr_period,
+        "edr_lookback": calculator.edr_lookback,
+        "esv_lookback": calculator.esv_lookback,
+    }
+
+    return chart_data, metadata
 
 
 def test_composite_tab_data(chart_data):
@@ -53,7 +76,20 @@ def test_composite_tab_data(chart_data):
     assert 'composite_score' in chart_data, "Missing composite_score"
     composite_scores = chart_data['composite_score']
     assert all(0 <= score <= 100 for score in composite_scores), "Composite scores out of range"
-    print(f"   ✓ Composite scores: {len(composite_scores)} points (range: 0-100%)")
+    print(f"   ✓ Composite scores (raw): {len(composite_scores)} points (range: 0-100)")
+
+    # Verify composite percentile rank exists
+    assert 'composite_percentile_rank' in chart_data, "Missing composite_percentile_rank"
+    composite_ranks = chart_data['composite_percentile_rank']
+    assert all(0 <= rank <= 100 for rank in composite_ranks), "Composite percentile ranks out of range"
+    print(f"   ✓ Composite percentile ranks: {len(composite_ranks)} points (range: 0-100%)")
+
+    # Verify raw composite thresholds exist
+    assert 'composite_thresholds_raw' in chart_data, "Missing composite_thresholds_raw"
+    raw_thresholds = chart_data['composite_thresholds_raw']
+    for key in ['p30', 'p40', 'p45', 'p50', 'p65']:
+        assert key in raw_thresholds, f"Missing raw threshold: {key}"
+    print("   ✓ Raw composite thresholds (p30/p40/p45/p50/p65) present")
 
     # Verify signals exist
     assert 'strong_momentum_signals' in chart_data, "Missing strong_momentum_signals"
@@ -72,7 +108,7 @@ def test_composite_tab_data(chart_data):
     thresholds = chart_data['thresholds']
     assert thresholds['strong_momentum'] == 65, "Strong momentum threshold incorrect"
     assert thresholds['exit_threshold'] == 40, "Exit threshold incorrect"
-    print(f"   ✓ Thresholds: Strong={thresholds['strong_momentum']}%, Exit={thresholds['exit_threshold']}%")
+    print(f"   ✓ Thresholds (percentile): Strong>{thresholds['strong_momentum']}%, Exit<{thresholds['exit_threshold']}%")
 
 
 def test_components_tab_data(chart_data):
@@ -135,7 +171,7 @@ def test_current_metrics(chart_data):
 
     # Verify all required fields
     required_fields = [
-        'composite_score', 'edr_percentile', 'esv_percentile',
+        'composite_score', 'composite_percentile_rank', 'edr_percentile', 'esv_percentile',
         'ema20', 'ema50', 'close', 'adx', 'regime',
         'strong_momentum_entry', 'pullback_entry', 'exit_signal',
         'distance_to_ema20_pct'
@@ -147,7 +183,8 @@ def test_current_metrics(chart_data):
 
     # Display current signal
     print(f"\n   CURRENT SIGNAL:")
-    print(f"   - Composite Score: {current['composite_score']:.2f}%")
+    print(f"   - Composite Score (raw): {current['composite_score']:.2f}")
+    print(f"   - Composite Percentile Rank: {current['composite_percentile_rank']:.2f}%")
     print(f"   - Regime: {current['regime']} (ADX: {current['adx']:.1f})")
 
     if current['strong_momentum_entry']:

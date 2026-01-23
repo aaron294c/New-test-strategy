@@ -49,6 +49,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
   const chartData = data?.chart_data;
   const current = chartData?.current;
   const thresholds = chartData?.thresholds;
+  const compositeThresholdsRaw = chartData?.composite_thresholds_raw;
 
   // Memoize timestamp conversion to prevent recalculation
   const timestamps = useMemo(() => {
@@ -209,7 +210,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
       const compositeSeries = chart.addLineSeries({
         color: '#2962FF',
         lineWidth: 2,
-        title: 'Composite Momentum Score',
+        title: 'Composite Score (Raw)',
       });
       seriesMap.set('composite', compositeSeries);
 
@@ -232,9 +233,12 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
         return line;
       };
 
-      seriesMap.set('threshold1', addThresholdLine(thresholds?.strong_momentum || 65, '#4caf50', LineStyle.Dashed));
-      seriesMap.set('threshold2', addThresholdLine(thresholds?.exit_threshold || 40, '#f44336', LineStyle.Dashed));
-      seriesMap.set('threshold3', addThresholdLine(50, '#888888', LineStyle.Dotted));
+      // These are raw composite values at the percentile cutoffs (RSI-MA-style)
+      seriesMap.set('threshold_strong', addThresholdLine(compositeThresholdsRaw?.p65 ?? 50, '#4caf50', LineStyle.Dashed));
+      seriesMap.set('threshold_exit', addThresholdLine(compositeThresholdsRaw?.p40 ?? 50, '#f44336', LineStyle.Dashed));
+      seriesMap.set('threshold_pull_low', addThresholdLine(compositeThresholdsRaw?.p30 ?? 50, '#2196f3', LineStyle.Dotted));
+      seriesMap.set('threshold_pull_high', addThresholdLine(compositeThresholdsRaw?.p45 ?? 50, '#2196f3', LineStyle.Dotted));
+      seriesMap.set('threshold_mid', addThresholdLine(compositeThresholdsRaw?.p50 ?? 50, '#888888', LineStyle.Dotted));
 
       compositeSeries.setMarkers(markers);
 
@@ -313,7 +317,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
       });
       seriesMap.clear();
     };
-  }, [chartType, compositeData, edrData, esvData, priceData, ema20Data, ema50Data, timestamps, thresholds, markers]);
+  }, [chartType, compositeData, edrData, esvData, priceData, ema20Data, ema50Data, timestamps, thresholds, compositeThresholdsRaw, markers]);
 
   if (isLoading) {
     return (
@@ -358,7 +362,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
         icon: <TrendingDownIcon />,
       };
     }
-    if (current.composite_score > 50) {
+    if (current.composite_percentile_rank > 50) {
       return {
         label: 'BULLISH',
         color: 'success',
@@ -411,15 +415,17 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
           <Card>
             <CardContent>
               <Typography color="text.secondary" gutterBottom variant="body2">
-                Composite Score
+                Composite Score (Raw)
               </Typography>
-              <Typography variant="h4" color={current.composite_score > 65 ? 'success.main' :
-                                               current.composite_score < 40 ? 'error.main' : 'text.primary'}>
-                {current.composite_score.toFixed(1)}%
+              <Typography
+                variant="h4"
+                color={current.composite_percentile_rank > 65 ? 'success.main' :
+                       current.composite_percentile_rank < 40 ? 'error.main' : 'text.primary'}
+              >
+                {current.composite_score.toFixed(2)}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {current.composite_score > 65 ? 'Strong momentum' :
-                 current.composite_score < 40 ? 'Weak momentum' : 'Neutral'}
+                Percentile: {current.composite_percentile_rank.toFixed(1)}%
               </Typography>
             </CardContent>
           </Card>
@@ -511,7 +517,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
               <Box sx={{ mb: 2 }}>
                 <Typography variant="subtitle2" color="success.main" gutterBottom>
-                  Strong Momentum Entry (Composite &gt; 65%)
+                  Strong Momentum Entry (Composite %ile &gt; 65%)
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   • Price above EMA(20)<br />
@@ -522,12 +528,12 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
               <Box>
                 <Typography variant="subtitle2" color="info.main" gutterBottom>
-                  Pullback Entry (30-45% zone)
+                  Pullback Entry (Composite %ile 30-45%)
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   • Price touches EMA(20)<br />
                   • ESV &gt; 40% (trend intact)<br />
-                  • Composite Score recovering
+                  • Composite percentile recovering
                 </Typography>
               </Box>
             </CardContent>
@@ -562,9 +568,9 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
                   Thresholds
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Strong Momentum: &gt;{thresholds?.strong_momentum}%<br />
-                  Pullback Zone: {thresholds?.pullback_zone_low}-{thresholds?.pullback_zone_high}%<br />
-                  Exit: &lt;{thresholds?.exit_threshold}%<br />
+                  Strong Momentum (Composite %ile): &gt;{thresholds?.strong_momentum}%<br />
+                  Pullback Zone (Composite %ile): {thresholds?.pullback_zone_low}-{thresholds?.pullback_zone_high}%<br />
+                  Exit (Composite %ile): &lt;{thresholds?.exit_threshold}%<br />
                   Momentum ADX: &gt;{thresholds?.adx_momentum}
                 </Typography>
               </Box>
