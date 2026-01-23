@@ -488,6 +488,182 @@ async def get_mapi_chart(ticker: str, days: int = 252):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/mapi-optimize/{ticker}")
+async def optimize_mapi_thresholds(
+    ticker: str,
+    holding_period: int = 7,
+    min_win_rate: float = 0.65,
+    min_expectancy: float = 1.0
+):
+    """
+    Optimize MAPI entry thresholds for a specific ticker
+
+    Performs grid search to find best composite score + EDR percentile
+    thresholds that achieve target win rate and return expectancy.
+
+    Args:
+        ticker: Stock symbol
+        holding_period: Days to hold position (default: 7)
+        min_win_rate: Minimum win rate threshold (default: 0.65 = 65%)
+        min_expectancy: Minimum return expectancy % (default: 1.0)
+
+    Returns:
+        List of optimal threshold combinations sorted by return expectancy
+    """
+    try:
+        from mapi_analysis import MAPIAnalyzer
+
+        ticker_upper = ticker.upper()
+
+        # Fetch data
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=[ticker_upper],
+            lookback_period=252,
+            rsi_length=14,
+            ma_length=14,
+            max_horizon=21
+        )
+        df = backtester.fetch_data(ticker_upper)
+
+        if df.empty:
+            raise HTTPException(status_code=404, detail=f"No data for {ticker_upper}")
+
+        df.columns = [col.lower() for col in df.columns]
+
+        # Optimize
+        analyzer = MAPIAnalyzer()
+        results = analyzer.optimize_thresholds(
+            df=df,
+            composite_range=(25, 70),
+            edr_range=(10, 60),
+            holding_period=holding_period,
+            min_win_rate=min_win_rate,
+            min_expectancy=min_expectancy,
+        )
+
+        # Convert to dict
+        results_dict = [
+            {
+                "composite_threshold": r.composite_threshold,
+                "edr_threshold": r.edr_threshold,
+                "total_trades": r.total_trades,
+                "winning_trades": r.winning_trades,
+                "win_rate": round(r.win_rate * 100, 1),
+                "avg_return": round(r.avg_return, 2),
+                "avg_winning_return": round(r.avg_winning_return, 2),
+                "avg_losing_return": round(r.avg_losing_return, 2),
+                "return_expectancy": round(r.return_expectancy, 2),
+                "sharpe_ratio": round(r.sharpe_ratio, 2),
+                "max_drawdown": round(r.max_drawdown, 2),
+            }
+            for r in results[:10]  # Top 10
+        ]
+
+        return {
+            "success": True,
+            "ticker": ticker_upper,
+            "holding_period": holding_period,
+            "criteria": {
+                "min_win_rate": min_win_rate * 100,
+                "min_expectancy": min_expectancy,
+            },
+            "results": results_dict,
+            "best_threshold": results_dict[0] if results_dict else None,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/mapi-scanner")
+async def scan_mapi_market(request: dict):
+    """
+    Scan market for MAPI entry opportunities
+
+    Request body:
+        {
+            "symbols": ["AAPL", "TSLA", "META", ...],
+            "composite_threshold": 35,  // Optional, default 35
+            "edr_threshold": 20,        // Optional, default 20
+        }
+
+    Returns:
+        List of MAPISignal objects sorted by composite percentile
+    """
+    try:
+        from mapi_analysis import MAPIAnalyzer
+
+        symbols = request.get("symbols", [])
+        composite_threshold = request.get("composite_threshold", 35)
+        edr_threshold = request.get("edr_threshold", 20)
+
+        if not symbols:
+            raise HTTPException(status_code=400, detail="No symbols provided")
+
+        analyzer = MAPIAnalyzer()
+        signals = analyzer.scan_market(
+            symbols=symbols,
+            composite_threshold=composite_threshold,
+            edr_threshold=edr_threshold,
+        )
+
+        # Convert to dict
+        signals_dict = [
+            {
+                "symbol": s.symbol,
+                "date": s.date,
+                "price": round(s.price, 2),
+                "composite_score": round(s.composite_score, 2),
+                "composite_percentile": round(s.composite_percentile, 1),
+                "edr_percentile": round(s.edr_percentile, 1),
+                "esv_percentile": round(s.esv_percentile, 1),
+                "regime": s.regime,
+                "adx": round(s.adx, 1),
+                "distance_to_ema20_pct": round(s.distance_to_ema20_pct, 2),
+                "entry_signal": s.entry_signal,
+                "days_since_last_signal": s.days_since_last_signal,
+                "historical_win_rate": round(s.historical_win_rate * 100, 1),
+                "historical_avg_return": round(s.historical_avg_return, 2),
+                "sample_size": s.sample_size,
+            }
+            for s in signals
+        ]
+
+        # Categorize by percentile zones
+        extreme_low = [s for s in signals_dict if s["composite_percentile"] <= 20]
+        low = [s for s in signals_dict if 20 < s["composite_percentile"] <= 35]
+        not_in_zone = [s for s in signals_dict if s["composite_percentile"] > 35]
+
+        return {
+            "success": True,
+            "timestamp": datetime.now().isoformat(),
+            "criteria": {
+                "composite_threshold": composite_threshold,
+                "edr_threshold": edr_threshold,
+            },
+            "summary": {
+                "total": len(signals_dict),
+                "extreme_low": len(extreme_low),
+                "low": len(low),
+                "not_in_zone": len(not_in_zone),
+            },
+            "signals": signals_dict,
+            "extreme_low_signals": extreme_low,
+            "low_signals": low,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/leaps/vix-strategy")
 async def get_leaps_vix_strategy():
     """
