@@ -235,6 +235,33 @@ export const mapiApi = {
     });
     return response.data;
   },
+
+  /**
+   * Optimize MAPI entry thresholds for a ticker
+   */
+  optimizeThresholds: async (
+    ticker: string,
+    params: {
+      holding_period?: number;
+      min_win_rate?: number;
+      min_expectancy?: number;
+    } = {}
+  ): Promise<any> => {
+    const response = await apiClient.get(`/api/mapi-optimize/${ticker}`, { params });
+    return response.data;
+  },
+
+  /**
+   * Scan market for MAPI entry opportunities
+   */
+  scanMarket: async (request: {
+    symbols: string[];
+    composite_threshold?: number;
+    edr_threshold?: number;
+  }): Promise<any> => {
+    const response = await apiClient.post('/api/mapi-scanner', request);
+    return response.data;
+  },
 };
 
 export default apiClient;

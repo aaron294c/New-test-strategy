@@ -31,9 +31,7 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+import { mapiApi } from '@/api/client';
 
 interface MAPISignal {
   symbol: string;
@@ -89,14 +87,17 @@ const MAPIScanner: React.FC = () => {
       composite_threshold: number;
       edr_threshold: number;
     }) => {
-      const response = await axios.post<ScannerResponse>(
-        `${API_BASE_URL}/api/mapi-scanner`,
-        params
-      );
-      return response.data;
+      console.log('[MAPI Scanner] Scanning with params:', params);
+      const result = await mapiApi.scanMarket(params);
+      console.log('[MAPI Scanner] Scan result:', result);
+      return result as ScannerResponse;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('[MAPI Scanner] Scan successful:', data);
       queryClient.invalidateQueries({ queryKey: ['mapi-scanner'] });
+    },
+    onError: (error) => {
+      console.error('[MAPI Scanner] Scan error:', error);
     },
   });
 
