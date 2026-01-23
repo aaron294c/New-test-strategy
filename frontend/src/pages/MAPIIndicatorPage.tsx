@@ -58,6 +58,21 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
   const thresholds = chartData?.thresholds;
   const compositeThresholdsRaw = chartData?.composite_thresholds_raw;
 
+  // Debug log chart data structure
+  React.useEffect(() => {
+    if (chartData) {
+      console.log('[MAPI Chart] Chart data structure:', {
+        hasDates: !!chartData.dates,
+        datesLength: chartData.dates?.length,
+        hasCompositeScore: !!chartData.composite_score,
+        compositeScoreLength: chartData.composite_score?.length,
+        hasOHLC: !!(chartData.open && chartData.high && chartData.low && chartData.close),
+        firstDate: chartData.dates?.[0],
+        lastDate: chartData.dates?.[chartData.dates?.length - 1],
+      });
+    }
+  }, [chartData]);
+
   // Memoize timestamp conversion to prevent recalculation
   const timestamps = useMemo<UTCTimestamp[]>(() => {
     if (!chartData?.dates) return [];
@@ -166,7 +181,13 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
   // Create chart only once
   useEffect(() => {
     const container = chartContainerRef.current;
+    console.log('[MAPI Chart] Container ref:', container, 'Chart exists:', !!chartRef.current);
     if (!container || chartRef.current) return;
+
+    console.log('[MAPI Chart] Creating chart...', {
+      width: container.clientWidth,
+      height: container.clientHeight
+    });
 
     const chart = createChart(container, {
       width: Math.max(container.clientWidth, 1),
@@ -196,6 +217,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
     });
 
     chartRef.current = chart;
+    console.log('[MAPI Chart] Chart created successfully');
 
     const applyContainerSize = () => {
       const el = chartContainerRef.current;
@@ -237,9 +259,21 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
   // Update chart series when data or chart type changes
   useEffect(() => {
-    if (!chartRef.current || !timestamps.length) return;
+    console.log('[MAPI Chart] Series update triggered:', {
+      hasChart: !!chartRef.current,
+      timestampsLength: timestamps.length,
+      chartType,
+      candleDataLength: candleData.length,
+      compositeDataLength: compositeData.length
+    });
+
+    if (!chartRef.current || !timestamps.length) {
+      console.warn('[MAPI Chart] Skipping series update - missing chart or timestamps');
+      return;
+    }
 
     const chart = chartRef.current;
+    console.log('[MAPI Chart] Adding series for chartType:', chartType);
 
     // Clear existing series - store references to avoid memory leaks
     const seriesMap = new Map<string, ISeriesApi<any>>();
