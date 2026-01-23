@@ -35,6 +35,7 @@ interface MAPIIndicatorPageProps {
 
 const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
   const [chartType, setChartType] = useState<'composite' | 'components' | 'ema'>('composite');
+  const [chartReady, setChartReady] = useState(false); // Track when chart is created
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -178,11 +179,22 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
     return result;
   }, [timestamps, chartData?.strong_momentum_signals, chartData?.pullback_signals, chartData?.exit_signals]);
 
-  // Create chart only once
+  // Create chart only once (when container becomes available)
   useEffect(() => {
     const container = chartContainerRef.current;
     console.log('[MAPI Chart] Container ref:', container, 'Chart exists:', !!chartRef.current);
-    if (!container || chartRef.current) return;
+
+    // Wait for container to be available
+    if (!container) {
+      console.warn('[MAPI Chart] Container not available yet, waiting...');
+      return;
+    }
+
+    // Don't create if chart already exists
+    if (chartRef.current) {
+      console.log('[MAPI Chart] Chart already exists, skipping creation');
+      return;
+    }
 
     console.log('[MAPI Chart] Creating chart...', {
       width: container.clientWidth,
@@ -218,6 +230,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
     chartRef.current = chart;
     console.log('[MAPI Chart] Chart created successfully');
+    setChartReady(true); // Signal that chart is ready
 
     const applyContainerSize = () => {
       const el = chartContainerRef.current;
@@ -253,9 +266,10 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
+        setChartReady(false);
       }
     };
-  }, []);
+  }, [data]); // Re-run when data arrives (ensures container is mounted)
 
   // Update chart series when data or chart type changes
   useEffect(() => {
