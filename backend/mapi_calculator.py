@@ -357,6 +357,9 @@ def prepare_mapi_chart_data(df: pd.DataFrame, calculator: MAPICalculator, days: 
 
     result = {
         'dates': dates,
+        'open': df_recent['open'].tolist() if 'open' in df_recent.columns else df_recent['close'].tolist(),
+        'high': df_recent['high'].tolist() if 'high' in df_recent.columns else df_recent['close'].tolist(),
+        'low': df_recent['low'].tolist() if 'low' in df_recent.columns else df_recent['close'].tolist(),
         'close': df_recent['close'].tolist(),
         'composite_score': mapi['composite_score'].tail(days).tolist(),
         'composite_percentile_rank': mapi['composite_percentile_rank'].tail(days).tolist(),

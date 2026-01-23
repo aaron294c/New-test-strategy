@@ -78,6 +78,9 @@ export interface MAPIThresholds {
 
 export interface MAPIChartData {
   dates: string[];
+  open: number[];
+  high: number[];
+  low: number[];
   close: number[];
   composite_score: number[];
   composite_percentile_rank: number[];

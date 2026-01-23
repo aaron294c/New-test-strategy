@@ -21,7 +21,7 @@ import {
   Divider,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { createChart, IChartApi, ISeriesApi, LineStyle } from 'lightweight-charts';
+import { CandlestickData, createChart, IChartApi, ISeriesApi, LineData, LineStyle, PriceLineOptions, UTCTimestamp } from 'lightweight-charts';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TimelineIcon from '@mui/icons-material/Timeline';
@@ -37,6 +37,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
   const [chartType, setChartType] = useState<'composite' | 'components' | 'ema'>('composite');
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Fetch MAPI data
   const { data, isLoading, error, refetch } = useQuery({
@@ -52,26 +53,37 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
   const compositeThresholdsRaw = chartData?.composite_thresholds_raw;
 
   // Memoize timestamp conversion to prevent recalculation
-  const timestamps = useMemo(() => {
+  const timestamps = useMemo<UTCTimestamp[]>(() => {
     if (!chartData?.dates) return [];
     return chartData.dates.map((d: string) => {
       const date = new Date(d);
-      return Math.floor(date.getTime() / 1000);
+      return Math.floor(date.getTime() / 1000) as UTCTimestamp;
     });
   }, [chartData?.dates]);
 
   // Memoize chart data transformations
   const compositeData = useMemo(() => {
     if (!timestamps.length || !chartData?.composite_score) return [];
-    return timestamps.map((time: number, i: number) => ({
+    return timestamps.map((time: UTCTimestamp, i: number) => ({
       time,
       value: chartData.composite_score[i] ?? 50,
     }));
   }, [timestamps, chartData?.composite_score]);
 
+  const candleData = useMemo<CandlestickData<UTCTimestamp>[]>(() => {
+    if (!timestamps.length || !chartData?.open || !chartData?.high || !chartData?.low || !chartData?.close) return [];
+    return timestamps.map((time: UTCTimestamp, i: number) => ({
+      time,
+      open: chartData.open[i],
+      high: chartData.high[i],
+      low: chartData.low[i],
+      close: chartData.close[i],
+    }));
+  }, [timestamps, chartData?.open, chartData?.high, chartData?.low, chartData?.close]);
+
   const edrData = useMemo(() => {
     if (!timestamps.length || !chartData?.edr_percentile) return [];
-    return timestamps.map((time: number, i: number) => ({
+    return timestamps.map((time: UTCTimestamp, i: number) => ({
       time,
       value: chartData.edr_percentile[i] ?? 50,
     }));
@@ -79,7 +91,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
   const esvData = useMemo(() => {
     if (!timestamps.length || !chartData?.esv_percentile) return [];
-    return timestamps.map((time: number, i: number) => ({
+    return timestamps.map((time: UTCTimestamp, i: number) => ({
       time,
       value: chartData.esv_percentile[i] ?? 50,
     }));
@@ -87,7 +99,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
   const priceData = useMemo(() => {
     if (!timestamps.length || !chartData?.close) return [];
-    return timestamps.map((time: number, i: number) => ({
+    return timestamps.map((time: UTCTimestamp, i: number) => ({
       time,
       value: chartData.close[i],
     }));
@@ -95,7 +107,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
   const ema20Data = useMemo(() => {
     if (!timestamps.length || !chartData?.ema20) return [];
-    return timestamps.map((time: number, i: number) => ({
+    return timestamps.map((time: UTCTimestamp, i: number) => ({
       time,
       value: chartData.ema20[i],
     }));
@@ -103,7 +115,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
   const ema50Data = useMemo(() => {
     if (!timestamps.length || !chartData?.ema50) return [];
-    return timestamps.map((time: number, i: number) => ({
+    return timestamps.map((time: UTCTimestamp, i: number) => ({
       time,
       value: chartData.ema50[i],
     }));
@@ -113,7 +125,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
   const markers = useMemo(() => {
     if (!timestamps.length || !chartData) return [];
     const result: any[] = [];
-    timestamps.forEach((time: number, i: number) => {
+    timestamps.forEach((time: UTCTimestamp, i: number) => {
       if (chartData.strong_momentum_signals?.[i]) {
         result.push({
           time,
@@ -147,11 +159,12 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
   // Create chart only once
   useEffect(() => {
-    if (!chartContainerRef.current || chartRef.current) return;
+    const container = chartContainerRef.current;
+    if (!container || chartRef.current) return;
 
-    const chart = createChart(chartContainerRef.current, {
-      width: chartContainerRef.current.clientWidth,
-      height: 500,
+    const chart = createChart(container, {
+      width: Math.max(container.clientWidth, 1),
+      height: Math.max(container.clientHeight, 500),
       layout: {
         background: { color: '#131722' },
         textColor: '#d1d4dc',
@@ -166,6 +179,10 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
       rightPriceScale: {
         borderColor: '#2B2B43',
       },
+      leftPriceScale: {
+        borderColor: '#2B2B43',
+        visible: true,
+      },
       timeScale: {
         borderColor: '#2B2B43',
         timeVisible: true,
@@ -174,18 +191,37 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
     chartRef.current = chart;
 
-    const handleResize = () => {
-      if (chartContainerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: chartContainerRef.current.clientWidth,
-        });
-      }
+    const applyContainerSize = () => {
+      const el = chartContainerRef.current;
+      const c = chartRef.current;
+      if (!el || !c) return;
+      const width = Math.max(el.clientWidth, 1);
+      const height = Math.max(el.clientHeight, 500);
+      c.applyOptions({ width, height });
+      c.timeScale().fitContent();
     };
 
-    window.addEventListener('resize', handleResize);
+    // ResizeObserver handles tab-visibility/layout changes (clientWidth can be 0 when hidden).
+    resizeObserverRef.current = new ResizeObserver(() => {
+      requestAnimationFrame(applyContainerSize);
+    });
+    resizeObserverRef.current.observe(container);
+
+    // Fallback for window resizes.
+    window.addEventListener('resize', applyContainerSize);
+    // Initial sizing pass after mount.
+    requestAnimationFrame(applyContainerSize);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', applyContainerSize);
+      if (resizeObserverRef.current) {
+        try {
+          resizeObserverRef.current.disconnect();
+        } catch {
+          // ignore
+        }
+        resizeObserverRef.current = null;
+      }
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
@@ -199,46 +235,66 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
     const chart = chartRef.current;
 
-    // Remove all series
-    chart.options();
-
     // Clear existing series - store references to avoid memory leaks
-    const seriesMap = new Map();
+    const seriesMap = new Map<string, ISeriesApi<any>>();
+    const priceLines: Array<{ series: ISeriesApi<'Line'>; line: ReturnType<ISeriesApi<'Line'>['createPriceLine']> }> = [];
 
     if (chartType === 'composite') {
-      // Composite Score Chart
-      const compositeSeries = chart.addLineSeries({
+      // Combined Price + MAPI Overlay (TradingView-like)
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderUpColor: '#26a69a',
+        borderDownColor: '#ef5350',
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350',
+      });
+      seriesMap.set('candles', candleSeries);
+      candleSeries.setData(candleData);
+
+      const ema20Series = chart.addLineSeries({
         color: '#2962FF',
         lineWidth: 2,
-        title: 'Composite Score (Raw)',
+        title: 'EMA(20)',
+      });
+      seriesMap.set('ema20', ema20Series);
+      ema20Series.setData(ema20Data);
+
+      const ema50Series = chart.addLineSeries({
+        color: '#f50057',
+        lineWidth: 2,
+        title: 'EMA(50)',
+      });
+      seriesMap.set('ema50', ema50Series);
+      ema50Series.setData(ema50Data);
+
+      const compositeSeries = chart.addLineSeries({
+        color: '#FFD54F',
+        lineWidth: 2,
+        title: 'MAPI Composite (Raw)',
+        priceScaleId: 'left',
       });
       seriesMap.set('composite', compositeSeries);
+      compositeSeries.setData(compositeData as LineData<UTCTimestamp>[]);
 
-      compositeSeries.setData(compositeData);
-
-      // Add threshold lines
-      const addThresholdLine = (value: number, color: string, lineStyle: LineStyle) => {
-        const thresholdData = timestamps.map((time: number) => ({
-          time,
-          value,
-        }));
-        const line = chart.addLineSeries({
+      const addCompositeLine = (price: number, title: string, color: string, lineStyle: LineStyle) => {
+        const opts: PriceLineOptions = {
+          price,
+          title,
           color,
           lineWidth: 1,
           lineStyle,
-          priceLineVisible: false,
-          lastValueVisible: false,
-        });
-        line.setData(thresholdData);
-        return line;
+          axisLabelVisible: true,
+        };
+        priceLines.push({ series: compositeSeries, line: compositeSeries.createPriceLine(opts) });
       };
 
-      // These are raw composite values at the percentile cutoffs (RSI-MA-style)
-      seriesMap.set('threshold_strong', addThresholdLine(compositeThresholdsRaw?.p65 ?? 50, '#4caf50', LineStyle.Dashed));
-      seriesMap.set('threshold_exit', addThresholdLine(compositeThresholdsRaw?.p40 ?? 50, '#f44336', LineStyle.Dashed));
-      seriesMap.set('threshold_pull_low', addThresholdLine(compositeThresholdsRaw?.p30 ?? 50, '#2196f3', LineStyle.Dotted));
-      seriesMap.set('threshold_pull_high', addThresholdLine(compositeThresholdsRaw?.p45 ?? 50, '#2196f3', LineStyle.Dotted));
-      seriesMap.set('threshold_mid', addThresholdLine(compositeThresholdsRaw?.p50 ?? 50, '#888888', LineStyle.Dotted));
+      // Raw composite values at percentile cutoffs (RSI-MA-style horizontal lines)
+      addCompositeLine(compositeThresholdsRaw?.p65 ?? 50, 'p65', 'rgba(76,175,80,0.75)', LineStyle.Dashed);
+      addCompositeLine(compositeThresholdsRaw?.p40 ?? 50, 'p40', 'rgba(244,67,54,0.75)', LineStyle.Dashed);
+      addCompositeLine(compositeThresholdsRaw?.p30 ?? 50, 'p30', 'rgba(33,150,243,0.6)', LineStyle.Dotted);
+      addCompositeLine(compositeThresholdsRaw?.p45 ?? 50, 'p45', 'rgba(33,150,243,0.6)', LineStyle.Dotted);
+      addCompositeLine(compositeThresholdsRaw?.p50 ?? 50, 'p50', 'rgba(136,136,136,0.6)', LineStyle.Dotted);
 
       compositeSeries.setMarkers(markers);
 
@@ -262,7 +318,7 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
       esvSeries.setData(esvData);
 
       // 50% reference line
-      const refData = timestamps.map((time: number) => ({
+      const refData = timestamps.map((time: UTCTimestamp) => ({
         time,
         value: 50,
       }));
@@ -278,12 +334,16 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
 
     } else if (chartType === 'ema') {
       // Price with EMAs
-      const priceSeries = chart.addLineSeries({
-        color: '#ffffff',
-        lineWidth: 2,
-        title: 'Price',
+      const candleSeries = chart.addCandlestickSeries({
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderUpColor: '#26a69a',
+        borderDownColor: '#ef5350',
+        wickUpColor: '#26a69a',
+        wickDownColor: '#ef5350',
       });
-      seriesMap.set('price', priceSeries);
+      seriesMap.set('candles', candleSeries);
+      candleSeries.setData(candleData);
 
       const ema20Series = chart.addLineSeries({
         color: '#2962FF',
@@ -299,7 +359,6 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
       });
       seriesMap.set('ema50', ema50Series);
 
-      priceSeries.setData(priceData);
       ema20Series.setData(ema20Data);
       ema50Series.setData(ema50Data);
     }
@@ -307,6 +366,13 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
     chart.timeScale().fitContent();
 
     return () => {
+      for (const { series, line } of priceLines) {
+        try {
+          series.removePriceLine(line);
+        } catch {
+          // ignore
+        }
+      }
       // Clean up series when chart type changes
       seriesMap.forEach(series => {
         try {

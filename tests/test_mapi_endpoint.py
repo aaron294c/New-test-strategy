@@ -138,10 +138,13 @@ def test_price_ema_tab_data(chart_data):
     print("\n4. Testing Price & EMAs Tab Data")
 
     # Verify price data
+    assert 'open' in chart_data, "Missing open prices"
+    assert 'high' in chart_data, "Missing high prices"
+    assert 'low' in chart_data, "Missing low prices"
     assert 'close' in chart_data, "Missing close prices"
     prices = chart_data['close']
     assert all(p > 0 for p in prices), "Invalid prices"
-    print(f"   ✓ Close prices: {len(prices)} points")
+    print(f"   ✓ OHLC prices: {len(prices)} points")
 
     # Verify EMA(20)
     assert 'ema20' in chart_data, "Missing ema20"
