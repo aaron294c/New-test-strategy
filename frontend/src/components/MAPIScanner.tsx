@@ -76,6 +76,7 @@ const DEFAULT_SYMBOLS = [
 ];
 
 const MAPIScanner: React.FC = () => {
+  console.log('[MAPI Scanner] Component rendering');
   const [compositeThreshold, setCompositeThreshold] = useState(35);
   const [edrThreshold, setEdrThreshold] = useState(20);
   const queryClient = useQueryClient();
@@ -139,9 +140,19 @@ const MAPIScanner: React.FC = () => {
   };
 
   if (error) {
+    console.error('[MAPI Scanner] Render error:', error);
     return (
       <Alert severity="error">
         Failed to scan market: {error instanceof Error ? error.message : 'Unknown error'}
+        <br />
+        <br />
+        <strong>Debug Info:</strong>
+        <br />
+        Error type: {error?.constructor?.name}
+        <br />
+        {error instanceof Error && error.stack && (
+          <>Stack: {error.stack.substring(0, 200)}...</>
+        )}
       </Alert>
     );
   }
@@ -200,8 +211,17 @@ const MAPIScanner: React.FC = () => {
         </Box>
       )}
 
+      {/* No Data Message */}
+      {!isLoading && !data && !error && (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="body1" color="text.secondary" gutterBottom>
+            Click "Refresh" to scan market for MAPI entry opportunities
+          </Typography>
+        </Paper>
+      )}
+
       {/* Scanner Table */}
-      {data && (
+      {data && data.signals && data.signals.length > 0 && (
         <TableContainer component={Paper}>
           <Table size="small">
             <TableHead>
@@ -390,6 +410,15 @@ const MAPIScanner: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {/* Empty State */}
+      {data && (!data.signals || data.signals.length === 0) && (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="body1" color="text.secondary">
+            No signals found. Try adjusting thresholds or adding more symbols.
+          </Typography>
+        </Paper>
       )}
     </Box>
   );
