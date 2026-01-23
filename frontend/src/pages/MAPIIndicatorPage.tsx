@@ -631,7 +631,25 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
       </Paper>
 
       {/* Chart */}
-      <Paper sx={{ p: 2, mb: 2 }}>
+      <Paper sx={{ p: 2, mb: 2, position: 'relative' }}>
+        {!chartReady && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: 'rgba(19, 23, 34, 0.8)',
+              zIndex: 10,
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )}
         <div ref={chartContainerRef} style={{ width: '100%', height: '500px' }} />
       </Paper>
 
