@@ -237,6 +237,22 @@ export const mapiApi = {
   },
 
   /**
+   * Get MAPI historical analysis (percentile → forward returns + signal stats)
+   */
+  getMAPIHistorical: async (
+    ticker: string,
+    params: {
+      lookback_days?: number;
+      require_momentum?: boolean;
+      adx_threshold?: number;
+      force_refresh?: boolean;
+    } = {}
+  ): Promise<any> => {
+    const response = await apiClient.get(`/api/mapi-historical/${ticker}`, { params });
+    return response.data;
+  },
+
+  /**
    * Optimize MAPI entry thresholds for a ticker
    */
   optimizeThresholds: async (

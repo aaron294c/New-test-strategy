@@ -37,6 +37,7 @@ from percentile_forward_mapping import run_percentile_forward_analysis
 from swing_duration_analysis_v2 import analyze_swing_duration_v2
 from swing_duration_intraday import analyze_swing_duration_intraday
 from mapi_calculator import MAPICalculator, prepare_mapi_chart_data
+from mapi_historical import run_mapi_historical_analysis
 from stock_statistics import (
     STOCK_METADATA,
     NVDA_4H_DATA, NVDA_DAILY_DATA,
@@ -485,6 +486,64 @@ async def get_mapi_chart(ticker: str, days: int = 252):
         print(f"Error calculating MAPI for {ticker}: {str(e)}")
         import traceback
         traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/mapi-historical/{ticker}")
+async def get_mapi_historical(
+    ticker: str,
+    lookback_days: int = 1095,
+    require_momentum: bool = False,
+    adx_threshold: float = 25.0,
+    force_refresh: bool = False,
+):
+    """
+    MAPI historical analysis (empirical percentile → forward return mapping).
+
+    Returns bin/zone statistics that help validate whether MAPI entry zones have
+    positive forward expectancy historically.
+    """
+    ticker_upper = ticker.upper()
+
+    try:
+        cache_file = os.path.join(
+            CACHE_DIR,
+            f"{ticker_upper}_mapi_historical_{int(lookback_days)}_{int(require_momentum)}_{int(adx_threshold * 10)}.json",
+        )
+
+        if not force_refresh and os.path.exists(cache_file):
+            file_age = datetime.now().timestamp() - os.path.getmtime(cache_file)
+            if file_age < 24 * 3600:
+                with open(cache_file, "r") as f:
+                    cached_result = json.load(f)
+                    cached_result["cached"] = True
+                    cached_result["cache_age_hours"] = file_age / 3600
+                    return cached_result
+
+        analysis = await asyncio.to_thread(
+            run_mapi_historical_analysis,
+            ticker_upper,
+            lookback_days=lookback_days,
+            require_momentum=require_momentum,
+            adx_threshold=adx_threshold,
+        )
+
+        result = {
+            "success": True,
+            **analysis,
+            "timestamp": datetime.now().isoformat(),
+            "cached": False,
+        }
+
+        with open(cache_file, "w") as f:
+            json.dump(result, f, indent=2, default=str)
+
+        return result
+
+    except Exception as e:
+        import traceback
+        print(f"Error in /api/mapi-historical for {ticker_upper}:")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 

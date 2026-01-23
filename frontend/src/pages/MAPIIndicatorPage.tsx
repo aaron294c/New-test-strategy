@@ -29,6 +29,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import ScannerIcon from '@mui/icons-material/Scanner';
 import { mapiApi } from '@/api/client';
 import MAPIScanner from '@/components/MAPIScanner';
+import MAPIHistorical from '@/components/MAPIHistorical';
 
 interface MAPIIndicatorPageProps {
   ticker: string;
@@ -36,7 +37,7 @@ interface MAPIIndicatorPageProps {
 }
 
 const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
-  const [activeTab, setActiveTab] = useState<'chart' | 'scanner'>('chart');
+  const [activeTab, setActiveTab] = useState<'chart' | 'scanner' | 'historical'>('chart');
   const [chartType, setChartType] = useState<'composite' | 'components' | 'ema'>('composite');
   const [chartReady, setChartReady] = useState(false); // Track when chart is created
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -558,15 +559,21 @@ const MAPIIndicatorPage: React.FC<MAPIIndicatorPageProps> = ({ ticker }) => {
             <ScannerIcon sx={{ mr: 1 }} />
             Market Scanner
           </ToggleButton>
+          <ToggleButton value="historical">
+            <TimelineIcon sx={{ mr: 1 }} />
+            Historical
+          </ToggleButton>
         </ToggleButtonGroup>
       </Paper>
 
-      {/* Show chart tab or scanner tab */}
+      {/* Tab content */}
       {activeTab === 'scanner' ? (
         <MAPIScanner />
+      ) : activeTab === 'historical' ? (
+        <MAPIHistorical ticker={ticker} />
       ) : (
         <>
-          {/* Rest of chart view */}
+          {/* Chart view */}
 
       {/* Current Metrics */}
       <Grid container spacing={2} sx={{ mb: 2 }}>
