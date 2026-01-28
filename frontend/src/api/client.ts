@@ -10,6 +10,7 @@ import type {
   PerformanceMatrix,
   OptimalExitStrategy,
   RSIChartData,
+  MACDVRsiBandsAnalysis,
   SymbolRiskDistanceData,
   RiskDistanceSummaryResponse,
   DailyTrendBatchResponse,
@@ -106,6 +107,28 @@ export const backtestApi = {
       params: { days },
     });
     return response.data.chart_data;
+  },
+
+  /**
+   * MACD-V 120–150 × RSI-MA percentile band analysis (includes non-overlapping D7 rule results)
+   */
+  getMACDVRsiBandsAnalysis: async (params?: {
+    tickers?: string[];
+    period?: string;
+    pct_lookback?: number;
+    horizon?: number;
+    force_refresh?: boolean;
+  }): Promise<MACDVRsiBandsAnalysis> => {
+    const response = await apiClient.get(`/api/macdv-rsi-bands`, {
+      params: {
+        tickers: params?.tickers?.join(','),
+        period: params?.period,
+        pct_lookback: params?.pct_lookback,
+        horizon: params?.horizon,
+        force_refresh: params?.force_refresh,
+      },
+    });
+    return response.data.data;
   },
 };
 

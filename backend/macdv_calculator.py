@@ -228,16 +228,16 @@ class MACDVCalculator:
         if 'macdv_val' not in df.columns:
             df = self.calculate_macdv(df)
 
-        # Convert to chart format
+        # Convert to chart format, replacing NaN with None for JSON compliance
         chart_data = {
             'dates': df.index.strftime('%Y-%m-%d').tolist(),
-            'open': df['open'].tolist(),
-            'high': df['high'].tolist(),
-            'low': df['low'].tolist(),
-            'close': df['close'].tolist(),
-            'macdv_val': df['macdv_val'].tolist(),
-            'macdv_signal': df['macdv_signal'].tolist(),
-            'macdv_hist': df['macdv_hist'].tolist(),
+            'open': df['open'].replace({np.nan: None}).tolist(),
+            'high': df['high'].replace({np.nan: None}).tolist(),
+            'low': df['low'].replace({np.nan: None}).tolist(),
+            'close': df['close'].replace({np.nan: None}).tolist(),
+            'macdv_val': df['macdv_val'].replace({np.nan: None}).tolist(),
+            'macdv_signal': df['macdv_signal'].replace({np.nan: None}).tolist(),
+            'macdv_hist': df['macdv_hist'].replace({np.nan: None}).tolist(),
             'macdv_color': df['macdv_color'].tolist(),
             'macdv_trend': df['macdv_trend'].tolist(),
             'current': {
@@ -246,7 +246,7 @@ class MACDVCalculator:
                 'macdv_hist': float(df['macdv_hist'].iloc[-1]) if pd.notna(df['macdv_hist'].iloc[-1]) else None,
                 'macdv_color': str(df['macdv_color'].iloc[-1]),
                 'macdv_trend': str(df['macdv_trend'].iloc[-1]),
-                'close': float(df['close'].iloc[-1]),
+                'close': float(df['close'].iloc[-1]) if pd.notna(df['close'].iloc[-1]) else None,
                 'timestamp': df.index[-1].isoformat() if hasattr(df.index[-1], 'isoformat') else str(df.index[-1])
             },
             'thresholds': {
@@ -314,10 +314,10 @@ def get_macdv_chart_data(ticker: str, days: int = 252) -> Dict:
         }
 
 
-# Swing framework tickers (aligned with DEFAULT_TICKERS in frontend)
+# Swing framework tickers (using valid Yahoo Finance symbols)
 SWING_FRAMEWORK_TICKERS = [
     'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'QQQ', 'SPY',
-    'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK.B', 'WMT', 'UNH', 'AVGO',
+    'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO',
     'LLY', 'TSM', 'ORCL', 'OXY', 'XOM', 'CVX', 'JPM', 'BAC',
-    'CNX1', 'CSP1', 'BTCUSD', 'ES1', 'NQ1', 'VIX', 'IGLS', 'USDGBP', 'US10'
+    'ES=F', 'NQ=F', 'BTC-USD', '^VIX', 'DX-Y.NYB', '^TNX', 'XLI'
 ]

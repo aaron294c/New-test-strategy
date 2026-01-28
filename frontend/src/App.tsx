@@ -56,6 +56,7 @@ const RSIChebyshevLeadingPage = React.lazy(() => import('./pages/RSIChebyshevLea
 const RSIChebyshevProPage = React.lazy(() => import('./pages/RSIChebyshevProPage'));
 const MAPIIndicatorPage = React.lazy(() => import('./pages/MAPIIndicatorPage'));
 const MACDVIndicatorPage = React.lazy(() => import('./pages/MACDVIndicatorPage'));
+const MACDVRsiBandsPage = React.lazy(() => import('./pages/MACDVRsiBandsPage'));
 
 const theme = createTheme({
   palette: {
@@ -238,6 +239,7 @@ function Dashboard() {
                 <Tab icon={<ShowChartIcon />} label="RSI Chebyshev Pro (TV)" />
                 <Tab icon={<TrendingUpIcon />} label="MAPI (Momentum)" />
                 <Tab icon={<ShowChartIcon />} label="MACD-V (Momentum)" />
+                <Tab icon={<AssessmentIcon />} label="MACD-V × RSI Bands" />
               </Tabs>
             </Paper>
 
@@ -388,6 +390,13 @@ function Dashboard() {
             <TabPanel value={activeTab} index={17}>
               <React.Suspense fallback={suspenseFallback}>
                 <MACDVIndicatorPage ticker={selectedTicker} />
+              </React.Suspense>
+            </TabPanel>
+
+            {/* Tab 18: MACD-V 120–150 × RSI-MA Bands (D7) */}
+            <TabPanel value={activeTab} index={18}>
+              <React.Suspense fallback={suspenseFallback}>
+                <MACDVRsiBandsPage />
               </React.Suspense>
             </TabPanel>
           </>

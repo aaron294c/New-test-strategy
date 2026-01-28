@@ -39,6 +39,7 @@ from swing_duration_intraday import analyze_swing_duration_intraday
 from mapi_calculator import MAPICalculator, prepare_mapi_chart_data
 from mapi_historical import run_mapi_historical_analysis, run_mapi_basket_historical_analysis
 from macdv_calculator import MACDVCalculator, get_macdv_chart_data, SWING_FRAMEWORK_TICKERS
+from macdv_rsi_band_analysis import run_macdv_120_150_rsi_band_analysis
 from stock_statistics import (
     STOCK_METADATA,
     NVDA_4H_DATA, NVDA_DAILY_DATA,
@@ -867,6 +868,83 @@ async def get_macdv_dashboard(
 
     except Exception as e:
         print(f"Error generating MACD-V dashboard: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/macdv-rsi-bands")
+async def get_macdv_rsi_bands(
+    tickers: Optional[str] = None,
+    period: str = "10y",
+    pct_lookback: int = 252,
+    horizon: int = 7,
+    force_refresh: bool = False,
+):
+    """
+    MACD-V 120–150 × RSI-MA percentile band analysis (D7-style fixed forward return).
+
+    Returns:
+    - Summary comparing RSI<50 vs RSI>=50 within MACD-V 120–150
+    - Per-ticker + ALL table across RSI percentile bands
+    - Non-overlapping backtest for MACD-V 120–150 & RSI<=45 (fixed horizon)
+    """
+    try:
+        ticker_list: List[str]
+        if tickers:
+            ticker_list = [t.strip().upper() for t in tickers.split(",") if t.strip()]
+        else:
+            ticker_list = ["AAPL", "NVDA", "GOOGL", "MSFT", "META", "QQQ", "SPY", "BRK-B", "AMZN"]
+
+        if pct_lookback < 50 or pct_lookback > 2000:
+            raise HTTPException(status_code=400, detail="pct_lookback out of range")
+        if horizon < 1 or horizon > 60:
+            raise HTTPException(status_code=400, detail="horizon out of range")
+
+        cache_key = _cache_key("macdv_rsi_bands", ",".join(ticker_list), period, str(pct_lookback), str(horizon))
+        cache_file = os.path.join(CACHE_DIR, f"macdv_rsi_bands_{_file_safe_slug(cache_key)}.json")
+
+        if not force_refresh:
+            cached = _read_disk_cache(cache_file, ttl_seconds=24 * 3600)
+            if cached:
+                return {
+                    "success": True,
+                    "source": "cache",
+                    "data": cached,
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+        lock = await _get_cache_lock(cache_key)
+        async with lock:
+            if not force_refresh:
+                cached = _read_disk_cache(cache_file, ttl_seconds=24 * 3600)
+                if cached:
+                    return {
+                        "success": True,
+                        "source": "cache",
+                        "data": cached,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+
+            result = run_macdv_120_150_rsi_band_analysis(
+                tickers=ticker_list,
+                period=period,
+                pct_lookback=pct_lookback,
+                horizon=horizon,
+            )
+            _write_disk_cache(cache_file, result)
+
+        return {
+            "success": True,
+            "source": "fresh",
+            "data": result,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error generating MACD-V RSI band analysis: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

@@ -41,7 +41,7 @@ const SWING_TICKERS = [
   'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'QQQ', 'SPY',
   'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO',
   'LLY', 'TSM', 'ORCL', 'OXY', 'XOM', 'CVX', 'JPM', 'BAC',
-  'ES=F', 'NQ=F', 'DX-Y.NYB', 'GC=F', 'BTC-USD', '^TNX', 'XLI'
+  'ES=F', 'NQ=F', 'BTC-USD', '^VIX', 'DX-Y.NYB', '^TNX', 'XLI'
 ];
 
 const TIMEFRAMES = ['1mo', '1wk', '1d'];

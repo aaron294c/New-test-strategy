@@ -117,6 +117,43 @@ export interface MAPIResponse {
   };
 }
 
+// MACD-V × RSI-MA Band Analysis Types
+export interface ReturnStats {
+  n: number;
+  win_rate: number | null;
+  mean: number | null;
+  median: number | null;
+}
+
+export interface RSIBand {
+  min: number;
+  max: number;
+  label: string;
+}
+
+export interface MACDVRsiBandsAnalysis {
+  params: {
+    tickers: string[];
+    period: string;
+    pct_lookback: number;
+    horizon: number;
+    macdv_lo: number;
+    macdv_hi: number;
+    rsi_bands: RSIBand[];
+    rsi_threshold_non_overlap: number;
+  };
+  summary: {
+    rsi_lt_50: ReturnStats;
+    rsi_gte_50: ReturnStats;
+  };
+  table: Record<string, Record<string, ReturnStats>>; // table[ticker][bandLabel]
+  non_overlapping: {
+    rule: string;
+    horizon: number;
+    results: Record<string, ReturnStats>; // includes ALL
+  };
+}
+
 export interface PercentileMovements {
   percentile_by_day: {
     [day: number]: PercentileMovementDay;
