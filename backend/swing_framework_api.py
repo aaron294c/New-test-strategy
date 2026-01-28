@@ -14,10 +14,12 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from scipy.stats import norm
 import pandas as pd
+import numpy as np
 import yfinance as yf
 from zoneinfo import ZoneInfo
 from enhanced_backtester import EnhancedPerformanceMatrixBacktester
 from macdv_calculator import MACDVCalculator
+from macdv_d7_band_stats import RSI_BANDS as MACDV_D7_RSI_BANDS, get_cached_macdv_d7_band_stats
 from stock_statistics import (
     STOCK_METADATA,
     NVDA_4H_DATA, NVDA_DAILY_DATA,
@@ -73,6 +75,8 @@ _macdv_daily_cache_key: str | None = None
 _macdv_daily_cache_timestamp: datetime | None = None
 _macdv_daily_cache_ttl_seconds = 60  # 1 minute TTL (match dashboard refresh cadence)
 _macdv_daily_lock = asyncio.Lock()
+
+_macdv_d7_lock = asyncio.Lock()
 
 _STATIC_SNAPSHOT_DIR = Path(__file__).resolve().parent / "static_snapshots" / "swing_framework"
 _MIDDAY_SNAPSHOT_DIR = Path(__file__).resolve().parent / "cache" / "midday_snapshots"
@@ -411,6 +415,123 @@ async def _augment_with_macdv_daily(response: Dict[str, Any]) -> Dict[str, Any]:
         entry = macdv_map.get(ticker) or {}
         state["macdv_daily"] = entry.get("macdv_daily")
         state["macdv_daily_trend"] = entry.get("macdv_daily_trend")
+
+    return response
+
+
+def _rsi_band_label(pct: float | int | None) -> str | None:
+    if pct is None:
+        return None
+    try:
+        val = float(pct)
+    except Exception:
+        return None
+
+    if not np.isfinite(val):
+        return None
+
+    # Mirror band masks used in analysis: [min, max) with a safe clamp at 100.
+    val = min(max(val, 0.0), 99.999)
+    for rlo, rhi, label in MACDV_D7_RSI_BANDS:
+        if val >= float(rlo) and val < float(rhi):
+            return str(label)
+    return str(MACDV_D7_RSI_BANDS[-1][2]) if MACDV_D7_RSI_BANDS else None
+
+
+async def _augment_with_macdv_d7_stats(response: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Add D7 forward-return stats for tickers whose current MACD-V daily value is >120.
+
+    Stats are pulled from a cached, precomputed table:
+    - Entry condition: MACD-V>120 AND RSI-%ile in the given band
+    - Horizon: D7
+    - RSI bands: same buckets as the MACD-V × RSI (D7) tab
+
+    For now we only attach these fields for the Daily Live Market State table (not 4H),
+    because the RSI-%ile band should be based on the daily RSI-MA percentile.
+    """
+    if response.get("timeframe") == "4h":
+        return response
+
+    market_state = response.get("market_state")
+    if not isinstance(market_state, list) or not market_state:
+        return response
+
+    tickers: List[str] = [
+        s.get("ticker")
+        for s in market_state
+        if isinstance(s, dict) and isinstance(s.get("ticker"), str)
+    ]
+    if not tickers:
+        return response
+
+    async with _macdv_d7_lock:
+        payload = await asyncio.to_thread(
+            get_cached_macdv_d7_band_stats,
+            tickers,
+            period="10y",
+            pct_lookback=252,
+            horizon=7,
+            macdv_lo=120.0,
+            ttl_seconds=7 * 24 * 3600,
+            force_refresh=False,
+        )
+
+    table = payload.get("table") if isinstance(payload, dict) else None
+    if not isinstance(table, dict):
+        return response
+
+    horizon = None
+    params = payload.get("params") if isinstance(payload, dict) else None
+    if isinstance(params, dict):
+        horizon = params.get("horizon")
+
+    for state in market_state:
+        if not isinstance(state, dict):
+            continue
+
+        # Defaults
+        state["macdv_d7_win_rate"] = None
+        state["macdv_d7_mean_return"] = None
+        state["macdv_d7_median_return"] = None
+        state["macdv_d7_n"] = None
+        state["macdv_d7_rsi_band"] = None
+        if horizon is not None:
+            state["macdv_d7_horizon"] = horizon
+
+        macdv_daily = state.get("macdv_daily")
+        if macdv_daily is None:
+            continue
+        try:
+            macdv_daily_val = float(macdv_daily)
+        except Exception:
+            continue
+        if not np.isfinite(macdv_daily_val) or macdv_daily_val <= 120.0:
+            continue
+
+        ticker = state.get("ticker")
+        if not isinstance(ticker, str):
+            continue
+
+        # Prefer daily RSI percentile computed with 252 lookback (matches D7 stats),
+        # fall back to the displayed percentile if missing.
+        band_pct = state.get("rsi_percentile_252", state.get("current_percentile"))
+        band_label = _rsi_band_label(band_pct)
+        if band_label is None:
+            continue
+
+        stats_row = table.get(ticker)
+        if not isinstance(stats_row, dict):
+            continue
+        stats = stats_row.get(band_label)
+        if not isinstance(stats, dict):
+            continue
+
+        state["macdv_d7_rsi_band"] = band_label
+        state["macdv_d7_n"] = stats.get("n")
+        state["macdv_d7_win_rate"] = stats.get("win_rate")
+        state["macdv_d7_mean_return"] = stats.get("mean")
+        state["macdv_d7_median_return"] = stats.get("median")
 
     return response
 
@@ -1422,6 +1543,7 @@ async def get_current_market_state(
         if static_payload is not None:
             payload = _augment_with_prev_midday_snapshot(dict(static_payload), "daily")
             payload = await _augment_with_macdv_daily(payload)
+            payload = await _augment_with_macdv_d7_stats(payload)
             return payload
 
     if not force_refresh and _is_cache_valid(
@@ -1430,6 +1552,7 @@ async def get_current_market_state(
         payload = dict(_current_state_cache)
         if not _has_macdv_daily(payload):
             payload = await _augment_with_macdv_daily(payload)
+            payload = await _augment_with_macdv_d7_stats(payload)
             _current_state_cache = payload
             _current_state_cache_timestamp = datetime.now(timezone.utc)
         return payload
@@ -1441,6 +1564,7 @@ async def get_current_market_state(
             payload = dict(_current_state_cache)
             if not _has_macdv_daily(payload):
                 payload = await _augment_with_macdv_daily(payload)
+                payload = await _augment_with_macdv_d7_stats(payload)
                 _current_state_cache = payload
                 _current_state_cache_timestamp = datetime.now(timezone.utc)
             return payload
@@ -1498,6 +1622,8 @@ async def get_current_market_state(
                 current_percentile = compute_latest_percentile(indicator, backtester.lookback_period)
                 if current_percentile is None:
                     continue
+
+                rsi_percentile_252 = compute_latest_percentile(indicator, 252)
 
                 # Calculate full percentile ranks to find last extreme low date
                 percentile_ranks = calculate_full_percentile_ranks(indicator, backtester.lookback_period)
@@ -1591,6 +1717,7 @@ async def get_current_market_state(
                         "current_date": current_date,
                         "current_price": current_price,
                         "current_percentile": current_percentile,
+                        "rsi_percentile_252": rsi_percentile_252,
                         "percentile_cohort": percentile_cohort,
                         "zone_label": zone_label,
                         "in_entry_zone": in_entry_zone,
@@ -1623,6 +1750,7 @@ async def get_current_market_state(
 
         response = _augment_with_prev_midday_snapshot(response, "daily")
         response = await _augment_with_macdv_daily(response)
+        response = await _augment_with_macdv_d7_stats(response)
 
         # Auto-save midday snapshot if within window and no snapshot exists for today
         now_utc = datetime.now(timezone.utc)

@@ -61,6 +61,11 @@ interface MarketState {
   current_percentile: number;
   macdv_daily?: number | null;
   macdv_daily_trend?: string | null;
+  macdv_d7_win_rate?: number | null;
+  macdv_d7_mean_return?: number | null;
+  macdv_d7_median_return?: number | null;
+  macdv_d7_n?: number | null;
+  macdv_d7_rsi_band?: string | null;
   prev_midday_percentile?: number | null;
   change_since_prev_midday?: number | null;
   prev_midday_price?: number | null;
@@ -97,6 +102,9 @@ type SortField =
   | 'ticker'
   | 'percentile'
   | 'macdv_daily'
+  | 'macdv_d7_win_rate'
+  | 'macdv_d7_median_return'
+  | 'macdv_d7_mean_return'
   | 'win_rate'
   | 'return'
   | 'risk_adj_expectancy'
@@ -346,6 +354,18 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
           aValue = normalizeNumber(a.macdv_daily);
           bValue = normalizeNumber(b.macdv_daily);
           break;
+        case 'macdv_d7_win_rate':
+          aValue = normalizeNumber(a.macdv_d7_win_rate);
+          bValue = normalizeNumber(b.macdv_d7_win_rate);
+          break;
+        case 'macdv_d7_median_return':
+          aValue = normalizeNumber(a.macdv_d7_median_return);
+          bValue = normalizeNumber(b.macdv_d7_median_return);
+          break;
+        case 'macdv_d7_mean_return':
+          aValue = normalizeNumber(a.macdv_d7_mean_return);
+          bValue = normalizeNumber(b.macdv_d7_mean_return);
+          break;
         case 'win_rate':
           aValue = a.live_expectancy.expected_win_rate;
           bValue = b.live_expectancy.expected_win_rate;
@@ -542,16 +562,6 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
               <TableCell>Zone</TableCell>
               <TableCell align="right">
                 <TableSortLabel
-                  active={sortField === 'macdv_daily'}
-                  direction={sortField === 'macdv_daily' ? sortOrder : 'asc'}
-                  onClick={() => handleSort('macdv_daily')}
-                >
-                  MACD-V (D)
-                </TableSortLabel>
-              </TableCell>
-              <TableCell>Regime</TableCell>
-              <TableCell align="right">
-                <TableSortLabel
                   active={sortField === 'win_rate'}
                   direction={sortField === 'win_rate' ? sortOrder : 'asc'}
                   onClick={() => handleSort('win_rate')}
@@ -592,6 +602,43 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                 </Tooltip>
               </TableCell>
               <TableCell align="right">Sample Size</TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'macdv_daily'}
+                  direction={sortField === 'macdv_daily' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('macdv_daily')}
+                >
+                  MACD-V (D)
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>Regime</TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'macdv_d7_win_rate'}
+                  direction={sortField === 'macdv_d7_win_rate' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('macdv_d7_win_rate')}
+                >
+                  D7 Win%
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'macdv_d7_median_return'}
+                  direction={sortField === 'macdv_d7_median_return' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('macdv_d7_median_return')}
+                >
+                  D7 Median
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'macdv_d7_mean_return'}
+                  direction={sortField === 'macdv_d7_mean_return' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('macdv_d7_mean_return')}
+                >
+                  D7 Mean
+                </TableSortLabel>
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -760,38 +807,6 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                 </TableCell>
 
                 <TableCell align="right">
-                  {(() => {
-                    const val = state.macdv_daily;
-                    const trend = state.macdv_daily_trend;
-                    const color =
-                      trend === 'Bullish'
-                        ? 'success.main'
-                        : trend === 'Bearish'
-                          ? 'error.main'
-                          : 'text.secondary';
-
-                    return (
-                      <>
-                        <Typography variant="body2" color={color} fontWeight="medium">
-                          {val == null ? '—' : val.toFixed(1)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {trend || '—'}
-                        </Typography>
-                      </>
-                    );
-                  })()}
-                </TableCell>
-
-                <TableCell>
-                  <Chip
-                    label={state.is_mean_reverter ? 'Mean Rev' : 'Momentum'}
-                    size="small"
-                    variant="outlined"
-                  />
-                </TableCell>
-
-                <TableCell align="right">
                   <Typography variant="body2">
                     {(state.live_expectancy.expected_win_rate * 100).toFixed(1)}%
                   </Typography>
@@ -864,6 +879,98 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                   <Typography variant="body2" color="text.secondary">
                     n={state.live_expectancy.sample_size}
                   </Typography>
+                </TableCell>
+
+                <TableCell align="right">
+                  {(() => {
+                    const val = state.macdv_daily;
+                    const trend = state.macdv_daily_trend;
+                    const color =
+                      trend === 'Bullish'
+                        ? 'success.main'
+                        : trend === 'Bearish'
+                          ? 'error.main'
+                          : 'text.secondary';
+
+                    return (
+                      <>
+                        <Typography variant="body2" color={color} fontWeight="medium">
+                          {val == null ? '—' : val.toFixed(1)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {trend || '—'}
+                        </Typography>
+                      </>
+                    );
+                  })()}
+                </TableCell>
+
+                <TableCell>
+                  <Chip
+                    label={state.is_mean_reverter ? 'Mean Rev' : 'Momentum'}
+                    size="small"
+                    variant="outlined"
+                  />
+                </TableCell>
+
+                <TableCell align="right">
+                  {state.macdv_d7_win_rate == null ? (
+                    <Typography variant="body2" color="text.secondary">
+                      —
+                    </Typography>
+                  ) : (
+                    <Tooltip
+                      title={`MACD-V>120 & RSI band ${state.macdv_d7_rsi_band ?? '—'} • n=${state.macdv_d7_n ?? '—'}`}
+                    >
+                      <Typography variant="body2">
+                        {state.macdv_d7_win_rate.toFixed(1)}%
+                      </Typography>
+                    </Tooltip>
+                  )}
+                </TableCell>
+
+                <TableCell align="right">
+                  {state.macdv_d7_median_return == null ? (
+                    <Typography variant="body2" color="text.secondary">
+                      —
+                    </Typography>
+                  ) : (
+                    <Tooltip
+                      title={`MACD-V>120 & RSI band ${state.macdv_d7_rsi_band ?? '—'} • n=${state.macdv_d7_n ?? '—'}`}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: state.macdv_d7_median_return > 0 ? '#4caf50' : '#f44336',
+                        }}
+                      >
+                        {state.macdv_d7_median_return > 0 ? '+' : ''}
+                        {state.macdv_d7_median_return.toFixed(2)}%
+                      </Typography>
+                    </Tooltip>
+                  )}
+                </TableCell>
+
+                <TableCell align="right">
+                  {state.macdv_d7_mean_return == null ? (
+                    <Typography variant="body2" color="text.secondary">
+                      —
+                    </Typography>
+                  ) : (
+                    <Tooltip
+                      title={`MACD-V>120 & RSI band ${state.macdv_d7_rsi_band ?? '—'} • n=${state.macdv_d7_n ?? '—'}`}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: state.macdv_d7_mean_return > 0 ? '#4caf50' : '#f44336',
+                        }}
+                      >
+                        {state.macdv_d7_mean_return > 0 ? '+' : ''}
+                        {state.macdv_d7_mean_return.toFixed(2)}%
+                      </Typography>
+                    </Tooltip>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
