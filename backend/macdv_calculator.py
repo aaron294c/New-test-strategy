@@ -170,8 +170,13 @@ class MACDVCalculator:
                     if df.empty:
                         continue
 
-                    # Ensure column names are lowercase
-                    df.columns = [c.lower() for c in df.columns]
+                    # Ensure column names are lowercase and handle multi-index columns from yfinance
+                    if isinstance(df.columns, pd.MultiIndex):
+                        # For multi-index, take the first level
+                        df.columns = [col[0].lower() if isinstance(col, tuple) else str(col).lower() for col in df.columns]
+                    else:
+                        # For regular index, just convert to lowercase
+                        df.columns = [str(c).lower() for c in df.columns]
 
                     # Calculate MACD-V
                     df = self.calculate_macdv(df)
@@ -283,8 +288,13 @@ def get_macdv_chart_data(ticker: str, days: int = 252) -> Dict:
                 'error': f'No data available for {ticker}'
             }
 
-        # Ensure column names are lowercase
-        df.columns = [c.lower() for c in df.columns]
+        # Ensure column names are lowercase and handle multi-index columns from yfinance
+        if isinstance(df.columns, pd.MultiIndex):
+            # For multi-index, take the first level (e.g., ('Close', 'AAPL') -> 'Close')
+            df.columns = [col[0].lower() if isinstance(col, tuple) else str(col).lower() for col in df.columns]
+        else:
+            # For regular index, just convert to lowercase
+            df.columns = [str(c).lower() for c in df.columns]
 
         # Calculate MACD-V
         calculator = MACDVCalculator()
