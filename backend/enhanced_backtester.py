@@ -10,6 +10,7 @@ Key Features:
 - Comprehensive risk metrics
 """
 
+import os
 import yfinance as yf
 import pandas as pd
 import numpy as np
@@ -20,10 +21,21 @@ import time
 from dataclasses import dataclass, asdict
 from scipy.stats import mannwhitneyu, pearsonr
 import json
+from pathlib import Path
 
 from ticker_utils import resolve_yahoo_symbol
 
 warnings.filterwarnings('ignore')
+
+# Ensure yfinance cache databases are created in a writable location.
+# In sandboxed environments, default user cache dirs may be read-only.
+try:
+    yf_cache_dir = Path(os.getenv("YFINANCE_CACHE_DIR") or (Path(os.getenv("TMPDIR", "/tmp")) / "py-yfinance"))
+    yf_cache_dir.mkdir(parents=True, exist_ok=True)
+    yf.set_tz_cache_location(str(yf_cache_dir))
+except Exception:
+    # If this fails, yfinance will fall back to no cache (or may error later).
+    pass
 
 @dataclass
 class PerformanceCell:

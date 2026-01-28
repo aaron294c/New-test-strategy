@@ -55,6 +55,7 @@ const DailyTrendScannerPage = React.lazy(() => import('./pages/DailyTrendScanner
 const RSIChebyshevLeadingPage = React.lazy(() => import('./pages/RSIChebyshevLeadingPage'));
 const RSIChebyshevProPage = React.lazy(() => import('./pages/RSIChebyshevProPage'));
 const MAPIIndicatorPage = React.lazy(() => import('./pages/MAPIIndicatorPage'));
+const MACDVIndicatorPage = React.lazy(() => import('./pages/MACDVIndicatorPage'));
 
 const theme = createTheme({
   palette: {
@@ -236,6 +237,7 @@ function Dashboard() {
                 <Tab icon={<TimelineIcon />} label="RSI Chebyshev Leading" />
                 <Tab icon={<ShowChartIcon />} label="RSI Chebyshev Pro (TV)" />
                 <Tab icon={<TrendingUpIcon />} label="MAPI (Momentum)" />
+                <Tab icon={<ShowChartIcon />} label="MACD-V (Momentum)" />
               </Tabs>
             </Paper>
 
@@ -379,6 +381,13 @@ function Dashboard() {
             <TabPanel value={activeTab} index={16}>
               <React.Suspense fallback={suspenseFallback}>
                 <MAPIIndicatorPage ticker={selectedTicker} />
+              </React.Suspense>
+            </TabPanel>
+
+            {/* Tab 17: MACD-V (MACD Volatility-Normalized) */}
+            <TabPanel value={activeTab} index={17}>
+              <React.Suspense fallback={suspenseFallback}>
+                <MACDVIndicatorPage ticker={selectedTicker} />
               </React.Suspense>
             </TabPanel>
           </>

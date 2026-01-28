@@ -253,6 +253,20 @@ export const mapiApi = {
   },
 
   /**
+   * Basket MAPI historical analysis across multiple tickers
+   */
+  getMAPIHistoricalBasket: async (request: {
+    tickers: string[];
+    lookback_days?: number;
+    require_momentum?: boolean;
+    adx_threshold?: number;
+    force_refresh?: boolean;
+  }): Promise<any> => {
+    const response = await apiClient.post(`/api/mapi-historical/basket`, request);
+    return response.data;
+  },
+
+  /**
    * Optimize MAPI entry thresholds for a ticker
    */
   optimizeThresholds: async (
@@ -276,6 +290,31 @@ export const mapiApi = {
     edr_threshold?: number;
   }): Promise<any> => {
     const response = await apiClient.post('/api/mapi-scanner', request);
+    return response.data;
+  },
+};
+
+/**
+ * MACD-V (MACD Volatility-Normalized) API calls
+ */
+export const macdvApi = {
+  /**
+   * Get MACD-V chart data for a ticker
+   */
+  getMACDVChartData: async (ticker: string, days: number = 252): Promise<any> => {
+    const response = await apiClient.get(`/api/macdv-chart/${ticker}`, {
+      params: { days },
+    });
+    return response.data;
+  },
+
+  /**
+   * Get MACD-V dashboard with all swing framework tickers
+   */
+  getMACDVDashboard: async (timeframes: string = '1mo,1wk,1d'): Promise<any> => {
+    const response = await apiClient.get('/api/macdv-dashboard', {
+      params: { timeframes },
+    });
     return response.data;
   },
 };

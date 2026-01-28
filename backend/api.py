@@ -37,7 +37,8 @@ from percentile_forward_mapping import run_percentile_forward_analysis
 from swing_duration_analysis_v2 import analyze_swing_duration_v2
 from swing_duration_intraday import analyze_swing_duration_intraday
 from mapi_calculator import MAPICalculator, prepare_mapi_chart_data
-from mapi_historical import run_mapi_historical_analysis
+from mapi_historical import run_mapi_historical_analysis, run_mapi_basket_historical_analysis
+from macdv_calculator import MACDVCalculator, get_macdv_chart_data, SWING_FRAMEWORK_TICKERS
 from stock_statistics import (
     STOCK_METADATA,
     NVDA_4H_DATA, NVDA_DAILY_DATA,
@@ -547,6 +548,78 @@ async def get_mapi_historical(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/mapi-historical/basket")
+async def get_mapi_historical_basket(request: dict):
+    """
+    Basket MAPI historical analysis across multiple tickers.
+
+    Request body:
+      {
+        "tickers": ["AAPL", "TSLA", ...],
+        "lookback_days": 1095,
+        "require_momentum": false,
+        "adx_threshold": 25,
+        "force_refresh": false
+      }
+    """
+    try:
+        tickers = request.get("tickers", [])
+        lookback_days = int(request.get("lookback_days", 1095))
+        require_momentum = bool(request.get("require_momentum", False))
+        adx_threshold = float(request.get("adx_threshold", 25.0))
+        force_refresh = bool(request.get("force_refresh", False))
+
+        if not tickers or not isinstance(tickers, list):
+            raise HTTPException(status_code=400, detail="tickers must be a non-empty list")
+
+        tickers_upper = [str(t).strip().upper() for t in tickers if str(t).strip()]
+        if not tickers_upper:
+            raise HTTPException(status_code=400, detail="No valid tickers provided")
+
+        cache_slug = "_".join(tickers_upper[:12]) + (f"_plus{len(tickers_upper)-12}" if len(tickers_upper) > 12 else "")
+        cache_file = os.path.join(
+            CACHE_DIR,
+            f"MAPI_BASKET_{cache_slug}_{lookback_days}_{int(require_momentum)}_{int(adx_threshold*10)}.json",
+        )
+
+        if not force_refresh and os.path.exists(cache_file):
+            file_age = datetime.now().timestamp() - os.path.getmtime(cache_file)
+            if file_age < 24 * 3600:
+                with open(cache_file, "r") as f:
+                    cached_result = json.load(f)
+                    cached_result["cached"] = True
+                    cached_result["cache_age_hours"] = file_age / 3600
+                    return cached_result
+
+        analysis = await asyncio.to_thread(
+            run_mapi_basket_historical_analysis,
+            tickers_upper,
+            lookback_days=lookback_days,
+            require_momentum=require_momentum,
+            adx_threshold=adx_threshold,
+        )
+
+        result = {
+            "success": True,
+            **analysis,
+            "timestamp": datetime.now().isoformat(),
+            "cached": False,
+        }
+
+        with open(cache_file, "w") as f:
+            json.dump(result, f, indent=2, default=str)
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print("Error in /api/mapi-historical/basket:")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/mapi-optimize/{ticker}")
 async def optimize_mapi_thresholds(
     ticker: str,
@@ -718,6 +791,82 @@ async def scan_mapi_market(request: dict):
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/macdv-chart/{ticker}")
+async def get_macdv_chart(ticker: str, days: int = 252):
+    """
+    Get MACD-V (MACD Volatility-Normalized) chart data
+
+    MACD-V normalizes MACD by ATR volatility for cross-asset/regime comparison.
+    Includes signal classification (Ranging, Rallying, Rebounding, Retracing, Reversing, Risk)
+
+    Args:
+        ticker: Stock symbol (e.g., 'AAPL', 'ES=F', 'BTC-USD')
+        days: Number of days to return (default: 252)
+
+    Returns:
+        Chart data with MACD-V values, histogram, colors, and trends
+    """
+    try:
+        ticker_upper = ticker.upper()
+        result = get_macdv_chart_data(ticker_upper, days)
+
+        if not result.get('success'):
+            raise HTTPException(
+                status_code=404,
+                detail=result.get('error', f'No data for {ticker_upper}')
+            )
+
+        return result
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error calculating MACD-V for {ticker}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/macdv-dashboard")
+async def get_macdv_dashboard(
+    timeframes: Optional[str] = '1mo,1wk,1d'
+):
+    """
+    Get MACD-V dashboard with all swing framework tickers across multiple timeframes
+
+    Args:
+        timeframes: Comma-separated timeframes (e.g., '1mo,1wk,1d,4h,1h')
+
+    Returns:
+        Dashboard with MACD-V values for all tickers across all timeframes
+    """
+    try:
+        # Parse timeframes
+        tf_list = [tf.strip() for tf in timeframes.split(',') if tf.strip()]
+        if not tf_list:
+            tf_list = ['1mo', '1wk', '1d']
+
+        # Initialize calculator
+        calculator = MACDVCalculator()
+
+        # Get dashboard data
+        dashboard = calculator.get_dashboard_data(
+            symbols=SWING_FRAMEWORK_TICKERS,
+            timeframes=tf_list
+        )
+
+        return {
+            'success': True,
+            'dashboard': dashboard
+        }
+
+    except Exception as e:
+        print(f"Error generating MACD-V dashboard: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

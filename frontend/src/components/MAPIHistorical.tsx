@@ -18,6 +18,8 @@ import {
   TableRow,
   TextField,
   Typography,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { useQuery } from '@tanstack/react-query';
@@ -33,12 +35,24 @@ const fmt = (v: number | null | undefined, decimals: number = 2) => {
 };
 
 const MAPIHistorical: React.FC<MAPIHistoricalProps> = ({ ticker }) => {
+  const [mode, setMode] = useState<'single' | 'basket'>('single');
   const [lookbackDays, setLookbackDays] = useState(1095);
   const [requireMomentum, setRequireMomentum] = useState(false);
   const [adxThreshold, setAdxThreshold] = useState(25);
 
-  const { data, isLoading, error, refetch, isFetching } = useQuery({
-    queryKey: ['mapi-historical', ticker, lookbackDays, requireMomentum, adxThreshold],
+  const [basketTickers, setBasketTickers] = useState(
+    'AAPL,MSFT,META,TSLA,AVGO,NFLX,AMZN,GOOGL'
+  );
+
+  const basketTickerList = useMemo(() => {
+    return basketTickers
+      .split(',')
+      .map((t) => t.trim().toUpperCase())
+      .filter(Boolean);
+  }, [basketTickers]);
+
+  const singleQuery = useQuery({
+    queryKey: ['mapi-historical', 'single', ticker, lookbackDays, requireMomentum, adxThreshold],
     queryFn: async () =>
       mapiApi.getMAPIHistorical(ticker, {
         lookback_days: lookbackDays,
@@ -48,12 +62,36 @@ const MAPIHistorical: React.FC<MAPIHistoricalProps> = ({ ticker }) => {
     staleTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 2,
+    enabled: mode === 'single',
   });
 
-  const zones = data?.zone_stats || {};
-  const binStats = data?.bin_stats || [];
-  const signalStats = data?.signal_stats || {};
-  const horizons: number[] = data?.horizons || [3, 7, 14, 21];
+  const basketQuery = useQuery({
+    queryKey: ['mapi-historical', 'basket', basketTickerList, lookbackDays, requireMomentum, adxThreshold],
+    queryFn: async () =>
+      mapiApi.getMAPIHistoricalBasket({
+        tickers: basketTickerList,
+        lookback_days: lookbackDays,
+        require_momentum: requireMomentum,
+        adx_threshold: adxThreshold,
+      }),
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    retry: 1,
+    enabled: mode === 'basket' && basketTickerList.length > 0,
+  });
+
+  const data = mode === 'basket' ? basketQuery.data : singleQuery.data;
+  const isLoading = mode === 'basket' ? basketQuery.isLoading : singleQuery.isLoading;
+  const error = mode === 'basket' ? basketQuery.error : singleQuery.error;
+  const isFetching = mode === 'basket' ? basketQuery.isFetching : singleQuery.isFetching;
+  const refetch = mode === 'basket' ? basketQuery.refetch : singleQuery.refetch;
+
+  const payload = mode === 'basket' ? data?.pooled : data;
+
+  const zones = payload?.zone_stats || {};
+  const binStats = payload?.bin_stats || [];
+  const signalStats = payload?.signal_stats || {};
+  const horizons: number[] = payload?.horizons || [3, 7, 14, 21];
   const focusHorizon = horizons.includes(7) ? 7 : horizons[0] || 7;
 
   const zoneCards = useMemo(
@@ -92,7 +130,9 @@ const MAPIHistorical: React.FC<MAPIHistoricalProps> = ({ ticker }) => {
       <Paper sx={{ p: 2, mb: 2 }}>
         <Grid container spacing={2} alignItems="center">
           <Grid item xs={12} md={8}>
-            <Typography variant="h6">MAPI Historical (Percentile → Forward Returns)</Typography>
+            <Typography variant="h6">
+              MAPI Historical {mode === 'basket' ? '(Basket)' : ''} (Percentile → Forward Returns)
+            </Typography>
             <Typography variant="body2" color="text.secondary">
               Empirical mapping of MAPI composite percentile to forward returns ({horizons.join(', ')} days).
             </Typography>
@@ -102,6 +142,30 @@ const MAPIHistorical: React.FC<MAPIHistoricalProps> = ({ ticker }) => {
               {isFetching ? 'Refreshing…' : 'Refresh'}
             </Button>
           </Grid>
+
+          <Grid item xs={12}>
+            <ToggleButtonGroup
+              value={mode}
+              exclusive
+              onChange={(_, v) => v && setMode(v)}
+              size="small"
+            >
+              <ToggleButton value="single">Single</ToggleButton>
+              <ToggleButton value="basket">Basket</ToggleButton>
+            </ToggleButtonGroup>
+          </Grid>
+
+          {mode === 'basket' && (
+            <Grid item xs={12}>
+              <TextField
+                label="Basket tickers (comma-separated)"
+                size="small"
+                value={basketTickers}
+                onChange={(e) => setBasketTickers(e.target.value)}
+                fullWidth
+              />
+            </Grid>
+          )}
 
           <Grid item xs={12} md={4}>
             <TextField
@@ -191,6 +255,129 @@ const MAPIHistorical: React.FC<MAPIHistoricalProps> = ({ ticker }) => {
         })}
       </Grid>
 
+      {mode === 'basket' && (
+        <Paper sx={{ p: 2, mb: 2 }}>
+          <Typography variant="subtitle1">Basket Breadth (Latest)</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Cross-sectional MAPI breadth across the basket tickers.
+          </Typography>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={3}>
+              <Typography variant="body2">Mean %ile: {fmt(data?.breadth_now?.mean_composite_percentile, 1)}%</Typography>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Typography variant="body2">Pct ≤20%: {fmt(data?.breadth_now?.pct_extreme_low, 1)}%</Typography>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Typography variant="body2">Pct 20–35%: {fmt(data?.breadth_now?.pct_low, 1)}%</Typography>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Typography variant="body2">Pct ≥65%: {fmt(data?.breadth_now?.pct_strong, 1)}%</Typography>
+            </Grid>
+          </Grid>
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="caption" color="text.secondary">
+              Relationships shown below are correlations between breadth metrics and subsequent basket forward returns.
+            </Typography>
+          </Box>
+          <TableContainer component={Paper} sx={{ mt: 1 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ backgroundColor: 'primary.dark' }}>
+                  <TableCell>
+                    <Typography variant="subtitle2" color="white">
+                      Horizon
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="subtitle2" color="white">
+                      Corr(mean %ile, fwd)
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="subtitle2" color="white">
+                      Corr(% low, fwd)
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="subtitle2" color="white">
+                      Corr(% strong, fwd)
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Object.entries(data?.breadth_relationships || {}).map(([h, v]: any) => (
+                  <TableRow key={h}>
+                    <TableCell>{h}</TableCell>
+                    <TableCell align="right">{fmt(v.corr_mean_percentile, 3)}</TableCell>
+                    <TableCell align="right">{fmt(v.corr_pct_low, 3)}</TableCell>
+                    <TableCell align="right">{fmt(v.corr_pct_strong, 3)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="subtitle1">Cross-Sectional “Scanner” Tests</Typography>
+            <Typography variant="body2" color="text.secondary">
+              Simple daily selections using MAPI percentiles across the basket (not accounting for overlapping holds/fees).
+            </Typography>
+          </Box>
+          <TableContainer component={Paper} sx={{ mt: 1 }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow sx={{ backgroundColor: 'primary.dark' }}>
+                  <TableCell>
+                    <Typography variant="subtitle2" color="white">
+                      Strategy
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="subtitle2" color="white">
+                      Days
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="subtitle2" color="white">
+                      Mean 7d
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="subtitle2" color="white">
+                      Win 7d
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="subtitle2" color="white">
+                      Mean 21d
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="subtitle2" color="white">
+                      Win 21d
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {Object.entries(data?.cross_sectional_strategies || {}).map(([name, v]: any) => (
+                  <TableRow key={name}>
+                    <TableCell>{name}</TableCell>
+                    <TableCell align="right">{v.days ?? 0}</TableCell>
+                    <TableCell align="right">{fmt(v.mean_return_7d, 2)}%</TableCell>
+                    <TableCell align="right">{fmt(v.win_rate_7d, 1)}%</TableCell>
+                    <TableCell align="right">{fmt(v.mean_return_21d, 2)}%</TableCell>
+                    <TableCell align="right">{fmt(v.win_rate_21d, 1)}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
+
       <TableContainer component={Paper}>
         <Table size="small">
           <TableHead>
@@ -244,7 +431,7 @@ const MAPIHistorical: React.FC<MAPIHistoricalProps> = ({ ticker }) => {
 
       <Paper sx={{ p: 2, mt: 2 }}>
         <Typography variant="body2" color="text.secondary">
-          Sample size used: {data.sample_size} rows · Cached: {String(!!data.cached)}
+          Sample size used: {payload?.sample_size} rows · Cached: {String(!!data.cached)}
         </Typography>
       </Paper>
     </Box>
