@@ -448,22 +448,22 @@ const MACDVIndicatorPage: React.FC<MACDVIndicatorPageProps> = ({ ticker }) => {
             <Grid container spacing={2}>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="success.main">
-                  Bullish Zones (MACD-V &gt; 0)
+                  Bullish Zones (MACD-V {'>'} 0)
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   • <strong>Rebounding (0 to 50):</strong> Recovering from weakness<br />
                   • <strong>Rallying (50 to 150):</strong> Strong uptrend<br />
-                  • <strong>Risk (> 150):</strong> Extreme overextension
+                  • <strong>Risk ({'>'} 150):</strong> Extreme overextension
                 </Typography>
               </Grid>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="error.main">
-                  Bearish Zones (MACD-V &lt; 0)
+                  Bearish Zones (MACD-V {'<'} 0)
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                   • <strong>Retracing (0 to -50):</strong> Minor pullback<br />
                   • <strong>Reversing (-50 to -150):</strong> Downtrend forming<br />
-                  • <strong>Risk (&lt; -150):</strong> Extreme oversold
+                  • <strong>Risk ({'<'} -150):</strong> Extreme oversold
                 </Typography>
               </Grid>
             </Grid>
