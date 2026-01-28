@@ -852,8 +852,8 @@ async def get_macdv_dashboard(
         if not tf_list:
             tf_list = ['1mo', '1wk', '1d']
 
-        # Initialize calculator
-        calculator = MACDVCalculator()
+        # Initialize calculator (explicit defaults): fast=12, slow=26, signal=9, atr=26
+        calculator = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
 
         # Get dashboard data
         dashboard = calculator.get_dashboard_data(
@@ -863,7 +863,10 @@ async def get_macdv_dashboard(
 
         return {
             'success': True,
-            'dashboard': dashboard
+            'dashboard': {
+                **dashboard,
+                'params': calculator.get_params()
+            }
         }
 
     except Exception as e:
@@ -901,7 +904,7 @@ async def get_macdv_rsi_bands(
         if horizon < 1 or horizon > 60:
             raise HTTPException(status_code=400, detail="horizon out of range")
 
-        cache_key = _cache_key("macdv_rsi_bands", ",".join(ticker_list), period, str(pct_lookback), str(horizon))
+        cache_key = _cache_key("macdv_rsi_bands_v2", ",".join(ticker_list), period, str(pct_lookback), str(horizon))
         cache_file = os.path.join(CACHE_DIR, f"macdv_rsi_bands_{_file_safe_slug(cache_key)}.json")
 
         if not force_refresh:

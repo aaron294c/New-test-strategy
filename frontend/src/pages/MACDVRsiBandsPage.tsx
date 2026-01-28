@@ -217,6 +217,13 @@ export default function MACDVRsiBandsPage() {
             <Typography variant="body2" color="text.secondary">
               Universe: {DEFAULT_UNIVERSE.join(', ')} • Close-to-close forward returns at D7
             </Typography>
+            {analysis?.params?.macdv_params && (
+              <Typography variant="caption" color="text.secondary">
+                MACD-V params: EMA({analysis.params.macdv_params.fast_length},{' '}
+                {analysis.params.macdv_params.slow_length}) • Signal EMA({analysis.params.macdv_params.signal_length}) •
+                ATR({analysis.params.macdv_params.atr_length})
+              </Typography>
+            )}
           </Grid>
           <Grid item xs={12} md={5}>
             <Grid container spacing={2}>

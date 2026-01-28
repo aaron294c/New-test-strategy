@@ -26,6 +26,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { createChart, IChartApi, ISeriesApi, LineData, LineStyle, UTCTimestamp } from 'lightweight-charts';
@@ -51,8 +52,17 @@ const TIMEFRAME_LABELS: Record<string, string> = {
   '1d': 'Daily'
 };
 
+const MACDV_PARAMS = {
+  fast_length: 12,
+  slow_length: 26,
+  signal_length: 9,
+  atr_length: 26,
+} as const;
+
 const MACDVIndicatorPage: React.FC<MACDVIndicatorPageProps> = ({ ticker }) => {
   const [activeTab, setActiveTab] = useState<'chart' | 'dashboard'>('chart');
+  const [dashboardSortField, setDashboardSortField] = useState<'ticker' | '1mo' | '1wk' | '1d'>('1d');
+  const [dashboardSortOrder, setDashboardSortOrder] = useState<'asc' | 'desc'>('desc');
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
@@ -90,6 +100,39 @@ const MACDVIndicatorPage: React.FC<MACDVIndicatorPageProps> = ({ ticker }) => {
   const chartData = chartDataResponse?.chart_data;
   const current = chartData?.current;
   const dashboardData = dashboardDataResponse?.dashboard;
+  const resolvedParams = chartData?.params || dashboardData?.params || MACDV_PARAMS;
+
+  const handleDashboardSort = (field: 'ticker' | '1mo' | '1wk' | '1d') => {
+    if (dashboardSortField === field) {
+      setDashboardSortOrder(dashboardSortOrder === 'asc' ? 'desc' : 'asc');
+      return;
+    }
+    setDashboardSortField(field);
+    setDashboardSortOrder(field === 'ticker' ? 'asc' : 'desc');
+  };
+
+  const sortedTickers = useMemo(() => {
+    if (!dashboardData?.symbols) return SWING_TICKERS;
+
+    const normalizeNumber = (v: number | null | undefined, order: 'asc' | 'desc'): number => {
+      if (v == null || Number.isNaN(v)) {
+        return order === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+      }
+      return v;
+    };
+
+    return [...SWING_TICKERS].sort((a, b) => {
+      if (dashboardSortField === 'ticker') {
+        return dashboardSortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+      }
+
+      const aVal = dashboardData.symbols?.[a]?.[dashboardSortField]?.macdv_val as number | null | undefined;
+      const bVal = dashboardData.symbols?.[b]?.[dashboardSortField]?.macdv_val as number | null | undefined;
+      const aNum = normalizeNumber(aVal, dashboardSortOrder);
+      const bNum = normalizeNumber(bVal, dashboardSortOrder);
+      return dashboardSortOrder === 'asc' ? aNum - bNum : bNum - aNum;
+    });
+  }, [dashboardData?.symbols, dashboardSortField, dashboardSortOrder]);
 
   // Memoize timestamps
   const timestamps = useMemo<UTCTimestamp[]>(() => {
@@ -320,16 +363,20 @@ const MACDVIndicatorPage: React.FC<MACDVIndicatorPageProps> = ({ ticker }) => {
   return (
     <Box>
       {/* Header */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={8}>
-            <Typography variant="h5" gutterBottom>
-              MACD-V - MACD Volatility-Normalized
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              MACD normalized by ATR for cross-asset and cross-regime comparison (Pine Script v6)
-            </Typography>
-          </Grid>
+          <Paper sx={{ p: 2, mb: 2 }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={8}>
+                <Typography variant="h5" gutterBottom>
+                  MACD-V - MACD Volatility-Normalized
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  MACD normalized by ATR for cross-asset and cross-regime comparison (Pine Script v6)
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Params: EMA({resolvedParams.fast_length},{resolvedParams.slow_length}) • Signal EMA({resolvedParams.signal_length}) •
+                  ATR({resolvedParams.atr_length})
+                </Typography>
+              </Grid>
           <Grid item xs={12} md={4} textAlign="right">
             {current && (
               <Chip
@@ -478,21 +525,42 @@ const MACDVIndicatorPage: React.FC<MACDVIndicatorPageProps> = ({ ticker }) => {
             <TableHead>
               <TableRow sx={{ backgroundColor: 'primary.dark' }}>
                 <TableCell>
-                  <Typography variant="subtitle2" color="white">
-                    Ticker
-                  </Typography>
+                  <TableSortLabel
+                    active={dashboardSortField === 'ticker'}
+                    direction={dashboardSortField === 'ticker' ? dashboardSortOrder : 'asc'}
+                    onClick={() => handleDashboardSort('ticker')}
+                    sx={{
+                      '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                      color: 'white',
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="white">
+                      Ticker
+                    </Typography>
+                  </TableSortLabel>
                 </TableCell>
                 {TIMEFRAMES.map((tf) => (
                   <TableCell key={tf} align="center">
-                    <Typography variant="subtitle2" color="white">
-                      {TIMEFRAME_LABELS[tf]}
-                    </Typography>
+                    <TableSortLabel
+                      active={dashboardSortField === tf}
+                      direction={dashboardSortField === tf ? dashboardSortOrder : 'asc'}
+                      onClick={() => handleDashboardSort(tf as '1mo' | '1wk' | '1d')}
+                      sx={{
+                        '& .MuiTableSortLabel-icon': { color: 'white !important' },
+                        color: 'white',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Typography variant="subtitle2" color="white">
+                        {TIMEFRAME_LABELS[tf]}
+                      </Typography>
+                    </TableSortLabel>
                   </TableCell>
                 ))}
               </TableRow>
             </TableHead>
             <TableBody>
-              {SWING_TICKERS.map((sym) => {
+              {sortedTickers.map((sym) => {
                 const symData = dashboardData.symbols?.[sym];
                 if (!symData) return null;
 

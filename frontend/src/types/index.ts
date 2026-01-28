@@ -137,6 +137,12 @@ export interface MACDVRsiBandsAnalysis {
     period: string;
     pct_lookback: number;
     horizon: number;
+    macdv_params: {
+      fast_length: number;
+      slow_length: number;
+      signal_length: number;
+      atr_length: number;
+    };
     macdv_lo: number;
     macdv_hi: number;
     rsi_bands: RSIBand[];

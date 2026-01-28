@@ -17,6 +17,7 @@ import pandas as pd
 import yfinance as yf
 from zoneinfo import ZoneInfo
 from enhanced_backtester import EnhancedPerformanceMatrixBacktester
+from macdv_calculator import MACDVCalculator
 from stock_statistics import (
     STOCK_METADATA,
     NVDA_4H_DATA, NVDA_DAILY_DATA,
@@ -66,6 +67,12 @@ _current_state_enriched_cache: Dict | None = None
 _current_state_enriched_cache_timestamp: datetime | None = None
 _current_state_enriched_cache_ttl_seconds = 60  # 1 minute TTL
 _current_state_enriched_lock = asyncio.Lock()
+
+_macdv_daily_cache: Dict[str, Dict[str, Any]] | None = None
+_macdv_daily_cache_key: str | None = None
+_macdv_daily_cache_timestamp: datetime | None = None
+_macdv_daily_cache_ttl_seconds = 60  # 1 minute TTL (match dashboard refresh cadence)
+_macdv_daily_lock = asyncio.Lock()
 
 _STATIC_SNAPSHOT_DIR = Path(__file__).resolve().parent / "static_snapshots" / "swing_framework"
 _MIDDAY_SNAPSHOT_DIR = Path(__file__).resolve().parent / "cache" / "midday_snapshots"
@@ -317,6 +324,94 @@ def _augment_with_prev_midday_snapshot(response: Dict[str, Any], timeframe: str)
         "timeframe": "4h" if timeframe in {"4h", "4hour"} else "daily",
         "from_fallback": from_fallback,
     }
+    return response
+
+
+def _has_macdv_daily(response: Dict[str, Any]) -> bool:
+    market_state = response.get("market_state")
+    if not isinstance(market_state, list) or not market_state:
+        return False
+    first = market_state[0]
+    return isinstance(first, dict) and ("macdv_daily" in first or "macdv_daily_trend" in first)
+
+
+async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str, Any]]:
+    """
+    Return a mapping of display ticker -> {"macdv_daily": float|None, "macdv_daily_trend": str|None}
+    using the same MACD-V logic as the `/api/macdv-dashboard` endpoint (source of truth).
+    """
+    global _macdv_daily_cache, _macdv_daily_cache_key, _macdv_daily_cache_timestamp
+
+    key = ",".join(sorted({t.strip().upper() for t in display_tickers if isinstance(t, str) and t.strip()}))
+
+    if (
+        _macdv_daily_cache is not None
+        and _macdv_daily_cache_key == key
+        and _is_cache_valid(_macdv_daily_cache, _macdv_daily_cache_timestamp, _macdv_daily_cache_ttl_seconds)
+    ):
+        return dict(_macdv_daily_cache)
+
+    async with _macdv_daily_lock:
+        if (
+            _macdv_daily_cache is not None
+            and _macdv_daily_cache_key == key
+            and _is_cache_valid(_macdv_daily_cache, _macdv_daily_cache_timestamp, _macdv_daily_cache_ttl_seconds)
+        ):
+            return dict(_macdv_daily_cache)
+
+        display_to_yahoo: Dict[str, str] = {t: resolve_yahoo_symbol(t) for t in display_tickers}
+        yahoo_to_display: Dict[str, str] = {y: d for d, y in display_to_yahoo.items()}
+        yahoo_symbols = sorted(set(display_to_yahoo.values()))
+
+        out: Dict[str, Dict[str, Any]] = {t: {"macdv_daily": None, "macdv_daily_trend": None} for t in display_tickers}
+
+        try:
+            calculator = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
+            dashboard = calculator.get_dashboard_data(symbols=yahoo_symbols, timeframes=["1d"])
+            symbols = dashboard.get("symbols") or {}
+
+            for yahoo_symbol, data in symbols.items():
+                display = yahoo_to_display.get(yahoo_symbol)
+                if not display:
+                    continue
+                tf_data = (data or {}).get("1d") or {}
+                out[display] = {
+                    "macdv_daily": tf_data.get("macdv_val"),
+                    "macdv_daily_trend": tf_data.get("macdv_trend"),
+                }
+        except Exception as e:
+            print(f"  MACD-V daily augmentation failed: {e}")
+
+        _macdv_daily_cache = dict(out)
+        _macdv_daily_cache_key = key
+        _macdv_daily_cache_timestamp = datetime.now(timezone.utc)
+        return dict(out)
+
+
+async def _augment_with_macdv_daily(response: Dict[str, Any]) -> Dict[str, Any]:
+    market_state = response.get("market_state")
+    if not isinstance(market_state, list) or not market_state:
+        return response
+
+    display_tickers: List[str] = [
+        s.get("ticker")
+        for s in market_state
+        if isinstance(s, dict) and isinstance(s.get("ticker"), str)
+    ]
+    if not display_tickers:
+        return response
+
+    macdv_map = await _get_macdv_daily_map(display_tickers)
+    for state in market_state:
+        if not isinstance(state, dict):
+            continue
+        ticker = state.get("ticker")
+        if not isinstance(ticker, str):
+            continue
+        entry = macdv_map.get(ticker) or {}
+        state["macdv_daily"] = entry.get("macdv_daily")
+        state["macdv_daily_trend"] = entry.get("macdv_daily_trend")
+
     return response
 
 
@@ -1325,18 +1420,30 @@ async def get_current_market_state(
     if not force_refresh and _current_state_cache is None:
         static_payload = _load_static_snapshot("current-state.json")
         if static_payload is not None:
-            return _augment_with_prev_midday_snapshot(dict(static_payload), "daily")
+            payload = _augment_with_prev_midday_snapshot(dict(static_payload), "daily")
+            payload = await _augment_with_macdv_daily(payload)
+            return payload
 
     if not force_refresh and _is_cache_valid(
         _current_state_cache, _current_state_cache_timestamp, _current_state_cache_ttl_seconds
     ):
-        return dict(_current_state_cache)
+        payload = dict(_current_state_cache)
+        if not _has_macdv_daily(payload):
+            payload = await _augment_with_macdv_daily(payload)
+            _current_state_cache = payload
+            _current_state_cache_timestamp = datetime.now(timezone.utc)
+        return payload
 
     async with _current_state_lock:
         if not force_refresh and _is_cache_valid(
             _current_state_cache, _current_state_cache_timestamp, _current_state_cache_ttl_seconds
         ):
-            return dict(_current_state_cache)
+            payload = dict(_current_state_cache)
+            if not _has_macdv_daily(payload):
+                payload = await _augment_with_macdv_daily(payload)
+                _current_state_cache = payload
+                _current_state_cache_timestamp = datetime.now(timezone.utc)
+            return payload
         # NOTE: Keep the expensive work inside the lock to prevent a cache stampede
         # (e.g., current-state and current-state-enriched arriving concurrently).
         tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "ES1", "NQ1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
@@ -1515,6 +1622,7 @@ async def get_current_market_state(
         }
 
         response = _augment_with_prev_midday_snapshot(response, "daily")
+        response = await _augment_with_macdv_daily(response)
 
         # Auto-save midday snapshot if within window and no snapshot exists for today
         now_utc = datetime.now(timezone.utc)
@@ -1565,18 +1673,30 @@ async def get_current_market_state_4h(
     if not force_refresh and _current_state_4h_cache is None:
         static_payload = _load_static_snapshot("current-state-4h.json")
         if static_payload is not None:
-            return _augment_with_prev_midday_snapshot(dict(static_payload), "4h")
+            payload = _augment_with_prev_midday_snapshot(dict(static_payload), "4h")
+            payload = await _augment_with_macdv_daily(payload)
+            return payload
 
     if not force_refresh and _is_cache_valid(
         _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
     ):
-        return dict(_current_state_4h_cache)
+        payload = dict(_current_state_4h_cache)
+        if not _has_macdv_daily(payload):
+            payload = await _augment_with_macdv_daily(payload)
+            _current_state_4h_cache = payload
+            _current_state_4h_cache_timestamp = datetime.now(timezone.utc)
+        return payload
 
     async with _current_state_4h_lock:
         if not force_refresh and _is_cache_valid(
             _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
         ):
-            return dict(_current_state_4h_cache)
+            payload = dict(_current_state_4h_cache)
+            if not _has_macdv_daily(payload):
+                payload = await _augment_with_macdv_daily(payload)
+                _current_state_4h_cache = payload
+                _current_state_4h_cache_timestamp = datetime.now(timezone.utc)
+            return payload
         tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "ES1", "NQ1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
         current_states = []
 
@@ -1725,6 +1845,7 @@ async def get_current_market_state_4h(
         }
 
         response = _augment_with_prev_midday_snapshot(response, "4h")
+        response = await _augment_with_macdv_daily(response)
 
         # Auto-save midday snapshot if within window and no snapshot exists for today
         now_utc = datetime.now(timezone.utc)

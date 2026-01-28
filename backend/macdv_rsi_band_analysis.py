@@ -75,7 +75,8 @@ def _stats(returns: List[float]) -> ReturnStats:
 def _macdv_val(data: pd.DataFrame) -> pd.Series:
     df = data.copy()
     df.columns = [c.lower() for c in df.columns]
-    calc = MACDVCalculator()
+    # Explicit defaults (requested): fast=12, slow=26, signal=9, atr=26
+    calc = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
     out = calc.calculate_macdv(df, source_col="close")
     return out["macdv_val"]
 
@@ -211,6 +212,12 @@ def run_macdv_120_150_rsi_band_analysis(
             "period": period,
             "pct_lookback": pct_lookback,
             "horizon": horizon,
+            "macdv_params": {
+                "fast_length": 12,
+                "slow_length": 26,
+                "signal_length": 9,
+                "atr_length": 26,
+            },
             "macdv_lo": macdv_lo,
             "macdv_hi": macdv_hi,
             "rsi_bands": [{"min": rlo, "max": rhi, "label": label} for rlo, rhi, label in RSI_BANDS],

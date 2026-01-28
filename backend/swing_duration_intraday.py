@@ -1,4 +1,4 @@
-"""
+V""""
 SWING Duration Analysis - Intraday (4H Resolution)
 
 Uses 4-hour bars to capture intraday bounce behavior that daily data misses.

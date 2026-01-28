@@ -59,6 +59,8 @@ interface MarketState {
   current_date: string;
   current_price: number;
   current_percentile: number;
+  macdv_daily?: number | null;
+  macdv_daily_trend?: string | null;
   prev_midday_percentile?: number | null;
   change_since_prev_midday?: number | null;
   prev_midday_price?: number | null;
@@ -91,7 +93,14 @@ interface MarketStateResponse {
   };
 }
 
-type SortField = 'ticker' | 'percentile' | 'win_rate' | 'return' | 'risk_adj_expectancy' | 'hold_days';
+type SortField =
+  | 'ticker'
+  | 'percentile'
+  | 'macdv_daily'
+  | 'win_rate'
+  | 'return'
+  | 'risk_adj_expectancy'
+  | 'hold_days';
 type SortOrder = 'asc' | 'desc';
 
 interface CurrentMarketStateProps {
@@ -317,6 +326,13 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
       let aValue: number | string;
       let bValue: number | string;
 
+      const normalizeNumber = (v: number | null | undefined): number => {
+        if (v == null || Number.isNaN(v)) {
+          return sortOrder === 'asc' ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+        }
+        return v;
+      };
+
       switch (sortField) {
         case 'ticker':
           aValue = a.ticker;
@@ -325,6 +341,10 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
         case 'percentile':
           aValue = a.current_percentile;
           bValue = b.current_percentile;
+          break;
+        case 'macdv_daily':
+          aValue = normalizeNumber(a.macdv_daily);
+          bValue = normalizeNumber(b.macdv_daily);
           break;
         case 'win_rate':
           aValue = a.live_expectancy.expected_win_rate;
@@ -516,10 +536,19 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                       : `No previous trading day midday snapshot found for ${prevMidday?.market_date ?? 'previous trading day'}`
                   }
                 >
-                  <span>Prev Midday %ile</span>
+                <span>Prev Midday %ile</span>
                 </Tooltip>
               </TableCell>
               <TableCell>Zone</TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'macdv_daily'}
+                  direction={sortField === 'macdv_daily' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('macdv_daily')}
+                >
+                  MACD-V (D)
+                </TableSortLabel>
+              </TableCell>
               <TableCell>Regime</TableCell>
               <TableCell align="right">
                 <TableSortLabel
@@ -728,6 +757,30 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                       }
                     />
                   </Tooltip>
+                </TableCell>
+
+                <TableCell align="right">
+                  {(() => {
+                    const val = state.macdv_daily;
+                    const trend = state.macdv_daily_trend;
+                    const color =
+                      trend === 'Bullish'
+                        ? 'success.main'
+                        : trend === 'Bearish'
+                          ? 'error.main'
+                          : 'text.secondary';
+
+                    return (
+                      <>
+                        <Typography variant="body2" color={color} fontWeight="medium">
+                          {val == null ? '—' : val.toFixed(1)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {trend || '—'}
+                        </Typography>
+                      </>
+                    );
+                  })()}
                 </TableCell>
 
                 <TableCell>

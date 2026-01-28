@@ -37,6 +37,14 @@ class MACDVCalculator:
         self.signal_length = signal_length
         self.atr_length = atr_length
 
+    def get_params(self) -> Dict[str, int]:
+        return {
+            'fast_length': int(self.fast_length),
+            'slow_length': int(self.slow_length),
+            'signal_length': int(self.signal_length),
+            'atr_length': int(self.atr_length),
+        }
+
     def calculate_macdv(
         self,
         data: pd.DataFrame,
@@ -230,6 +238,7 @@ class MACDVCalculator:
 
         # Convert to chart format, replacing NaN with None for JSON compliance
         chart_data = {
+            'params': self.get_params(),
             'dates': df.index.strftime('%Y-%m-%d').tolist(),
             'open': df['open'].replace({np.nan: None}).tolist(),
             'high': df['high'].replace({np.nan: None}).tolist(),
@@ -296,8 +305,8 @@ def get_macdv_chart_data(ticker: str, days: int = 252) -> Dict:
             # For regular index, just convert to lowercase
             df.columns = [str(c).lower() for c in df.columns]
 
-        # Calculate MACD-V
-        calculator = MACDVCalculator()
+        # Calculate MACD-V (explicit defaults): fast=12, slow=26, signal=9, atr=26
+        calculator = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
         chart_data = calculator.prepare_chart_data(df)
 
         return {
