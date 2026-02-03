@@ -61,6 +61,14 @@ interface MarketState {
   current_percentile: number;
   macdv_daily?: number | null;
   macdv_daily_trend?: string | null;
+  macdv_delta_1d?: number | null;
+  macdv_delta_5d?: number | null;
+  macdv_delta_10d?: number | null;
+  macdv_trend?: string | null;
+  macdv_trend_label?: string | null;
+  days_in_zone?: number | null;
+  next_threshold?: number | null;
+  next_threshold_distance?: number | null;
   macdv_d7_win_rate?: number | null;
   macdv_d7_mean_return?: number | null;
   macdv_d7_median_return?: number | null;
@@ -102,6 +110,10 @@ type SortField =
   | 'ticker'
   | 'percentile'
   | 'macdv_daily'
+  | 'macdv_delta_1d'
+  | 'macdv_delta_5d'
+  | 'macdv_delta_10d'
+  | 'days_in_zone'
   | 'macdv_d7_win_rate'
   | 'macdv_d7_median_return'
   | 'macdv_d7_mean_return'
@@ -354,6 +366,22 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
           aValue = normalizeNumber(a.macdv_daily);
           bValue = normalizeNumber(b.macdv_daily);
           break;
+        case 'macdv_delta_1d':
+          aValue = normalizeNumber(a.macdv_delta_1d);
+          bValue = normalizeNumber(b.macdv_delta_1d);
+          break;
+        case 'macdv_delta_5d':
+          aValue = normalizeNumber(a.macdv_delta_5d);
+          bValue = normalizeNumber(b.macdv_delta_5d);
+          break;
+        case 'macdv_delta_10d':
+          aValue = normalizeNumber(a.macdv_delta_10d);
+          bValue = normalizeNumber(b.macdv_delta_10d);
+          break;
+        case 'days_in_zone':
+          aValue = normalizeNumber(a.days_in_zone);
+          bValue = normalizeNumber(b.days_in_zone);
+          break;
         case 'macdv_d7_win_rate':
           aValue = normalizeNumber(a.macdv_d7_win_rate);
           bValue = normalizeNumber(b.macdv_d7_win_rate);
@@ -520,11 +548,51 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
         />
       </Box>
 
-      <TableContainer>
-        <Table size="small">
+      <TableContainer
+        sx={{
+          maxHeight: '70vh',
+          overflowX: 'auto',
+          overflowY: 'auto',
+          position: 'relative',
+          border: '1px solid #e0e0e0',
+          borderRadius: '4px',
+          // Custom scrollbar styling for better visibility and UX
+          '&::-webkit-scrollbar': {
+            width: '12px',
+            height: '12px',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: '#f1f1f1',
+            borderRadius: '10px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: '#888',
+            borderRadius: '10px',
+            border: '2px solid #f1f1f1',
+            '&:hover': {
+              backgroundColor: '#555',
+            },
+          },
+          '&::-webkit-scrollbar-corner': {
+            backgroundColor: '#f1f1f1',
+          },
+          // Firefox scrollbar styling
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#888 #f1f1f1',
+        }}
+      >
+        <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell>
+              <TableCell
+                sx={{
+                  position: 'sticky',
+                  left: 0,
+                  backgroundColor: '#fff',
+                  zIndex: 3,
+                  boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
+                }}
+              >
                 <TableSortLabel
                   active={sortField === 'ticker'}
                   direction={sortField === 'ticker' ? sortOrder : 'asc'}
@@ -611,6 +679,60 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                   MACD-V (D)
                 </TableSortLabel>
               </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'macdv_delta_1d'}
+                  direction={sortField === 'macdv_delta_1d' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('macdv_delta_1d')}
+                >
+                  <Tooltip title="1-day MACD-V change">
+                    <span>Δ 1D</span>
+                  </Tooltip>
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'macdv_delta_5d'}
+                  direction={sortField === 'macdv_delta_5d' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('macdv_delta_5d')}
+                >
+                  <Tooltip title="5-day average MACD-V change rate (per day)">
+                    <span>Δ 5D</span>
+                  </Tooltip>
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'macdv_delta_10d'}
+                  direction={sortField === 'macdv_delta_10d' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('macdv_delta_10d')}
+                >
+                  <Tooltip title="10-day average MACD-V change rate (per day)">
+                    <span>Δ 10D</span>
+                  </Tooltip>
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <Tooltip title="Momentum trend: ↗↗ ACC (Accelerating), ↗ STR (Steady rise), →↗ FLAT (Flattening), ↘ DECEL (Decelerating), ↘↘ CRASH (Falling)">
+                  <span>Trend</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'days_in_zone'}
+                  direction={sortField === 'days_in_zone' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('days_in_zone')}
+                >
+                  <Tooltip title="Days MACD-V has been in current threshold zone">
+                    <span>Days in Zone</span>
+                  </Tooltip>
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <Tooltip title="Distance to next critical threshold (±50, ±100). Warns when within 10 points.">
+                  <span>Next Threshold</span>
+                </Tooltip>
+              </TableCell>
               <TableCell>Regime</TableCell>
               <TableCell align="right">
                 <TableSortLabel
@@ -656,7 +778,17 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                   },
                 }}
               >
-                <TableCell>
+                <TableCell
+                  sx={{
+                    position: 'sticky',
+                    left: 0,
+                    backgroundColor: state.in_entry_zone
+                      ? 'rgba(76, 175, 80, 0.08)'
+                      : '#fff',
+                    zIndex: 2,
+                    boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
+                  }}
+                >
                   <Box>
                     <Typography variant="body2" fontWeight="bold">
                       {state.ticker}
@@ -903,6 +1035,124 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                       </>
                     );
                   })()}
+                </TableCell>
+
+                <TableCell align="right">
+                  {state.macdv_delta_1d != null ? (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: state.macdv_delta_1d > 0 ? '#4caf50' : state.macdv_delta_1d < 0 ? '#f44336' : 'text.secondary',
+                        fontWeight: Math.abs(state.macdv_delta_1d) > 5 ? 'bold' : 'normal',
+                      }}
+                    >
+                      {state.macdv_delta_1d > 0 ? '+' : ''}
+                      {state.macdv_delta_1d.toFixed(1)}
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      —
+                    </Typography>
+                  )}
+                </TableCell>
+
+                <TableCell align="right">
+                  {state.macdv_delta_5d != null ? (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: state.macdv_delta_5d > 0 ? '#4caf50' : state.macdv_delta_5d < 0 ? '#f44336' : 'text.secondary',
+                        fontWeight: Math.abs(state.macdv_delta_5d) > 5 ? 'bold' : 'normal',
+                      }}
+                    >
+                      {state.macdv_delta_5d > 0 ? '+' : ''}
+                      {state.macdv_delta_5d.toFixed(1)}
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      —
+                    </Typography>
+                  )}
+                </TableCell>
+
+                <TableCell align="right">
+                  {state.macdv_delta_10d != null ? (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: state.macdv_delta_10d > 0 ? '#4caf50' : state.macdv_delta_10d < 0 ? '#f44336' : 'text.secondary',
+                        fontWeight: Math.abs(state.macdv_delta_10d) > 5 ? 'bold' : 'normal',
+                      }}
+                    >
+                      {state.macdv_delta_10d > 0 ? '+' : ''}
+                      {state.macdv_delta_10d.toFixed(1)}
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      —
+                    </Typography>
+                  )}
+                </TableCell>
+
+                <TableCell>
+                  {state.macdv_trend && state.macdv_trend_label ? (
+                    <Chip
+                      label={`${state.macdv_trend} ${state.macdv_trend_label}`}
+                      size="small"
+                      sx={{
+                        backgroundColor:
+                          state.macdv_trend_label === 'ACC'
+                            ? '#4caf5020'
+                            : state.macdv_trend_label === 'STR'
+                            ? '#8bc34a20'
+                            : state.macdv_trend_label === 'FLAT'
+                            ? '#ff980020'
+                            : state.macdv_trend_label === 'DECEL'
+                            ? '#ff572220'
+                            : state.macdv_trend_label === 'CRASH'
+                            ? '#f4433620'
+                            : 'transparent',
+                        color:
+                          state.macdv_trend_label === 'ACC' || state.macdv_trend_label === 'STR'
+                            ? '#4caf50'
+                            : state.macdv_trend_label === 'FLAT'
+                            ? '#ff9800'
+                            : '#f44336',
+                        fontWeight: state.macdv_trend_label === 'ACC' || state.macdv_trend_label === 'CRASH' ? 'bold' : 'normal',
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      —
+                    </Typography>
+                  )}
+                </TableCell>
+
+                <TableCell align="right">
+                  {state.days_in_zone != null ? (
+                    <Typography variant="body2" color="text.secondary">
+                      {state.days_in_zone} days
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      —
+                    </Typography>
+                  )}
+                </TableCell>
+
+                <TableCell>
+                  {state.next_threshold != null && state.next_threshold_distance != null ? (
+                    <Chip
+                      label={`${state.next_threshold > 0 ? '+' : ''}${state.next_threshold} (${state.next_threshold_distance > 0 ? '+' : ''}${state.next_threshold_distance.toFixed(1)}pts)`}
+                      size="small"
+                      color={Math.abs(state.next_threshold_distance) <= 2 ? 'warning' : 'default'}
+                      icon={Math.abs(state.next_threshold_distance) <= 2 ? <Warning fontSize="small" /> : undefined}
+                    />
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      —
+                    </Typography>
+                  )}
                 </TableCell>
 
                 <TableCell>

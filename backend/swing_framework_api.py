@@ -339,10 +339,125 @@ def _has_macdv_daily(response: Dict[str, Any]) -> bool:
     return isinstance(first, dict) and ("macdv_daily" in first or "macdv_daily_trend" in first)
 
 
+def _calculate_macdv_momentum_analysis(macdv_series: pd.Series) -> Dict[str, Any]:
+    """
+    Calculate MACD-V momentum analysis including deltas, trend, days in zone, and next threshold.
+
+    Args:
+        macdv_series: Series of MACD-V values (most recent last)
+
+    Returns:
+        Dict with momentum metrics
+    """
+    if len(macdv_series) < 2:
+        return {
+            "macdv_delta_1d": None,
+            "macdv_delta_5d": None,
+            "macdv_delta_10d": None,
+            "macdv_trend": None,
+            "macdv_trend_label": None,
+            "days_in_zone": None,
+            "next_threshold": None,
+            "next_threshold_distance": None,
+        }
+
+    current_val = macdv_series.iloc[-1]
+
+    # Calculate deltas
+    delta_1d = current_val - macdv_series.iloc[-2] if len(macdv_series) >= 2 else None
+
+    # 5-day average change rate: (current - 5_days_ago) / 5
+    delta_5d = None
+    if len(macdv_series) >= 6:
+        delta_5d = (current_val - macdv_series.iloc[-6]) / 5
+
+    # 10-day average change rate: (current - 10_days_ago) / 10
+    delta_10d = None
+    if len(macdv_series) >= 11:
+        delta_10d = (current_val - macdv_series.iloc[-11]) / 10
+
+    # Trend classification based on 5-day average delta
+    trend = None
+    trend_label = None
+    if delta_5d is not None:
+        if delta_5d > 5:
+            trend = "↗↗"
+            trend_label = "ACC"  # Accelerating upward
+        elif delta_5d > 2:
+            trend = "↗"
+            trend_label = "STR"  # Steady rise
+        elif delta_5d > -2:
+            trend = "→↗" if delta_5d > 0 else "→"
+            trend_label = "FLAT"  # Flattening
+        elif delta_5d > -5:
+            trend = "↘"
+            trend_label = "DECEL"  # Decelerating
+        else:
+            trend = "↘↘"
+            trend_label = "CRASH"  # Accelerating downward
+
+    # Define zone thresholds
+    thresholds = [-100, -50, 50, 100]
+
+    # Determine current zone
+    current_zone = None
+    for i, threshold in enumerate(thresholds):
+        if current_val < threshold:
+            current_zone = i
+            break
+    if current_zone is None:
+        current_zone = len(thresholds)
+
+    # Count days in current zone
+    days_in_zone = 1
+    for i in range(len(macdv_series) - 2, -1, -1):
+        val = macdv_series.iloc[i]
+        # Check if this value is in the same zone
+        val_zone = None
+        for j, threshold in enumerate(thresholds):
+            if val < threshold:
+                val_zone = j
+                break
+        if val_zone is None:
+            val_zone = len(thresholds)
+
+        if val_zone == current_zone:
+            days_in_zone += 1
+        else:
+            break
+
+    # Calculate next threshold
+    next_threshold = None
+    next_threshold_distance = None
+
+    if pd.notna(current_val):
+        # Find closest threshold
+        distances = [(abs(current_val - t), t) for t in thresholds]
+        distances.sort()
+        closest = distances[0][1]
+        distance = current_val - closest
+
+        # Determine if approaching or receding
+        if abs(distance) <= 10:  # Within 10 points of threshold
+            next_threshold = closest
+            next_threshold_distance = distance
+
+    return {
+        "macdv_delta_1d": round(delta_1d, 2) if delta_1d is not None else None,
+        "macdv_delta_5d": round(delta_5d, 2) if delta_5d is not None else None,
+        "macdv_delta_10d": round(delta_10d, 2) if delta_10d is not None else None,
+        "macdv_trend": trend,
+        "macdv_trend_label": trend_label,
+        "days_in_zone": days_in_zone,
+        "next_threshold": next_threshold,
+        "next_threshold_distance": round(next_threshold_distance, 1) if next_threshold_distance is not None else None,
+    }
+
+
 async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str, Any]]:
     """
-    Return a mapping of display ticker -> {"macdv_daily": float|None, "macdv_daily_trend": str|None}
-    using the same MACD-V logic as the `/api/macdv-dashboard` endpoint (source of truth).
+    Return a mapping of display ticker -> MACD-V metrics including momentum analysis.
+    Now includes: macdv_daily, trend, delta_1d, delta_5d, delta_10d, days_in_zone, next_threshold
     """
     global _macdv_daily_cache, _macdv_daily_cache_key, _macdv_daily_cache_timestamp
 
@@ -367,22 +482,74 @@ async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str
         yahoo_to_display: Dict[str, str] = {y: d for d, y in display_to_yahoo.items()}
         yahoo_symbols = sorted(set(display_to_yahoo.values()))
 
-        out: Dict[str, Dict[str, Any]] = {t: {"macdv_daily": None, "macdv_daily_trend": None} for t in display_tickers}
+        out: Dict[str, Dict[str, Any]] = {
+            t: {
+                "macdv_daily": None,
+                "macdv_daily_trend": None,
+                "macdv_delta_1d": None,
+                "macdv_delta_5d": None,
+                "macdv_delta_10d": None,
+                "macdv_trend": None,
+                "macdv_trend_label": None,
+                "days_in_zone": None,
+                "next_threshold": None,
+                "next_threshold_distance": None,
+            }
+            for t in display_tickers
+        }
 
         try:
             calculator = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
-            dashboard = calculator.get_dashboard_data(symbols=yahoo_symbols, timeframes=["1d"])
-            symbols = dashboard.get("symbols") or {}
 
-            for yahoo_symbol, data in symbols.items():
-                display = yahoo_to_display.get(yahoo_symbol)
-                if not display:
+            # Fetch historical data for momentum analysis (need at least 50 days for ATR calculation + 10 days lookback)
+            for yahoo_symbol in yahoo_symbols:
+                try:
+                    # Download 60 days of data to ensure we have enough for calculations
+                    df = yf.download(
+                        yahoo_symbol,
+                        period="60d",
+                        interval="1d",
+                        progress=False,
+                        auto_adjust=True
+                    )
+
+                    if df.empty:
+                        continue
+
+                    # Normalize column names
+                    if isinstance(df.columns, pd.MultiIndex):
+                        df.columns = [col[0].lower() if isinstance(col, tuple) else str(col).lower() for col in df.columns]
+                    else:
+                        df.columns = [str(c).lower() for c in df.columns]
+
+                    # Calculate MACD-V
+                    df = calculator.calculate_macdv(df)
+
+                    # Get latest value
+                    latest = df.iloc[-1]
+
+                    # Get historical MACD-V series for momentum analysis (last 15 days)
+                    macdv_series = df['macdv_val'].tail(15)
+                    momentum = _calculate_macdv_momentum_analysis(macdv_series)
+
+                    display = yahoo_to_display.get(yahoo_symbol)
+                    if display:
+                        out[display] = {
+                            "macdv_daily": float(latest['macdv_val']) if pd.notna(latest['macdv_val']) else None,
+                            "macdv_daily_trend": str(latest['macdv_trend']),
+                            "macdv_delta_1d": momentum["macdv_delta_1d"],
+                            "macdv_delta_5d": momentum["macdv_delta_5d"],
+                            "macdv_delta_10d": momentum["macdv_delta_10d"],
+                            "macdv_trend": momentum["macdv_trend"],
+                            "macdv_trend_label": momentum["macdv_trend_label"],
+                            "days_in_zone": momentum["days_in_zone"],
+                            "next_threshold": momentum["next_threshold"],
+                            "next_threshold_distance": momentum["next_threshold_distance"],
+                        }
+                except Exception as e:
+                    print(f"  Error processing MACD-V for {yahoo_symbol}: {e}")
                     continue
-                tf_data = (data or {}).get("1d") or {}
-                out[display] = {
-                    "macdv_daily": tf_data.get("macdv_val"),
-                    "macdv_daily_trend": tf_data.get("macdv_trend"),
-                }
+
         except Exception as e:
             print(f"  MACD-V daily augmentation failed: {e}")
 
@@ -415,6 +582,14 @@ async def _augment_with_macdv_daily(response: Dict[str, Any]) -> Dict[str, Any]:
         entry = macdv_map.get(ticker) or {}
         state["macdv_daily"] = entry.get("macdv_daily")
         state["macdv_daily_trend"] = entry.get("macdv_daily_trend")
+        state["macdv_delta_1d"] = entry.get("macdv_delta_1d")
+        state["macdv_delta_5d"] = entry.get("macdv_delta_5d")
+        state["macdv_delta_10d"] = entry.get("macdv_delta_10d")
+        state["macdv_trend"] = entry.get("macdv_trend")
+        state["macdv_trend_label"] = entry.get("macdv_trend_label")
+        state["days_in_zone"] = entry.get("days_in_zone")
+        state["next_threshold"] = entry.get("next_threshold")
+        state["next_threshold_distance"] = entry.get("next_threshold_distance")
 
     return response
 
