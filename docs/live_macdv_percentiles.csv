@@ -1,0 +1,5 @@
+Ticker,MACD-V,Zone,Zone Range,Regime,Cat %ile,Asym %ile,Interpretation,Last Update
+MSFT,-113.08,Extreme Bearish,< -100,Strong Downtrend,33.3,0.9,↘️ Weakening (33% within extreme_bearish zone),2026-02-03
+AAPL,-21.86,Ranging,-50 to +50,Mean Reversion / Consolidation,38.7,76.8,📉 Lower range (39% - bearish side of range),2026-02-03
+NVDA,10.16,Ranging,-50 to +50,Mean Reversion / Consolidation,58.1,7.8,➡️ Mid-range (58% - neutral),2026-02-03
+SPY,37.18,Ranging,-50 to +50,Mean Reversion / Consolidation,60.0,13.0,📈 Upper range (60% - bullish side of range),2026-02-03
