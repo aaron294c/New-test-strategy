@@ -4,7 +4,7 @@ services:
     runtime: python
     region: oregon
     plan: starter
-    buildCommand: pip install -r backend/requirements.txt
+    buildCommand: pip install -r backend/requirements.txt && python backend/precompute_macdv_references.py
     startCommand: cd backend && uvicorn api:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION

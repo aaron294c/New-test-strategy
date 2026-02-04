@@ -33,30 +33,30 @@ import {
   Assessment,
 } from '@mui/icons-material';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 interface ZoneDistribution {
   count: number;
-  percentage: number;
-  min: number;
-  max: number;
-  mean: number;
-  median: number;
-  std: number;
+  pct_of_time: number;
+  min: number | null;
+  max: number | null;
+  mean: number | null;
+  median: number | null;
+  std: number | null;
   percentiles: { [key: string]: number };
 }
 
 interface CurrentState {
-  current_macdv: number;
+  macdv_val: number;
   zone: string;
-  zone_display: string;
   categorical_percentile: number;
-  asymmetric_percentile: number;
-  interpretation: string;
+  last_date: string;
 }
 
-interface TickerReference {
+interface TickerReferenceEntry {
   ticker: string;
-  total_data_points: number;
-  overall_stats: {
+  data_points: number;
+  overall_distribution: {
     min: number;
     max: number;
     mean: number;
@@ -64,21 +64,31 @@ interface TickerReference {
     std: number;
     percentiles: { [key: string]: number };
   };
-  zone_distributions: {
-    extreme_bearish?: ZoneDistribution;
-    strong_bearish?: ZoneDistribution;
-    ranging?: ZoneDistribution;
-    strong_bullish?: ZoneDistribution;
-    extreme_bullish?: ZoneDistribution;
+  zone_distribution: {
+    [key: string]: ZoneDistribution;
   };
   current_state: CurrentState;
 }
 
-interface MACDVReferenceData {
-  timestamp: string;
-  total_tickers: number;
-  total_data_points: number;
-  tickers: { [key: string]: TickerReference };
+interface MACDVReferenceDatabase {
+  metadata: {
+    generated_at: string;
+    period: string;
+    percentile_lookback: number;
+    total_tickers_attempted: number;
+    successful: number;
+    failed: number;
+    version: string;
+  };
+  aggregate_stats: {
+    total_tickers: number;
+    total_data_points: number;
+    mean_of_means: number;
+    mean_of_stds: number;
+    bullish_skew_count: number;
+    bearish_skew_count: number;
+  };
+  ticker_data: { [key: string]: TickerReferenceEntry };
 }
 
 const ZONE_COLORS: { [key: string]: { bg: string; color: string } } = {
@@ -90,22 +100,55 @@ const ZONE_COLORS: { [key: string]: { bg: string; color: string } } = {
 };
 
 export const MACDVHistoricalData: React.FC = () => {
-  const [data, setData] = useState<MACDVReferenceData | null>(null);
+  const [data, setData] = useState<MACDVReferenceDatabase | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedTicker, setExpandedTicker] = useState<string | null>(null);
 
+  const zoneLabel = (zone: string): string => {
+    const labels: { [key: string]: string } = {
+      extreme_bearish: 'Extreme Bearish (< -100)',
+      strong_bearish: 'Strong Bearish (-100 to -50)',
+      ranging: 'Ranging (-50 to +50)',
+      strong_bullish: 'Strong Bullish (+50 to +100)',
+      extreme_bullish: 'Extreme Bullish (> +100)',
+    };
+    return labels[zone] || zone;
+  };
+
+  const interpret = (zone: string, cat: number): string => {
+    if (zone === 'ranging') {
+      if (cat >= 80) return '📈 Strengthening - near top of Range';
+      if (cat <= 20) return '💡 Oversold - near bottom of Range';
+      return '➡️ Mid-range - within Range';
+    }
+    if (zone.includes('bearish')) {
+      if (cat >= 80) return '🔄 Strong recovery - near top of zone';
+      if (cat >= 60) return '↗️ Recovering - within zone';
+      if (cat >= 40) return '➡️ Mid-range - within zone';
+      if (cat >= 20) return '↘️ Weakening - within zone';
+      return '⚠️ Extreme weakness - near bottom of zone';
+    }
+    if (zone.includes('bullish')) {
+      if (cat >= 80) return '🚀 Very strong - near top of zone';
+      if (cat >= 60) return '📈 Strengthening - within zone';
+      if (cat >= 40) return '➡️ Mid-range - within zone';
+      if (cat >= 20) return '📉 Weakening - within zone';
+      return '⚠️ Near bottom - weak within zone';
+    }
+    return '—';
+  };
+
   useEffect(() => {
     const loadReferenceData = async () => {
       try {
-        // Load the precomputed reference database
-        const response = await fetch('/docs/macdv_reference_database.json');
+        const response = await fetch(`${API_BASE_URL}/api/macdv/reference-database`);
         if (!response.ok) {
           throw new Error('Failed to load MACD-V reference database');
         }
         const jsonData = await response.json();
         setData(jsonData);
-        console.log('✅ MACD-V reference data loaded:', jsonData.total_tickers, 'tickers');
+        console.log('✅ MACD-V reference data loaded:', jsonData?.aggregate_stats?.total_tickers, 'tickers');
       } catch (err: any) {
         console.error('❌ Error loading MACD-V reference data:', err);
         setError(err.message || 'Failed to load reference data');
@@ -141,7 +184,7 @@ export const MACDVHistoricalData: React.FC = () => {
     return null;
   }
 
-  const tickers = Object.keys(data.tickers).sort();
+  const tickers = Object.keys(data.ticker_data).sort();
 
   return (
     <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
@@ -152,18 +195,18 @@ export const MACDVHistoricalData: React.FC = () => {
         <Box display="flex" alignItems="center" gap={1}>
           <Chip
             icon={<Assessment />}
-            label={`${data.total_tickers} Tickers`}
+            label={`${data.aggregate_stats.total_tickers} Tickers`}
             color="primary"
             size="small"
           />
           <Chip
             icon={<Timeline />}
-            label={`${data.total_data_points.toLocaleString()} Data Points`}
+            label={`${data.aggregate_stats.total_data_points.toLocaleString()} Data Points`}
             color="secondary"
             size="small"
           />
           <Typography variant="caption" color="text.secondary">
-            Updated: {new Date(data.timestamp).toLocaleString()}
+            Updated: {new Date(data.metadata.generated_at).toLocaleString()}
           </Typography>
         </Box>
       </Box>
@@ -194,9 +237,9 @@ export const MACDVHistoricalData: React.FC = () => {
           </TableHead>
           <TableBody>
             {tickers.map((ticker) => {
-              const tickerData = data.tickers[ticker];
+              const tickerData = data.ticker_data[ticker];
               const currentState = tickerData.current_state;
-              const stats = tickerData.overall_stats;
+              const stats = tickerData.overall_distribution;
               const zoneColors = ZONE_COLORS[currentState.zone] || ZONE_COLORS.ranging;
 
               return (
@@ -224,12 +267,12 @@ export const MACDVHistoricalData: React.FC = () => {
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" color="text.secondary">
-                        {tickerData.total_data_points.toLocaleString()}
+                        {tickerData.data_points.toLocaleString()}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={currentState.zone_display}
+                        label={zoneLabel(currentState.zone)}
                         size="small"
                         sx={{
                           backgroundColor: zoneColors.bg,
@@ -240,7 +283,7 @@ export const MACDVHistoricalData: React.FC = () => {
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" fontWeight="medium">
-                        {currentState.current_macdv.toFixed(1)}
+                        {currentState.macdv_val.toFixed(1)}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
@@ -265,7 +308,7 @@ export const MACDVHistoricalData: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontSize="0.8rem">
-                        {currentState.interpretation}
+                        {interpret(currentState.zone, currentState.categorical_percentile)}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
@@ -292,15 +335,8 @@ export const MACDVHistoricalData: React.FC = () => {
                           Zone Distributions for {ticker}
                         </Typography>
                         <Grid container spacing={2}>
-                          {Object.entries(tickerData.zone_distributions).map(([zone, dist]) => {
+                          {Object.entries(tickerData.zone_distribution).map(([zone, dist]) => {
                             const zoneColors = ZONE_COLORS[zone];
-                            const zoneLabels: { [key: string]: string } = {
-                              extreme_bearish: 'Extreme Bearish (< -100)',
-                              strong_bearish: 'Strong Bearish (-100 to -50)',
-                              ranging: 'Ranging (-50 to +50)',
-                              strong_bullish: 'Strong Bullish (+50 to +100)',
-                              extreme_bullish: 'Extreme Bullish (> +100)',
-                            };
 
                             return (
                               <Grid item xs={12} md={6} lg={4} key={zone}>
@@ -316,22 +352,24 @@ export const MACDVHistoricalData: React.FC = () => {
                                       gutterBottom
                                       sx={{ color: zoneColors.color, fontWeight: 'bold' }}
                                     >
-                                      {zoneLabels[zone]}
+                                      {zoneLabel(zone)}
                                       {currentState.zone === zone && ' (Current)'}
                                     </Typography>
                                     <Box display="flex" flexDirection="column" gap={0.5}>
                                       <Typography variant="caption">
-                                        <strong>Count:</strong> {dist.count} ({dist.percentage.toFixed(1)}%)
+                                        <strong>Count:</strong> {dist.count} ({dist.pct_of_time.toFixed(1)}%)
                                       </Typography>
                                       <Typography variant="caption">
-                                        <strong>Range:</strong> {dist.min.toFixed(1)} to {dist.max.toFixed(1)}
+                                        <strong>Range:</strong>{' '}
+                                        {dist.min == null ? '—' : dist.min.toFixed(1)} to{' '}
+                                        {dist.max == null ? '—' : dist.max.toFixed(1)}
                                       </Typography>
                                       <Typography variant="caption">
-                                        <strong>Mean:</strong> {dist.mean.toFixed(1)} | <strong>Median:</strong>{' '}
-                                        {dist.median.toFixed(1)}
+                                        <strong>Mean:</strong> {dist.mean == null ? '—' : dist.mean.toFixed(1)} |{' '}
+                                        <strong>Median:</strong> {dist.median == null ? '—' : dist.median.toFixed(1)}
                                       </Typography>
                                       <Typography variant="caption">
-                                        <strong>Std Dev:</strong> {dist.std.toFixed(1)}
+                                        <strong>Std Dev:</strong> {dist.std == null ? '—' : dist.std.toFixed(1)}
                                       </Typography>
                                       <Typography variant="caption" sx={{ mt: 1, fontWeight: 'bold' }}>
                                         Key Percentiles:

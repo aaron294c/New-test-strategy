@@ -36,7 +36,11 @@ ALL_TICKERS = [
     "SLV", "MSFT", "NVDA", "BTC-USD", "NFLX", "UNH", "LLY",
     "QQQ", "NQ=F", "SPY", "AAPL", "GOOGL", "META", "AMZN",
     "BRK-B", "WMT", "AVGO", "TSM", "ORCL", "OXY", "XOM",
-    "CVX", "JPM", "BAC", "ES=F", "^VIX", "DX-Y.NYB", "^TNX", "XLI", "TSLA", "GLD"
+    "CVX", "JPM", "BAC", "ES=F", "^VIX", "DX-Y.NYB", "^TNX", "XLI", "TSLA", "GLD",
+    # Additional tickers present in the Swing Framework live table
+    "COST",
+    "CNX1.L", "CSP1.L", "IGLS.L",
+    "USDGBP=X",
 ]
 
 

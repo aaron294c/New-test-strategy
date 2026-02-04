@@ -47,6 +47,7 @@ cache/
 !tsconfig*.json
 !vite.config.ts
 !backend/static_snapshots/**/*.json
+!docs/macdv_reference_database.json
 
 # Logs
 logs/

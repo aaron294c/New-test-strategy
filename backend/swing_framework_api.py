@@ -728,7 +728,9 @@ async def _get_macdv_reference_lookup() -> Optional[MACDVReferenceLookup]:
         async with _macdv_reference_lock:
             if _macdv_reference_lookup is None:
                 try:
-                    _macdv_reference_lookup = await asyncio.to_thread(MACDVReferenceLookup)
+                    # The reference database is a local JSON file; keep this synchronous to
+                    # avoid relying on thread execution in restricted environments.
+                    _macdv_reference_lookup = MACDVReferenceLookup()
                 except Exception as e:
                     print(f"  Warning: MACD-V reference lookup init failed: {e}")
                     return None
@@ -748,9 +750,65 @@ async def _augment_with_macdv_percentiles(response: Dict[str, Any]) -> Dict[str,
     if not isinstance(market_state, list) or not market_state:
         return response
 
+    def _zone_display(zone: str) -> str:
+        zone_display_map = {
+            "extreme_bearish": "Extreme Bearish (<-100)",
+            "strong_bearish": "Strong Bearish (-100 to -50)",
+            "ranging": "Ranging (-50 to +50)",
+            "strong_bullish": "Strong Bullish (+50 to +100)",
+            "extreme_bullish": "Extreme Bullish (>+100)",
+        }
+        return zone_display_map.get(zone, zone)
+
+    def _interpretation(zone: str, cat_percentile: float) -> str:
+        zone_label = zone.replace("_", " ").title()
+
+        if zone == "ranging":
+            if cat_percentile >= 80:
+                return "📈 Strengthening - near top of Range"
+            if cat_percentile <= 20:
+                return "💡 Oversold - near bottom of Range"
+            return "➡️ Mid-range - within Range"
+
+        if "bearish" in zone:
+            if cat_percentile >= 80:
+                strength = "🔄 Strong recovery"
+                detail = f"near top of {zone_label}"
+            elif cat_percentile >= 60:
+                strength = "↗️ Recovering"
+                detail = f"within {zone_label}"
+            elif cat_percentile >= 40:
+                strength = "➡️ Mid-range"
+                detail = f"within {zone_label}"
+            elif cat_percentile >= 20:
+                strength = "↘️ Weakening"
+                detail = f"within {zone_label}"
+            else:
+                strength = "⚠️ Extreme weakness"
+                detail = f"near bottom of {zone_label}"
+            return f"{strength} - {detail}"
+
+        if "bullish" in zone:
+            if cat_percentile >= 80:
+                strength = "🚀 Very strong"
+                detail = f"near top of {zone_label}"
+            elif cat_percentile >= 60:
+                strength = "📈 Strengthening"
+                detail = f"within {zone_label}"
+            elif cat_percentile >= 40:
+                strength = "➡️ Mid-range"
+                detail = f"within {zone_label}"
+            elif cat_percentile >= 20:
+                strength = "📉 Weakening"
+                detail = f"within {zone_label}"
+            else:
+                strength = "⚠️ Near bottom"
+                detail = f"weak within {zone_label}"
+            return f"{strength} - {detail}"
+
+        return "➡️ Mid-range"
+
     lookup = await _get_macdv_reference_lookup()
-    if lookup is None:
-        return response
 
     for state in market_state:
         if not isinstance(state, dict):
@@ -768,46 +826,43 @@ async def _augment_with_macdv_percentiles(response: Dict[str, Any]) -> Dict[str,
             continue
 
         try:
-            # Get reference data from lookup
-            info = await asyncio.to_thread(lookup.get_ticker_info, ticker)
-            if info is None:
+            if lookup is None:
                 continue
 
-            curr = info.get("current_state", {})
-            if not curr:
+            # Reference DB keys use Yahoo symbols for some assets (e.g. BTC-USD, NQ=F, ES=F, ^TNX, ^VIX).
+            lookup_key = resolve_yahoo_symbol(ticker)
+            info = lookup.get_ticker_info(lookup_key) or lookup.get_ticker_info(ticker)
+            curr = info.get("current_state", {}) if isinstance(info, dict) else {}
+            if not isinstance(curr, dict) or not curr:
                 continue
 
-            # Extract percentile data
             zone = curr.get("zone")
             cat_percentile = curr.get("categorical_percentile")
-
-            # Get zone display string
-            zone_display_map = {
-                "extreme_bearish": "Extreme Bearish (<-100)",
-                "strong_bearish": "Strong Bearish (-100 to -50)",
-                "ranging": "Ranging (-50 to +50)",
-                "strong_bullish": "Strong Bullish (+50 to +100)",
-                "extreme_bullish": "Extreme Bullish (>+100)",
-            }
-            zone_display = zone_display_map.get(zone, zone)
-
-            # Get interpretation
-            interpretation = curr.get("interpretation", "—")
-
-            # Calculate asymmetric percentile (simplified)
             macdv_val = curr.get("macdv_val")
-            if macdv_val is not None:
-                context = await asyncio.to_thread(lookup.get_comparison_context, ticker, macdv_val)
-                asym_percentile = context.get("global_percentile", cat_percentile)
-            else:
-                asym_percentile = None
 
-            # Update state
-            state["macdv_zone"] = zone
-            state["macdv_zone_display"] = zone_display
-            state["macdv_categorical_percentile"] = cat_percentile
+            if zone is None or cat_percentile is None:
+                continue
+
+            zone_str = str(zone)
+            try:
+                cat_val = float(cat_percentile)
+            except Exception:
+                continue
+
+            asym_percentile = None
+            if macdv_val is not None:
+                try:
+                    context = lookup.get_comparison_context(lookup_key, float(macdv_val))
+                    if isinstance(context, dict):
+                        asym_percentile = context.get("global_percentile", cat_val)
+                except Exception:
+                    asym_percentile = None
+
+            state["macdv_zone"] = zone_str
+            state["macdv_zone_display"] = _zone_display(zone_str)
+            state["macdv_categorical_percentile"] = cat_val
             state["macdv_asymmetric_percentile"] = asym_percentile
-            state["macdv_interpretation"] = interpretation
+            state["macdv_interpretation"] = _interpretation(zone_str, cat_val)
 
         except Exception as e:
             print(f"  Warning: Could not get MACD-V percentiles for {ticker}: {e}")

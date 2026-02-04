@@ -13,7 +13,7 @@ Endpoints:
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 import asyncio
 import os
 import time
@@ -67,6 +67,23 @@ app = FastAPI(
     description="Backend API for RSI-MA trading strategy analysis",
     version="1.0.0"
 )
+
+@app.get("/api/macdv/reference-database")
+async def get_macdv_reference_database():
+    """
+    Serve the precomputed MACD-V reference database JSON.
+
+    This file is generated at deploy-time via `render.yaml` (buildCommand).
+    """
+    path = Path(__file__).resolve().parent.parent / "docs" / "macdv_reference_database.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="MACD-V reference database not found")
+    return FileResponse(
+        path,
+        media_type="application/json",
+        filename="macdv_reference_database.json",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 
 @app.exception_handler(Exception)
