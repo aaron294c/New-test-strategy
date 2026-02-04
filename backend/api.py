@@ -10,9 +10,10 @@ Endpoints:
 - /api/optimal-exit/{ticker}/{threshold} - Get optimal exit strategy
 """
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
 import asyncio
 import os
 import time
@@ -66,6 +67,20 @@ app = FastAPI(
     description="Backend API for RSI-MA trading strategy analysis",
     version="1.0.0"
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """
+    Ensure unhandled server errors still return a proper Response (so CORS middleware can
+    attach Access-Control-Allow-Origin for browser clients).
+    """
+    debug = os.getenv("DEBUG_ERRORS", "0").lower() in {"1", "true", "yes"}
+    payload = {"error": "Internal Server Error"}
+    if debug:
+        payload["detail"] = f"{type(exc).__name__}: {exc}"
+    return JSONResponse(status_code=500, content=payload)
+
 
 def _cors_config():
     """

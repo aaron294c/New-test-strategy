@@ -641,17 +641,21 @@ async def _augment_with_macdv_d7_stats(response: Dict[str, Any]) -> Dict[str, An
     if not tickers:
         return response
 
-    async with _macdv_d7_lock:
-        payload = await asyncio.to_thread(
-            get_cached_macdv_d7_band_stats,
-            tickers,
-            period="10y",
-            pct_lookback=252,
-            horizon=7,
-            macdv_lo=120.0,
-            ttl_seconds=7 * 24 * 3600,
-            force_refresh=False,
-        )
+    try:
+        async with _macdv_d7_lock:
+            payload = await asyncio.to_thread(
+                get_cached_macdv_d7_band_stats,
+                tickers,
+                period="10y",
+                pct_lookback=252,
+                horizon=7,
+                macdv_lo=120.0,
+                ttl_seconds=7 * 24 * 3600,
+                force_refresh=False,
+            )
+    except Exception as e:
+        print(f"  Warning: Could not load MACD-V D7 stats: {e}")
+        return response
 
     table = payload.get("table") if isinstance(payload, dict) else None
     if not isinstance(table, dict):
@@ -717,13 +721,17 @@ _macdv_reference_lookup: Optional[MACDVReferenceLookup] = None
 _macdv_reference_lock = asyncio.Lock()
 
 
-async def _get_macdv_reference_lookup() -> MACDVReferenceLookup:
-    """Get or initialize the MACD-V Reference Lookup singleton."""
+async def _get_macdv_reference_lookup() -> Optional[MACDVReferenceLookup]:
+    """Get or initialize the MACD-V Reference Lookup singleton (best-effort)."""
     global _macdv_reference_lookup
     if _macdv_reference_lookup is None:
         async with _macdv_reference_lock:
             if _macdv_reference_lookup is None:
-                _macdv_reference_lookup = await asyncio.to_thread(MACDVReferenceLookup)
+                try:
+                    _macdv_reference_lookup = await asyncio.to_thread(MACDVReferenceLookup)
+                except Exception as e:
+                    print(f"  Warning: MACD-V reference lookup init failed: {e}")
+                    return None
     return _macdv_reference_lookup
 
 
@@ -741,6 +749,8 @@ async def _augment_with_macdv_percentiles(response: Dict[str, Any]) -> Dict[str,
         return response
 
     lookup = await _get_macdv_reference_lookup()
+    if lookup is None:
+        return response
 
     for state in market_state:
         if not isinstance(state, dict):
