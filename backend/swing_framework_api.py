@@ -20,6 +20,7 @@ from zoneinfo import ZoneInfo
 from enhanced_backtester import EnhancedPerformanceMatrixBacktester
 from macdv_calculator import MACDVCalculator
 from macdv_d7_band_stats import RSI_BANDS as MACDV_D7_RSI_BANDS, get_cached_macdv_d7_band_stats
+from macdv_reference_lookup import MACDVReferenceLookup
 from stock_statistics import (
     STOCK_METADATA,
     NVDA_4H_DATA, NVDA_DAILY_DATA,
@@ -707,6 +708,100 @@ async def _augment_with_macdv_d7_stats(response: Dict[str, Any]) -> Dict[str, An
         state["macdv_d7_win_rate"] = stats.get("win_rate")
         state["macdv_d7_mean_return"] = stats.get("mean")
         state["macdv_d7_median_return"] = stats.get("median")
+
+    return response
+
+
+# Initialize MACD-V Reference Lookup (singleton)
+_macdv_reference_lookup: Optional[MACDVReferenceLookup] = None
+_macdv_reference_lock = asyncio.Lock()
+
+
+async def _get_macdv_reference_lookup() -> MACDVReferenceLookup:
+    """Get or initialize the MACD-V Reference Lookup singleton."""
+    global _macdv_reference_lookup
+    if _macdv_reference_lookup is None:
+        async with _macdv_reference_lock:
+            if _macdv_reference_lookup is None:
+                _macdv_reference_lookup = await asyncio.to_thread(MACDVReferenceLookup)
+    return _macdv_reference_lookup
+
+
+async def _augment_with_macdv_percentiles(response: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Add MACD-V percentile fields to market state:
+    - macdv_zone: Zone classification (ranging, extreme_bearish, etc.)
+    - macdv_zone_display: Human-readable zone with range
+    - macdv_categorical_percentile: Percentile within the zone
+    - macdv_asymmetric_percentile: Percentile within bull/bear regime
+    - macdv_interpretation: Quick interpretation
+    """
+    market_state = response.get("market_state")
+    if not isinstance(market_state, list) or not market_state:
+        return response
+
+    lookup = await _get_macdv_reference_lookup()
+
+    for state in market_state:
+        if not isinstance(state, dict):
+            continue
+
+        # Initialize fields to None
+        state["macdv_zone"] = None
+        state["macdv_zone_display"] = None
+        state["macdv_categorical_percentile"] = None
+        state["macdv_asymmetric_percentile"] = None
+        state["macdv_interpretation"] = None
+
+        ticker = state.get("ticker")
+        if not isinstance(ticker, str):
+            continue
+
+        try:
+            # Get reference data from lookup
+            info = await asyncio.to_thread(lookup.get_ticker_info, ticker)
+            if info is None:
+                continue
+
+            curr = info.get("current_state", {})
+            if not curr:
+                continue
+
+            # Extract percentile data
+            zone = curr.get("zone")
+            cat_percentile = curr.get("categorical_percentile")
+
+            # Get zone display string
+            zone_display_map = {
+                "extreme_bearish": "Extreme Bearish (<-100)",
+                "strong_bearish": "Strong Bearish (-100 to -50)",
+                "ranging": "Ranging (-50 to +50)",
+                "strong_bullish": "Strong Bullish (+50 to +100)",
+                "extreme_bullish": "Extreme Bullish (>+100)",
+            }
+            zone_display = zone_display_map.get(zone, zone)
+
+            # Get interpretation
+            interpretation = curr.get("interpretation", "—")
+
+            # Calculate asymmetric percentile (simplified)
+            macdv_val = curr.get("macdv_val")
+            if macdv_val is not None:
+                context = await asyncio.to_thread(lookup.get_comparison_context, ticker, macdv_val)
+                asym_percentile = context.get("global_percentile", cat_percentile)
+            else:
+                asym_percentile = None
+
+            # Update state
+            state["macdv_zone"] = zone
+            state["macdv_zone_display"] = zone_display
+            state["macdv_categorical_percentile"] = cat_percentile
+            state["macdv_asymmetric_percentile"] = asym_percentile
+            state["macdv_interpretation"] = interpretation
+
+        except Exception as e:
+            print(f"  Warning: Could not get MACD-V percentiles for {ticker}: {e}")
+            continue
 
     return response
 
@@ -1719,6 +1814,7 @@ async def get_current_market_state(
             payload = _augment_with_prev_midday_snapshot(dict(static_payload), "daily")
             payload = await _augment_with_macdv_daily(payload)
             payload = await _augment_with_macdv_d7_stats(payload)
+            payload = await _augment_with_macdv_percentiles(payload)
             return payload
 
     if not force_refresh and _is_cache_valid(
@@ -1728,6 +1824,7 @@ async def get_current_market_state(
         if not _has_macdv_daily(payload):
             payload = await _augment_with_macdv_daily(payload)
             payload = await _augment_with_macdv_d7_stats(payload)
+            payload = await _augment_with_macdv_percentiles(payload)
             _current_state_cache = payload
             _current_state_cache_timestamp = datetime.now(timezone.utc)
         return payload
@@ -1740,6 +1837,7 @@ async def get_current_market_state(
             if not _has_macdv_daily(payload):
                 payload = await _augment_with_macdv_daily(payload)
                 payload = await _augment_with_macdv_d7_stats(payload)
+                payload = await _augment_with_macdv_percentiles(payload)
                 _current_state_cache = payload
                 _current_state_cache_timestamp = datetime.now(timezone.utc)
             return payload
@@ -1926,6 +2024,7 @@ async def get_current_market_state(
         response = _augment_with_prev_midday_snapshot(response, "daily")
         response = await _augment_with_macdv_daily(response)
         response = await _augment_with_macdv_d7_stats(response)
+        response = await _augment_with_macdv_percentiles(response)
 
         # Auto-save midday snapshot if within window and no snapshot exists for today
         now_utc = datetime.now(timezone.utc)
@@ -1978,6 +2077,7 @@ async def get_current_market_state_4h(
         if static_payload is not None:
             payload = _augment_with_prev_midday_snapshot(dict(static_payload), "4h")
             payload = await _augment_with_macdv_daily(payload)
+            payload = await _augment_with_macdv_percentiles(payload)
             return payload
 
     if not force_refresh and _is_cache_valid(
@@ -1986,6 +2086,7 @@ async def get_current_market_state_4h(
         payload = dict(_current_state_4h_cache)
         if not _has_macdv_daily(payload):
             payload = await _augment_with_macdv_daily(payload)
+            payload = await _augment_with_macdv_percentiles(payload)
             _current_state_4h_cache = payload
             _current_state_4h_cache_timestamp = datetime.now(timezone.utc)
         return payload
@@ -1997,6 +2098,7 @@ async def get_current_market_state_4h(
             payload = dict(_current_state_4h_cache)
             if not _has_macdv_daily(payload):
                 payload = await _augment_with_macdv_daily(payload)
+                payload = await _augment_with_macdv_percentiles(payload)
                 _current_state_4h_cache = payload
                 _current_state_4h_cache_timestamp = datetime.now(timezone.utc)
             return payload
@@ -2149,6 +2251,7 @@ async def get_current_market_state_4h(
 
         response = _augment_with_prev_midday_snapshot(response, "4h")
         response = await _augment_with_macdv_daily(response)
+        response = await _augment_with_macdv_percentiles(response)
 
         # Auto-save midday snapshot if within window and no snapshot exists for today
         now_utc = datetime.now(timezone.utc)

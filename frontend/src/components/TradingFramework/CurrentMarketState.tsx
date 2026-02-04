@@ -87,6 +87,12 @@ interface MarketState {
   volatility_level: string;
   live_expectancy: LiveExpectancy;
   last_extreme_low_date?: string | null;
+  // MACD-V Percentile fields
+  macdv_zone?: string | null;
+  macdv_zone_display?: string | null;
+  macdv_categorical_percentile?: number | null;
+  macdv_asymmetric_percentile?: number | null;
+  macdv_interpretation?: string | null;
 }
 
 interface MarketStateResponse {
@@ -117,6 +123,7 @@ type SortField =
   | 'macdv_d7_win_rate'
   | 'macdv_d7_median_return'
   | 'macdv_d7_mean_return'
+  | 'macdv_categorical_percentile'
   | 'win_rate'
   | 'return'
   | 'risk_adj_expectancy'
@@ -393,6 +400,10 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
         case 'macdv_d7_mean_return':
           aValue = normalizeNumber(a.macdv_d7_mean_return);
           bValue = normalizeNumber(b.macdv_d7_mean_return);
+          break;
+        case 'macdv_categorical_percentile':
+          aValue = normalizeNumber(a.macdv_categorical_percentile);
+          bValue = normalizeNumber(b.macdv_categorical_percentile);
           break;
         case 'win_rate':
           aValue = a.live_expectancy.expected_win_rate;
@@ -678,6 +689,27 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                 >
                   MACD-V (D)
                 </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <Tooltip title="Market regime zone based on MACD-V value">
+                  <span>MACD-V Zone</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'macdv_categorical_percentile'}
+                  direction={sortField === 'macdv_categorical_percentile' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('macdv_categorical_percentile')}
+                >
+                  <Tooltip title="Percentile within the current zone (e.g., 84% in ranging = near top of range)">
+                    <span>Cat %ile</span>
+                  </Tooltip>
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <Tooltip title="Quick interpretation: ⚠️=Extreme, 🔄=Recovery, 📈=Strengthening, 📉=Weakening, ➡️=Mid-range, 💡=Oversold">
+                  <span>Signal</span>
+                </Tooltip>
               </TableCell>
               <TableCell align="right">
                 <TableSortLabel
@@ -1035,6 +1067,74 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                       </>
                     );
                   })()}
+                </TableCell>
+
+                {/* MACD-V Zone */}
+                <TableCell>
+                  {state.macdv_zone_display ? (
+                    <Chip
+                      label={state.macdv_zone_display}
+                      size="small"
+                      sx={{
+                        backgroundColor:
+                          state.macdv_zone === 'extreme_bearish' || state.macdv_zone === 'extreme_bullish'
+                            ? '#ff980020'
+                            : state.macdv_zone === 'strong_bearish'
+                            ? '#f4433620'
+                            : state.macdv_zone === 'strong_bullish'
+                            ? '#4caf5020'
+                            : state.macdv_zone === 'ranging'
+                            ? '#9e9e9e20'
+                            : 'transparent',
+                        color:
+                          state.macdv_zone === 'extreme_bearish' || state.macdv_zone === 'strong_bearish'
+                            ? '#f44336'
+                            : state.macdv_zone === 'extreme_bullish' || state.macdv_zone === 'strong_bullish'
+                            ? '#4caf50'
+                            : '#757575',
+                        fontSize: '0.7rem',
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* MACD-V Categorical Percentile */}
+                <TableCell align="right">
+                  {state.macdv_categorical_percentile != null ? (
+                    <Typography
+                      variant="body2"
+                      fontWeight="medium"
+                      sx={{
+                        color:
+                          state.macdv_zone === 'ranging'
+                            ? state.macdv_categorical_percentile >= 80
+                              ? '#f44336' // Overbought in ranging
+                              : state.macdv_categorical_percentile <= 20
+                              ? '#4caf50' // Oversold in ranging
+                              : 'text.secondary'
+                            : state.macdv_categorical_percentile >= 80
+                            ? '#4caf50' // Strong signal
+                            : 'text.secondary'
+                      }}
+                    >
+                      {state.macdv_categorical_percentile.toFixed(1)}%
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* MACD-V Interpretation */}
+                <TableCell>
+                  {state.macdv_interpretation ? (
+                    <Typography variant="body2" fontSize="0.8rem">
+                      {state.macdv_interpretation}
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
                 </TableCell>
 
                 <TableCell align="right">

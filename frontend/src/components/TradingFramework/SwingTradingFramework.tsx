@@ -58,6 +58,7 @@ import { CurrentMarketState } from './CurrentMarketState';
 import { EnhancedMarketState } from './EnhancedMarketState';
 import { SwingDurationPanelV2 } from './SwingDurationPanelV2';
 import { MacroRiskDashboard } from '../MacroRisk/MacroRiskDashboard';
+import { MACDVHistoricalData } from './MACDVHistoricalData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -234,7 +235,7 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
   const [riskMetrics, setRiskMetrics] = useState<RiskMetrics[]>([]);
   const [allocations, setAllocations] = useState<AllocationDecision[]>([]);
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
-  const [timeframe, setTimeframe] = useState<'daily' | '4hour'>('daily');
+  const [timeframe, setTimeframe] = useState<'daily' | '4hour' | 'macdv-history'>('daily');
   const [viewMode, setViewMode] = useState<'framework' | 'duration'>('framework');
 
   const TICKERS = ['SPY', 'QQQ', 'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'TSLA', 'NFLX', 'AMZN', 'BRK-B', 'AVGO', 'CNX1', 'CSP1', 'BTCUSD', 'ES1', 'NQ1', 'VIX', 'IGLS'];
@@ -755,16 +756,21 @@ const SwingTradingFramework: React.FC<SwingFrameworkProps> = ({ ticker }) => {
       <Paper elevation={2} sx={{ mb: 2, p: 1, bgcolor: 'background.paper' }}>
         <Tabs
           value={timeframe}
-          onChange={(_, value) => setTimeframe(value as 'daily' | '4hour')}
+          onChange={(_, value) => setTimeframe(value as 'daily' | '4hour' | 'macdv-history')}
           textColor="primary"
           indicatorColor="primary"
           variant="fullWidth"
         >
           <Tab value="daily" label="Daily Analysis" />
           <Tab value="4hour" label="4-Hour Analysis" />
+          <Tab value="macdv-history" label="MACD-V Historical Data" />
         </Tabs>
       </Paper>
-      <CurrentMarketState timeframe={timeframe} />
+      {timeframe === 'macdv-history' ? (
+        <MACDVHistoricalData />
+      ) : (
+        <CurrentMarketState timeframe={timeframe as 'daily' | '4hour'} />
+      )}
 
       {/* Enhanced Market State - Multi-Timeframe Divergence with P85/P95 Thresholds */}
       <EnhancedMarketState showDivergenceDetails={true} />
