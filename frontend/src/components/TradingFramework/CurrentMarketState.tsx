@@ -93,6 +93,18 @@ interface MarketState {
   macdv_categorical_percentile?: number | null;
   macdv_asymmetric_percentile?: number | null;
   macdv_interpretation?: string | null;
+  // Multi-timeframe divergence fields
+  four_h_percentile?: number | null;
+  divergence_pct?: number | null;
+  abs_divergence_pct?: number | null;
+  divergence_category?: string | null;
+  category_label?: string | null;
+  category_description?: string | null;
+  p85_threshold?: number | null;
+  p95_threshold?: number | null;
+  dislocation_level?: string | null;
+  dislocation_color?: string | null;
+  thresholds_text?: string | null;
 }
 
 interface MarketStateResponse {
@@ -115,6 +127,9 @@ interface MarketStateResponse {
 type SortField =
   | 'ticker'
   | 'percentile'
+  | 'four_h_percentile'
+  | 'divergence_pct'
+  | 'abs_divergence_pct'
   | 'macdv_daily'
   | 'macdv_delta_1d'
   | 'macdv_delta_5d'
@@ -405,6 +420,18 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
           aValue = normalizeNumber(a.macdv_categorical_percentile);
           bValue = normalizeNumber(b.macdv_categorical_percentile);
           break;
+        case 'four_h_percentile':
+          aValue = normalizeNumber(a.four_h_percentile);
+          bValue = normalizeNumber(b.four_h_percentile);
+          break;
+        case 'divergence_pct':
+          aValue = normalizeNumber(a.divergence_pct);
+          bValue = normalizeNumber(b.divergence_pct);
+          break;
+        case 'abs_divergence_pct':
+          aValue = normalizeNumber(a.abs_divergence_pct);
+          bValue = normalizeNumber(b.abs_divergence_pct);
+          break;
         case 'win_rate':
           aValue = a.live_expectancy.expected_win_rate;
           bValue = b.live_expectancy.expected_win_rate;
@@ -636,6 +663,38 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                   }
                 >
                 <span>Prev Midday %ile</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'four_h_percentile'}
+                  direction={sortField === 'four_h_percentile' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('four_h_percentile')}
+                >
+                  <Tooltip title="4-hour timeframe percentile">
+                    <span>4H %ile</span>
+                  </Tooltip>
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'divergence_pct'}
+                  direction={sortField === 'divergence_pct' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('divergence_pct')}
+                >
+                  <Tooltip title="Divergence between Daily and 4H percentiles (Daily - 4H)">
+                    <span>Divergence</span>
+                  </Tooltip>
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <Tooltip title="Dislocation level: Normal, Significant (P85), or Extreme (P95)">
+                  <span>Dislocation</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell align="right">
+                <Tooltip title="Historical P85 and P95 divergence thresholds for this ticker">
+                  <span>P85 | P95</span>
                 </Tooltip>
               </TableCell>
               <TableCell>Zone</TableCell>
@@ -945,6 +1004,83 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                         </Box>
                       )}
                     </Box>
+                  )}
+                </TableCell>
+
+                {/* 4H Percentile */}
+                <TableCell align="right">
+                  {state.four_h_percentile != null ? (
+                    <Typography variant="body2" fontWeight="medium">
+                      {state.four_h_percentile.toFixed(1)}%
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* Divergence */}
+                <TableCell align="right">
+                  {state.divergence_pct != null ? (
+                    <Typography
+                      variant="body2"
+                      fontWeight="medium"
+                      sx={{
+                        color:
+                          state.divergence_pct > 0
+                            ? '#f44336' // Red for positive (daily > 4H)
+                            : state.divergence_pct < 0
+                            ? '#4caf50' // Green for negative (daily < 4H)
+                            : 'text.secondary',
+                      }}
+                    >
+                      {state.divergence_pct > 0 ? '+' : ''}
+                      {state.divergence_pct.toFixed(1)}%
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* Dislocation Level */}
+                <TableCell>
+                  {state.dislocation_level && state.dislocation_color ? (
+                    <Tooltip title={state.category_description || state.dislocation_level}>
+                      <Chip
+                        label={`${state.dislocation_color} ${state.dislocation_level}`}
+                        size="small"
+                        sx={{
+                          backgroundColor:
+                            state.dislocation_level === 'Extreme (P95)'
+                              ? '#d32f2f20'
+                              : state.dislocation_level === 'Significant (P85)'
+                              ? '#ff6f0020'
+                              : '#9e9e9e20',
+                          color:
+                            state.dislocation_level === 'Extreme (P95)'
+                              ? '#d32f2f'
+                              : state.dislocation_level === 'Significant (P85)'
+                              ? '#ff6f00'
+                              : '#9e9e9e',
+                          fontSize: '0.7rem',
+                          fontWeight: state.dislocation_level !== 'Normal' ? 'bold' : 'normal',
+                        }}
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* P85 | P95 Thresholds */}
+                <TableCell align="right">
+                  {state.thresholds_text ? (
+                    <Tooltip title="Historical P85 (significant) and P95 (extreme) divergence thresholds">
+                      <Typography variant="caption" color="text.secondary">
+                        {state.thresholds_text}
+                      </Typography>
+                    </Tooltip>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
                   )}
                 </TableCell>
 

@@ -871,6 +871,154 @@ async def _augment_with_macdv_percentiles(response: Dict[str, Any]) -> Dict[str,
     return response
 
 
+# P85 and P95 thresholds for divergence analysis (hardcoded per ticker)
+_P85_THRESHOLDS = {
+    'AAPL': 24.3, 'MSFT': 22.1, 'NVDA': 31.5, 'GOOGL': 28.4,
+    'TSLA': 35.2, 'NFLX': 26.8, 'AMZN': 29.7, 'BRK-B': 18.9,
+    'AVGO': 25.6, 'SPY': 19.2, 'QQQ': 27.3, 'CNX1': 21.4,
+    'CSP1': 20.5, 'BTCUSD': 38.0, 'ES1': 19.5, 'NQ1': 27.5,
+    'VIX': 33.5, 'IGLS': 23.8, 'XOM': 26.75, 'CVX': 24.06,
+    'OXY': 26.95, 'JPM': 21.70, 'BAC': 21.31, 'LLY': 27.36,
+    'UNH': 30.07, 'TSM': 22.90, 'WMT': 28.29, 'COST': 24.76,
+    'GLD': 23.91, 'SLV': 25.62, 'USDGBP': 69.73, 'US10': 31.20
+}
+
+_P95_THRESHOLDS = {
+    'AAPL': 36.8, 'MSFT': 33.9, 'NVDA': 47.3, 'GOOGL': 36.8,
+    'TSLA': 52.1, 'NFLX': 40.2, 'AMZN': 44.5, 'BRK-B': 28.1,
+    'AVGO': 38.4, 'SPY': 28.6, 'QQQ': 40.9, 'CNX1': 32.1,
+    'CSP1': 30.5, 'BTCUSD': 55.0, 'ES1': 29.0, 'NQ1': 41.0,
+    'VIX': 49.2, 'IGLS': 35.6, 'XOM': 35.16, 'CVX': 34.95,
+    'OXY': 38.55, 'JPM': 31.34, 'BAC': 35.68, 'LLY': 38.06,
+    'UNH': 42.04, 'TSM': 33.40, 'WMT': 37.38, 'COST': 39.21,
+    'GLD': 32.72, 'SLV': 32.75, 'USDGBP': 84.14, 'US10': 45.13
+}
+
+
+async def _augment_with_divergence_metrics(response: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Add multi-timeframe divergence metrics to market state:
+    - four_h_percentile: 4-hour percentile
+    - divergence_pct: Daily % - 4H %
+    - divergence_category: bullish_convergence, bearish_convergence, etc.
+    - category_label: Human-readable label
+    - p85_threshold, p95_threshold: Historical thresholds
+    - dislocation_level: Normal, Significant (P85), Extreme (P95)
+    """
+    market_state = response.get("market_state")
+    if not isinstance(market_state, list) or not market_state:
+        return response
+
+    # Get 4H market state to get 4H percentiles
+    try:
+        four_h_response = await get_current_market_state_4h(force_refresh=False)
+        four_h_market_state = four_h_response.get('market_state', [])
+        four_h_lookup = {s['ticker']: s for s in four_h_market_state if isinstance(s, dict)}
+    except Exception as e:
+        print(f"  Warning: Could not get 4H data for divergence metrics: {e}")
+        return response
+
+    for state in market_state:
+        if not isinstance(state, dict):
+            continue
+
+        # Initialize fields to None
+        state["four_h_percentile"] = None
+        state["divergence_pct"] = None
+        state["abs_divergence_pct"] = None
+        state["divergence_category"] = None
+        state["category_label"] = None
+        state["category_description"] = None
+        state["p85_threshold"] = None
+        state["p95_threshold"] = None
+        state["dislocation_level"] = None
+        state["dislocation_color"] = None
+        state["thresholds_text"] = None
+
+        ticker = state.get("ticker")
+        if not isinstance(ticker, str):
+            continue
+
+        daily_pct = state.get("current_percentile")
+        if daily_pct is None:
+            continue
+
+        # Get 4H percentile
+        four_h_state = four_h_lookup.get(ticker)
+        if not four_h_state:
+            continue
+
+        four_h_pct = four_h_state.get("current_percentile")
+        if four_h_pct is None:
+            continue
+
+        # Calculate divergence
+        divergence_pct = daily_pct - four_h_pct
+        abs_divergence = abs(divergence_pct)
+
+        # Get thresholds
+        p85_threshold = _P85_THRESHOLDS.get(ticker, 25.0)
+        p95_threshold = _P95_THRESHOLDS.get(ticker, 38.0)
+
+        # Determine divergence category
+        if daily_pct <= 15 and four_h_pct <= 15:
+            divergence_category = "bullish_convergence"
+            category_label = "🟢 Bullish Convergence"
+            category_description = "Both timeframes low - Strong buy signal"
+        elif daily_pct >= 85 and four_h_pct >= 85:
+            divergence_category = "bearish_convergence"
+            category_label = "🔴 Bearish Convergence"
+            category_description = "Both timeframes high - Avoid/Exit signal"
+        elif divergence_pct > 0:  # Daily > 4H
+            if abs_divergence > p85_threshold:
+                divergence_category = "4h_overextended"
+                category_label = "🟡 4H Overextended"
+                category_description = "4H extended relative to daily - Profit-take opportunity"
+            else:
+                divergence_category = "neutral_divergence"
+                category_label = "⚪ Neutral Divergence"
+                category_description = "Mixed signals - Wait for clarity"
+        elif divergence_pct < 0:  # Daily < 4H
+            if abs_divergence > p85_threshold:
+                divergence_category = "daily_overextended"
+                category_label = "🟠 Daily Overextended"
+                category_description = "Daily extended relative to 4H - Exit signal"
+            else:
+                divergence_category = "neutral_divergence"
+                category_label = "⚪ Neutral Divergence"
+                category_description = "Mixed signals - Wait for clarity"
+        else:  # divergence_pct == 0
+            divergence_category = "neutral_divergence"
+            category_label = "⚪ Neutral Divergence"
+            category_description = "Both timeframes aligned - No significant divergence"
+
+        # Determine dislocation level
+        if abs_divergence <= p85_threshold:
+            dislocation_level = "Normal"
+            dislocation_color = "○"
+        elif abs_divergence <= p95_threshold:
+            dislocation_level = "Significant (P85)"
+            dislocation_color = "⚠️"
+        else:
+            dislocation_level = "Extreme (P95)"
+            dislocation_color = "⚡"
+
+        # Update state
+        state["four_h_percentile"] = four_h_pct
+        state["divergence_pct"] = divergence_pct
+        state["abs_divergence_pct"] = abs_divergence
+        state["divergence_category"] = divergence_category
+        state["category_label"] = category_label
+        state["category_description"] = category_description
+        state["p85_threshold"] = p85_threshold
+        state["p95_threshold"] = p95_threshold
+        state["dislocation_level"] = dislocation_level
+        state["dislocation_color"] = dislocation_color
+        state["thresholds_text"] = f"{p85_threshold:.1f}% | {p95_threshold:.1f}%"
+
+    return response
+
+
 def _read_snapshot_file(filename: str) -> Dict | None:
     path = _STATIC_SNAPSHOT_DIR / filename
     if not path.exists():
@@ -1880,6 +2028,7 @@ async def get_current_market_state(
             payload = await _augment_with_macdv_daily(payload)
             payload = await _augment_with_macdv_d7_stats(payload)
             payload = await _augment_with_macdv_percentiles(payload)
+            payload = await _augment_with_divergence_metrics(payload)
             return payload
 
     if not force_refresh and _is_cache_valid(
@@ -1890,6 +2039,7 @@ async def get_current_market_state(
             payload = await _augment_with_macdv_daily(payload)
             payload = await _augment_with_macdv_d7_stats(payload)
             payload = await _augment_with_macdv_percentiles(payload)
+            payload = await _augment_with_divergence_metrics(payload)
             _current_state_cache = payload
             _current_state_cache_timestamp = datetime.now(timezone.utc)
         return payload
@@ -1903,6 +2053,7 @@ async def get_current_market_state(
                 payload = await _augment_with_macdv_daily(payload)
                 payload = await _augment_with_macdv_d7_stats(payload)
                 payload = await _augment_with_macdv_percentiles(payload)
+                payload = await _augment_with_divergence_metrics(payload)
                 _current_state_cache = payload
                 _current_state_cache_timestamp = datetime.now(timezone.utc)
             return payload
@@ -2090,6 +2241,7 @@ async def get_current_market_state(
         response = await _augment_with_macdv_daily(response)
         response = await _augment_with_macdv_d7_stats(response)
         response = await _augment_with_macdv_percentiles(response)
+        response = await _augment_with_divergence_metrics(response)
 
         # Auto-save midday snapshot if within window and no snapshot exists for today
         now_utc = datetime.now(timezone.utc)
