@@ -59,7 +59,12 @@
       "p95_threshold": 84.14,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 69.7% | P95: 84.1%"
+      "thresholds_text": "P85: 69.7% | P95: 84.1%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "IGLS",
@@ -119,7 +124,12 @@
       "p95_threshold": 35.6,
       "dislocation_level": "Extreme (P95)",
       "dislocation_color": "\ud83d\udd34",
-      "thresholds_text": "P85: 23.8% | P95: 35.6%"
+      "thresholds_text": "P85: 23.8% | P95: 35.6%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "US10",
@@ -179,7 +189,12 @@
       "p95_threshold": 45.13,
       "dislocation_level": "Significant (P85)",
       "dislocation_color": "\ud83d\udfe1",
-      "thresholds_text": "P85: 31.2% | P95: 45.1%"
+      "thresholds_text": "P85: 31.2% | P95: 45.1%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "ES1",
@@ -239,7 +254,12 @@
       "p95_threshold": 29.0,
       "dislocation_level": "Extreme (P95)",
       "dislocation_color": "\ud83d\udd34",
-      "thresholds_text": "P85: 19.5% | P95: 29.0%"
+      "thresholds_text": "P85: 19.5% | P95: 29.0%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "CSP1",
@@ -299,7 +319,12 @@
       "p95_threshold": 30.5,
       "dislocation_level": "Significant (P85)",
       "dislocation_color": "\ud83d\udfe1",
-      "thresholds_text": "P85: 20.5% | P95: 30.5%"
+      "thresholds_text": "P85: 20.5% | P95: 30.5%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "OXY",
@@ -359,7 +384,12 @@
       "p95_threshold": 38.55,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 26.9% | P95: 38.5%"
+      "thresholds_text": "P85: 26.9% | P95: 38.5%",
+      "mom_regime_active": true,
+      "mom_d7_win_rate": 50.0,
+      "mom_d7_avg_return": -5.045,
+      "mom_d7_median_return": -5.045,
+      "mom_d7_n": 2
     },
     {
       "ticker": "COST",
@@ -419,7 +449,12 @@
       "p95_threshold": 39.21,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 24.8% | P95: 39.2%"
+      "thresholds_text": "P85: 24.8% | P95: 39.2%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "NQ1",
@@ -479,7 +514,12 @@
       "p95_threshold": 41.0,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 27.5% | P95: 41.0%"
+      "thresholds_text": "P85: 27.5% | P95: 41.0%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "GOOGL",
@@ -539,7 +579,12 @@
       "p95_threshold": 36.8,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 28.4% | P95: 36.8%"
+      "thresholds_text": "P85: 28.4% | P95: 36.8%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "BTCUSD",
@@ -599,7 +644,12 @@
       "p95_threshold": 55.0,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 38.0% | P95: 55.0%"
+      "thresholds_text": "P85: 38.0% | P95: 55.0%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "VIX",
@@ -659,7 +709,12 @@
       "p95_threshold": 49.2,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 33.5% | P95: 49.2%"
+      "thresholds_text": "P85: 33.5% | P95: 49.2%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "SPY",
@@ -719,7 +774,12 @@
       "p95_threshold": 28.6,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 19.2% | P95: 28.6%"
+      "thresholds_text": "P85: 19.2% | P95: 28.6%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "TSLA",
@@ -779,7 +839,12 @@
       "p95_threshold": 52.1,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 35.2% | P95: 52.1%"
+      "thresholds_text": "P85: 35.2% | P95: 52.1%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "SLV",
@@ -839,7 +904,12 @@
       "p95_threshold": 32.75,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 25.6% | P95: 32.8%"
+      "thresholds_text": "P85: 25.6% | P95: 32.8%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "BAC",
@@ -899,7 +969,12 @@
       "p95_threshold": 35.68,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 21.3% | P95: 35.7%"
+      "thresholds_text": "P85: 21.3% | P95: 35.7%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "AVGO",
@@ -959,7 +1034,12 @@
       "p95_threshold": 38.4,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 25.6% | P95: 38.4%"
+      "thresholds_text": "P85: 25.6% | P95: 38.4%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "WMT",
@@ -1019,7 +1099,12 @@
       "p95_threshold": 37.38,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 28.3% | P95: 37.4%"
+      "thresholds_text": "P85: 28.3% | P95: 37.4%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "JPM",
@@ -1079,7 +1164,12 @@
       "p95_threshold": 31.34,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 21.7% | P95: 31.3%"
+      "thresholds_text": "P85: 21.7% | P95: 31.3%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "UNH",
@@ -1139,7 +1229,12 @@
       "p95_threshold": 42.04,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 30.1% | P95: 42.0%"
+      "thresholds_text": "P85: 30.1% | P95: 42.0%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "NVDA",
@@ -1199,7 +1294,12 @@
       "p95_threshold": 47.3,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 31.5% | P95: 47.3%"
+      "thresholds_text": "P85: 31.5% | P95: 47.3%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "QQQ",
@@ -1259,7 +1359,12 @@
       "p95_threshold": 40.9,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 27.3% | P95: 40.9%"
+      "thresholds_text": "P85: 27.3% | P95: 40.9%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "AAPL",
@@ -1319,7 +1424,12 @@
       "p95_threshold": 36.8,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 24.3% | P95: 36.8%"
+      "thresholds_text": "P85: 24.3% | P95: 36.8%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "CNX1",
@@ -1379,7 +1489,12 @@
       "p95_threshold": 32.1,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 21.4% | P95: 32.1%"
+      "thresholds_text": "P85: 21.4% | P95: 32.1%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "NFLX",
@@ -1439,7 +1554,12 @@
       "p95_threshold": 40.2,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 26.8% | P95: 40.2%"
+      "thresholds_text": "P85: 26.8% | P95: 40.2%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "LLY",
@@ -1499,7 +1619,12 @@
       "p95_threshold": 38.06,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 27.4% | P95: 38.1%"
+      "thresholds_text": "P85: 27.4% | P95: 38.1%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "CVX",
@@ -1559,7 +1684,12 @@
       "p95_threshold": 34.95,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 24.1% | P95: 35.0%"
+      "thresholds_text": "P85: 24.1% | P95: 35.0%",
+      "mom_regime_active": true,
+      "mom_d7_win_rate": 57.1,
+      "mom_d7_avg_return": 0.083,
+      "mom_d7_median_return": 0.019,
+      "mom_d7_n": 7
     },
     {
       "ticker": "AMZN",
@@ -1619,7 +1749,12 @@
       "p95_threshold": 44.5,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 29.7% | P95: 44.5%"
+      "thresholds_text": "P85: 29.7% | P95: 44.5%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "XOM",
@@ -1679,7 +1814,12 @@
       "p95_threshold": 35.16,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 26.8% | P95: 35.2%"
+      "thresholds_text": "P85: 26.8% | P95: 35.2%",
+      "mom_regime_active": true,
+      "mom_d7_win_rate": 0.0,
+      "mom_d7_avg_return": -5.999,
+      "mom_d7_median_return": -5.999,
+      "mom_d7_n": 2
     },
     {
       "ticker": "GLD",
@@ -1739,7 +1879,12 @@
       "p95_threshold": 32.72,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 23.9% | P95: 32.7%"
+      "thresholds_text": "P85: 23.9% | P95: 32.7%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "MSFT",
@@ -1799,7 +1944,12 @@
       "p95_threshold": 33.9,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 22.1% | P95: 33.9%"
+      "thresholds_text": "P85: 22.1% | P95: 33.9%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "TSM",
@@ -1859,7 +2009,12 @@
       "p95_threshold": 33.4,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 22.9% | P95: 33.4%"
+      "thresholds_text": "P85: 22.9% | P95: 33.4%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     },
     {
       "ticker": "BRK-B",
@@ -1919,7 +2074,12 @@
       "p95_threshold": 28.1,
       "dislocation_level": "Normal",
       "dislocation_color": "\u26aa",
-      "thresholds_text": "P85: 18.9% | P95: 28.1%"
+      "thresholds_text": "P85: 18.9% | P95: 28.1%",
+      "mom_regime_active": false,
+      "mom_d7_win_rate": null,
+      "mom_d7_avg_return": null,
+      "mom_d7_median_return": null,
+      "mom_d7_n": null
     }
   ],
   "summary": {
