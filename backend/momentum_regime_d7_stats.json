@@ -1,0 +1,4020 @@
+{
+  "AAPL": {
+    "0-5": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -0.627,
+      "median_return": -4.335
+    },
+    "5-10": {
+      "n": 5,
+      "win_rate": 20.0,
+      "avg_return": -3.502,
+      "median_return": -6.038
+    },
+    "10-15": {
+      "n": 3,
+      "win_rate": 100.0,
+      "avg_return": 3.123,
+      "median_return": 3.228
+    },
+    "15-20": {
+      "n": 9,
+      "win_rate": 66.7,
+      "avg_return": 1.608,
+      "median_return": 2.712
+    },
+    "20-25": {
+      "n": 11,
+      "win_rate": 81.8,
+      "avg_return": 2.762,
+      "median_return": 3.348
+    },
+    "25-30": {
+      "n": 9,
+      "win_rate": 44.4,
+      "avg_return": 0.03,
+      "median_return": -0.323
+    },
+    "30-35": {
+      "n": 14,
+      "win_rate": 57.1,
+      "avg_return": -0.08,
+      "median_return": 1.007
+    },
+    "35-40": {
+      "n": 10,
+      "win_rate": 80.0,
+      "avg_return": 2.249,
+      "median_return": 0.947
+    },
+    "40-45": {
+      "n": 12,
+      "win_rate": 83.3,
+      "avg_return": 1.227,
+      "median_return": 1.789
+    },
+    "45-50": {
+      "n": 12,
+      "win_rate": 41.7,
+      "avg_return": 0.301,
+      "median_return": -0.124
+    },
+    "50-55": {
+      "n": 14,
+      "win_rate": 64.3,
+      "avg_return": 1.373,
+      "median_return": 1.03
+    },
+    "55-60": {
+      "n": 15,
+      "win_rate": 80.0,
+      "avg_return": 2.167,
+      "median_return": 1.427
+    },
+    "60-65": {
+      "n": 12,
+      "win_rate": 50.0,
+      "avg_return": 0.266,
+      "median_return": 0.197
+    },
+    "65-70": {
+      "n": 12,
+      "win_rate": 41.7,
+      "avg_return": -0.211,
+      "median_return": -0.626
+    },
+    "70-75": {
+      "n": 12,
+      "win_rate": 41.7,
+      "avg_return": -1.242,
+      "median_return": -0.719
+    },
+    "75-80": {
+      "n": 7,
+      "win_rate": 100.0,
+      "avg_return": 2.776,
+      "median_return": 3.747
+    },
+    "80-85": {
+      "n": 9,
+      "win_rate": 55.6,
+      "avg_return": -0.417,
+      "median_return": 0.079
+    },
+    "85-90": {
+      "n": 12,
+      "win_rate": 58.3,
+      "avg_return": 0.755,
+      "median_return": 0.498
+    },
+    "90-95": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -0.348,
+      "median_return": -0.046
+    },
+    "95-100": {
+      "n": 3,
+      "win_rate": 0.0,
+      "avg_return": -1.649,
+      "median_return": -2.314
+    },
+    "_overall": {
+      "n": 190,
+      "win_rate": 60.0,
+      "avg_return": 0.684,
+      "median_return": 0.833
+    }
+  },
+  "MSFT": {
+    "0-5": {
+      "n": 2,
+      "win_rate": 100.0,
+      "avg_return": 3.638,
+      "median_return": 3.638
+    },
+    "5-10": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": 1.765,
+      "median_return": 1.176
+    },
+    "10-15": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": 0.405,
+      "median_return": 1.018
+    },
+    "15-20": {
+      "n": 9,
+      "win_rate": 100.0,
+      "avg_return": 2.879,
+      "median_return": 3.041
+    },
+    "20-25": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": -0.064,
+      "median_return": 0.801
+    },
+    "25-30": {
+      "n": 9,
+      "win_rate": 77.8,
+      "avg_return": 1.029,
+      "median_return": 1.783
+    },
+    "30-35": {
+      "n": 10,
+      "win_rate": 70.0,
+      "avg_return": 1.328,
+      "median_return": 1.545
+    },
+    "35-40": {
+      "n": 15,
+      "win_rate": 86.7,
+      "avg_return": 1.709,
+      "median_return": 1.711
+    },
+    "40-45": {
+      "n": 10,
+      "win_rate": 80.0,
+      "avg_return": 0.867,
+      "median_return": 0.486
+    },
+    "45-50": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": -0.257,
+      "median_return": 1.399
+    },
+    "50-55": {
+      "n": 12,
+      "win_rate": 66.7,
+      "avg_return": 0.313,
+      "median_return": 0.864
+    },
+    "55-60": {
+      "n": 12,
+      "win_rate": 50.0,
+      "avg_return": -0.175,
+      "median_return": 0.057
+    },
+    "60-65": {
+      "n": 16,
+      "win_rate": 50.0,
+      "avg_return": 0.081,
+      "median_return": 0.01
+    },
+    "65-70": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 0.74,
+      "median_return": 0.909
+    },
+    "70-75": {
+      "n": 10,
+      "win_rate": 70.0,
+      "avg_return": 0.765,
+      "median_return": 1.405
+    },
+    "75-80": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -1.972,
+      "median_return": -0.429
+    },
+    "80-85": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": -0.833,
+      "median_return": 0.137
+    },
+    "85-90": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -1.036,
+      "median_return": -0.373
+    },
+    "90-95": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": -0.895,
+      "median_return": -0.866
+    },
+    "95-100": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": 0.145,
+      "median_return": 0.145
+    },
+    "_overall": {
+      "n": 163,
+      "win_rate": 66.3,
+      "avg_return": 0.54,
+      "median_return": 1.133
+    }
+  },
+  "NVDA": {
+    "0-5": {
+      "n": 4,
+      "win_rate": 100.0,
+      "avg_return": 7.124,
+      "median_return": 6.115
+    },
+    "5-10": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": 4.691,
+      "median_return": 4.961
+    },
+    "10-15": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": 1.057,
+      "median_return": 0.591
+    },
+    "15-20": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": 5.478,
+      "median_return": 5.378
+    },
+    "20-25": {
+      "n": 12,
+      "win_rate": 75.0,
+      "avg_return": 3.377,
+      "median_return": 3.219
+    },
+    "25-30": {
+      "n": 14,
+      "win_rate": 71.4,
+      "avg_return": 2.78,
+      "median_return": 2.242
+    },
+    "30-35": {
+      "n": 14,
+      "win_rate": 85.7,
+      "avg_return": 4.906,
+      "median_return": 3.8
+    },
+    "35-40": {
+      "n": 25,
+      "win_rate": 68.0,
+      "avg_return": 3.767,
+      "median_return": 3.365
+    },
+    "40-45": {
+      "n": 16,
+      "win_rate": 75.0,
+      "avg_return": 4.412,
+      "median_return": 3.606
+    },
+    "45-50": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 5.031,
+      "median_return": 2.871
+    },
+    "50-55": {
+      "n": 21,
+      "win_rate": 76.2,
+      "avg_return": 3.255,
+      "median_return": 1.913
+    },
+    "55-60": {
+      "n": 14,
+      "win_rate": 57.1,
+      "avg_return": 1.27,
+      "median_return": 0.652
+    },
+    "60-65": {
+      "n": 19,
+      "win_rate": 68.4,
+      "avg_return": 3.138,
+      "median_return": 2.622
+    },
+    "65-70": {
+      "n": 12,
+      "win_rate": 75.0,
+      "avg_return": 3.581,
+      "median_return": 2.319
+    },
+    "70-75": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": 1.629,
+      "median_return": 1.243
+    },
+    "75-80": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": 5.796,
+      "median_return": 3.867
+    },
+    "80-85": {
+      "n": 12,
+      "win_rate": 66.7,
+      "avg_return": 1.678,
+      "median_return": 1.659
+    },
+    "85-90": {
+      "n": 11,
+      "win_rate": 90.9,
+      "avg_return": 6.442,
+      "median_return": 5.268
+    },
+    "90-95": {
+      "n": 10,
+      "win_rate": 80.0,
+      "avg_return": 5.168,
+      "median_return": 4.82
+    },
+    "95-100": {
+      "n": 6,
+      "win_rate": 83.3,
+      "avg_return": 8.401,
+      "median_return": 6.41
+    },
+    "_overall": {
+      "n": 240,
+      "win_rate": 72.5,
+      "avg_return": 3.777,
+      "median_return": 2.795
+    }
+  },
+  "GOOGL": {
+    "0-5": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": 2.156,
+      "median_return": 0.841
+    },
+    "5-10": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 6.986,
+      "median_return": 7.166
+    },
+    "10-15": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": 5.278,
+      "median_return": 2.319
+    },
+    "15-20": {
+      "n": 6,
+      "win_rate": 66.7,
+      "avg_return": 0.543,
+      "median_return": 0.521
+    },
+    "20-25": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -0.837,
+      "median_return": -0.14
+    },
+    "25-30": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": 1.089,
+      "median_return": 0.945
+    },
+    "30-35": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": 0.827,
+      "median_return": 0.213
+    },
+    "35-40": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 3.074,
+      "median_return": 3.548
+    },
+    "40-45": {
+      "n": 6,
+      "win_rate": 66.7,
+      "avg_return": 4.965,
+      "median_return": 3.75
+    },
+    "45-50": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 1.623,
+      "median_return": 1.696
+    },
+    "50-55": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 0.844,
+      "median_return": 0.451
+    },
+    "55-60": {
+      "n": 11,
+      "win_rate": 45.5,
+      "avg_return": 0.288,
+      "median_return": -0.056
+    },
+    "60-65": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -0.882,
+      "median_return": -0.272
+    },
+    "65-70": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -0.134,
+      "median_return": 0.421
+    },
+    "70-75": {
+      "n": 11,
+      "win_rate": 36.4,
+      "avg_return": 0.758,
+      "median_return": -0.377
+    },
+    "75-80": {
+      "n": 5,
+      "win_rate": 60.0,
+      "avg_return": 0.576,
+      "median_return": 0.074
+    },
+    "80-85": {
+      "n": 5,
+      "win_rate": 60.0,
+      "avg_return": 0.854,
+      "median_return": 0.09
+    },
+    "85-90": {
+      "n": 6,
+      "win_rate": 33.3,
+      "avg_return": -1.036,
+      "median_return": -1.326
+    },
+    "90-95": {
+      "n": 14,
+      "win_rate": 35.7,
+      "avg_return": -1.187,
+      "median_return": -1.212
+    },
+    "95-100": {
+      "n": 8,
+      "win_rate": 62.5,
+      "avg_return": 0.513,
+      "median_return": 0.488
+    },
+    "_overall": {
+      "n": 137,
+      "win_rate": 54.7,
+      "avg_return": 0.904,
+      "median_return": 0.24
+    }
+  },
+  "AMZN": {
+    "5-10": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": 0.435,
+      "median_return": 0.354
+    },
+    "10-15": {
+      "n": 4,
+      "win_rate": 100.0,
+      "avg_return": 3.299,
+      "median_return": 3.087
+    },
+    "15-20": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": -1.165,
+      "median_return": -0.724
+    },
+    "20-25": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 1.391,
+      "median_return": 0.972
+    },
+    "25-30": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 1.837,
+      "median_return": 1.008
+    },
+    "30-35": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -1.257,
+      "median_return": -1.31
+    },
+    "35-40": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": 0.891,
+      "median_return": 0.464
+    },
+    "40-45": {
+      "n": 5,
+      "win_rate": 60.0,
+      "avg_return": 0.388,
+      "median_return": 0.338
+    },
+    "45-50": {
+      "n": 8,
+      "win_rate": 62.5,
+      "avg_return": -0.14,
+      "median_return": 1.144
+    },
+    "50-55": {
+      "n": 5,
+      "win_rate": 20.0,
+      "avg_return": -3.125,
+      "median_return": -3.201
+    },
+    "55-60": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": -0.417,
+      "median_return": 0.054
+    },
+    "60-65": {
+      "n": 6,
+      "win_rate": 16.7,
+      "avg_return": -1.961,
+      "median_return": -1.847
+    },
+    "65-70": {
+      "n": 9,
+      "win_rate": 44.4,
+      "avg_return": -1.258,
+      "median_return": -0.497
+    },
+    "70-75": {
+      "n": 10,
+      "win_rate": 50.0,
+      "avg_return": -2.532,
+      "median_return": -0.656
+    },
+    "75-80": {
+      "n": 7,
+      "win_rate": 28.6,
+      "avg_return": -2.036,
+      "median_return": -2.524
+    },
+    "80-85": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -1.625,
+      "median_return": -1.625
+    },
+    "85-90": {
+      "n": 6,
+      "win_rate": 16.7,
+      "avg_return": -3.01,
+      "median_return": -2.905
+    },
+    "90-95": {
+      "n": 4,
+      "win_rate": 25.0,
+      "avg_return": -2.005,
+      "median_return": -1.531
+    },
+    "95-100": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": -3.394,
+      "median_return": -3.359
+    },
+    "_overall": {
+      "n": 111,
+      "win_rate": 47.7,
+      "avg_return": -0.889,
+      "median_return": -0.125
+    }
+  },
+  "META": {
+    "0-5": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 5.82,
+      "median_return": 7.102
+    },
+    "5-10": {
+      "n": 11,
+      "win_rate": 81.8,
+      "avg_return": 4.13,
+      "median_return": 4.855
+    },
+    "10-15": {
+      "n": 5,
+      "win_rate": 100.0,
+      "avg_return": 3.246,
+      "median_return": 2.275
+    },
+    "15-20": {
+      "n": 8,
+      "win_rate": 87.5,
+      "avg_return": 5.571,
+      "median_return": 5.396
+    },
+    "20-25": {
+      "n": 16,
+      "win_rate": 62.5,
+      "avg_return": 2.763,
+      "median_return": 2.841
+    },
+    "25-30": {
+      "n": 12,
+      "win_rate": 58.3,
+      "avg_return": 2.151,
+      "median_return": 2.633
+    },
+    "30-35": {
+      "n": 15,
+      "win_rate": 60.0,
+      "avg_return": 2.886,
+      "median_return": 1.212
+    },
+    "35-40": {
+      "n": 15,
+      "win_rate": 86.7,
+      "avg_return": 3.579,
+      "median_return": 4.578
+    },
+    "40-45": {
+      "n": 8,
+      "win_rate": 87.5,
+      "avg_return": 3.318,
+      "median_return": 3.663
+    },
+    "45-50": {
+      "n": 16,
+      "win_rate": 81.2,
+      "avg_return": 5.382,
+      "median_return": 2.686
+    },
+    "50-55": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": 2.874,
+      "median_return": 2.592
+    },
+    "55-60": {
+      "n": 19,
+      "win_rate": 63.2,
+      "avg_return": 1.25,
+      "median_return": 0.956
+    },
+    "60-65": {
+      "n": 15,
+      "win_rate": 60.0,
+      "avg_return": 0.027,
+      "median_return": 0.972
+    },
+    "65-70": {
+      "n": 9,
+      "win_rate": 77.8,
+      "avg_return": 2.803,
+      "median_return": 2.81
+    },
+    "70-75": {
+      "n": 10,
+      "win_rate": 80.0,
+      "avg_return": 8.726,
+      "median_return": 4.906
+    },
+    "75-80": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 4.222,
+      "median_return": 2.19
+    },
+    "80-85": {
+      "n": 9,
+      "win_rate": 77.8,
+      "avg_return": 4.305,
+      "median_return": 4.862
+    },
+    "85-90": {
+      "n": 7,
+      "win_rate": 85.7,
+      "avg_return": 6.779,
+      "median_return": 4.177
+    },
+    "90-95": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": 2.868,
+      "median_return": 0.484
+    },
+    "95-100": {
+      "n": 4,
+      "win_rate": 0.0,
+      "avg_return": -2.594,
+      "median_return": -3.011
+    },
+    "_overall": {
+      "n": 211,
+      "win_rate": 70.6,
+      "avg_return": 3.372,
+      "median_return": 2.481
+    }
+  },
+  "QQQ": {
+    "0-5": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": 2.01,
+      "median_return": 2.734
+    },
+    "5-10": {
+      "n": 7,
+      "win_rate": 85.7,
+      "avg_return": 2.337,
+      "median_return": 2.078
+    },
+    "10-15": {
+      "n": 10,
+      "win_rate": 90.0,
+      "avg_return": 2.852,
+      "median_return": 2.806
+    },
+    "15-20": {
+      "n": 11,
+      "win_rate": 81.8,
+      "avg_return": 1.762,
+      "median_return": 2.81
+    },
+    "20-25": {
+      "n": 8,
+      "win_rate": 62.5,
+      "avg_return": 0.588,
+      "median_return": 0.795
+    },
+    "25-30": {
+      "n": 13,
+      "win_rate": 53.8,
+      "avg_return": 0.276,
+      "median_return": 0.67
+    },
+    "30-35": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 1.173,
+      "median_return": 1.451
+    },
+    "35-40": {
+      "n": 16,
+      "win_rate": 68.8,
+      "avg_return": 0.843,
+      "median_return": 1.87
+    },
+    "40-45": {
+      "n": 17,
+      "win_rate": 64.7,
+      "avg_return": 0.612,
+      "median_return": 0.92
+    },
+    "45-50": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": 0.309,
+      "median_return": 0.685
+    },
+    "50-55": {
+      "n": 18,
+      "win_rate": 33.3,
+      "avg_return": -0.847,
+      "median_return": -0.618
+    },
+    "55-60": {
+      "n": 13,
+      "win_rate": 53.8,
+      "avg_return": -0.19,
+      "median_return": 0.627
+    },
+    "60-65": {
+      "n": 11,
+      "win_rate": 36.4,
+      "avg_return": -0.234,
+      "median_return": -0.157
+    },
+    "65-70": {
+      "n": 9,
+      "win_rate": 55.6,
+      "avg_return": 0.929,
+      "median_return": 1.715
+    },
+    "70-75": {
+      "n": 21,
+      "win_rate": 47.6,
+      "avg_return": -0.217,
+      "median_return": -0.061
+    },
+    "75-80": {
+      "n": 11,
+      "win_rate": 72.7,
+      "avg_return": 1.486,
+      "median_return": 1.871
+    },
+    "80-85": {
+      "n": 13,
+      "win_rate": 46.2,
+      "avg_return": -0.067,
+      "median_return": -0.499
+    },
+    "85-90": {
+      "n": 9,
+      "win_rate": 44.4,
+      "avg_return": -0.509,
+      "median_return": -0.378
+    },
+    "90-95": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": -0.076,
+      "median_return": -0.042
+    },
+    "95-100": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 0.089,
+      "median_return": 0.121
+    },
+    "_overall": {
+      "n": 226,
+      "win_rate": 58.8,
+      "avg_return": 0.503,
+      "median_return": 0.684
+    }
+  },
+  "SPY": {
+    "0-5": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": 0.697,
+      "median_return": 0.344
+    },
+    "5-10": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": -0.304,
+      "median_return": 0.238
+    },
+    "10-15": {
+      "n": 11,
+      "win_rate": 72.7,
+      "avg_return": 1.295,
+      "median_return": 1.088
+    },
+    "15-20": {
+      "n": 11,
+      "win_rate": 81.8,
+      "avg_return": 1.527,
+      "median_return": 1.761
+    },
+    "20-25": {
+      "n": 21,
+      "win_rate": 61.9,
+      "avg_return": 0.507,
+      "median_return": 0.462
+    },
+    "25-30": {
+      "n": 11,
+      "win_rate": 81.8,
+      "avg_return": 1.212,
+      "median_return": 1.607
+    },
+    "30-35": {
+      "n": 14,
+      "win_rate": 85.7,
+      "avg_return": 0.937,
+      "median_return": 1.022
+    },
+    "35-40": {
+      "n": 19,
+      "win_rate": 78.9,
+      "avg_return": 0.805,
+      "median_return": 1.224
+    },
+    "40-45": {
+      "n": 15,
+      "win_rate": 80.0,
+      "avg_return": 1.102,
+      "median_return": 1.421
+    },
+    "45-50": {
+      "n": 16,
+      "win_rate": 68.8,
+      "avg_return": 0.008,
+      "median_return": 0.446
+    },
+    "50-55": {
+      "n": 21,
+      "win_rate": 57.1,
+      "avg_return": 0.58,
+      "median_return": 0.743
+    },
+    "55-60": {
+      "n": 16,
+      "win_rate": 43.8,
+      "avg_return": 0.124,
+      "median_return": -0.364
+    },
+    "60-65": {
+      "n": 11,
+      "win_rate": 72.7,
+      "avg_return": 0.663,
+      "median_return": 0.748
+    },
+    "65-70": {
+      "n": 17,
+      "win_rate": 52.9,
+      "avg_return": 0.481,
+      "median_return": 0.018
+    },
+    "70-75": {
+      "n": 19,
+      "win_rate": 57.9,
+      "avg_return": 0.097,
+      "median_return": 0.283
+    },
+    "75-80": {
+      "n": 14,
+      "win_rate": 64.3,
+      "avg_return": 0.061,
+      "median_return": 0.408
+    },
+    "80-85": {
+      "n": 15,
+      "win_rate": 60.0,
+      "avg_return": 0.049,
+      "median_return": 0.926
+    },
+    "85-90": {
+      "n": 9,
+      "win_rate": 44.4,
+      "avg_return": -0.38,
+      "median_return": -0.458
+    },
+    "90-95": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 0.357,
+      "median_return": 0.247
+    },
+    "95-100": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": -0.491,
+      "median_return": -0.423
+    },
+    "_overall": {
+      "n": 260,
+      "win_rate": 65.4,
+      "avg_return": 0.509,
+      "median_return": 0.721
+    }
+  },
+  "GLD": {
+    "0-5": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": 3.623,
+      "median_return": 2.583
+    },
+    "5-10": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": 0.829,
+      "median_return": 0.245
+    },
+    "10-15": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": -0.149,
+      "median_return": 0.232
+    },
+    "15-20": {
+      "n": 10,
+      "win_rate": 40.0,
+      "avg_return": -0.53,
+      "median_return": -1.499
+    },
+    "20-25": {
+      "n": 9,
+      "win_rate": 44.4,
+      "avg_return": 0.773,
+      "median_return": -0.269
+    },
+    "25-30": {
+      "n": 10,
+      "win_rate": 70.0,
+      "avg_return": -0.023,
+      "median_return": 1.275
+    },
+    "30-35": {
+      "n": 12,
+      "win_rate": 66.7,
+      "avg_return": 1.187,
+      "median_return": 0.49
+    },
+    "35-40": {
+      "n": 9,
+      "win_rate": 88.9,
+      "avg_return": 4.57,
+      "median_return": 3.26
+    },
+    "40-45": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": 1.273,
+      "median_return": 0.844
+    },
+    "45-50": {
+      "n": 10,
+      "win_rate": 50.0,
+      "avg_return": 1.108,
+      "median_return": 0.34
+    },
+    "50-55": {
+      "n": 22,
+      "win_rate": 59.1,
+      "avg_return": 1.476,
+      "median_return": 0.591
+    },
+    "55-60": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": 1.92,
+      "median_return": 0.331
+    },
+    "60-65": {
+      "n": 16,
+      "win_rate": 68.8,
+      "avg_return": 1.36,
+      "median_return": 1.948
+    },
+    "65-70": {
+      "n": 7,
+      "win_rate": 85.7,
+      "avg_return": 0.655,
+      "median_return": 1.059
+    },
+    "70-75": {
+      "n": 22,
+      "win_rate": 72.7,
+      "avg_return": 1.258,
+      "median_return": 2.485
+    },
+    "75-80": {
+      "n": 20,
+      "win_rate": 65.0,
+      "avg_return": 1.151,
+      "median_return": 1.16
+    },
+    "80-85": {
+      "n": 18,
+      "win_rate": 50.0,
+      "avg_return": 0.599,
+      "median_return": 0.502
+    },
+    "85-90": {
+      "n": 17,
+      "win_rate": 64.7,
+      "avg_return": 1.121,
+      "median_return": 1.049
+    },
+    "90-95": {
+      "n": 16,
+      "win_rate": 56.2,
+      "avg_return": 1.496,
+      "median_return": 0.847
+    },
+    "95-100": {
+      "n": 13,
+      "win_rate": 38.5,
+      "avg_return": -1.196,
+      "median_return": -0.713
+    },
+    "_overall": {
+      "n": 253,
+      "win_rate": 60.9,
+      "avg_return": 1.081,
+      "median_return": 0.993
+    }
+  },
+  "SLV": {
+    "0-5": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": -0.717,
+      "median_return": -0.717
+    },
+    "5-10": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": 1.145,
+      "median_return": 1.145
+    },
+    "10-15": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 2.281,
+      "median_return": 1.61
+    },
+    "15-20": {
+      "n": 8,
+      "win_rate": 87.5,
+      "avg_return": 0.876,
+      "median_return": 0.931
+    },
+    "20-25": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": 3.282,
+      "median_return": 0.85
+    },
+    "25-30": {
+      "n": 8,
+      "win_rate": 62.5,
+      "avg_return": 4.382,
+      "median_return": 0.96
+    },
+    "30-35": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": 3.596,
+      "median_return": 0.922
+    },
+    "35-40": {
+      "n": 8,
+      "win_rate": 25.0,
+      "avg_return": -0.485,
+      "median_return": -1.159
+    },
+    "40-45": {
+      "n": 8,
+      "win_rate": 37.5,
+      "avg_return": 2.41,
+      "median_return": -2.421
+    },
+    "45-50": {
+      "n": 8,
+      "win_rate": 37.5,
+      "avg_return": 2.512,
+      "median_return": -0.732
+    },
+    "50-55": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": -1.401,
+      "median_return": -0.027
+    },
+    "55-60": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 8.465,
+      "median_return": 7.555
+    },
+    "60-65": {
+      "n": 12,
+      "win_rate": 41.7,
+      "avg_return": 4.901,
+      "median_return": -0.227
+    },
+    "65-70": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": 1.218,
+      "median_return": 0.78
+    },
+    "70-75": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": 2.796,
+      "median_return": 5.954
+    },
+    "75-80": {
+      "n": 16,
+      "win_rate": 56.2,
+      "avg_return": 1.743,
+      "median_return": 2.041
+    },
+    "80-85": {
+      "n": 11,
+      "win_rate": 18.2,
+      "avg_return": -1.32,
+      "median_return": -2.996
+    },
+    "85-90": {
+      "n": 14,
+      "win_rate": 64.3,
+      "avg_return": 0.326,
+      "median_return": 3.746
+    },
+    "90-95": {
+      "n": 14,
+      "win_rate": 64.3,
+      "avg_return": -1.398,
+      "median_return": 1.979
+    },
+    "95-100": {
+      "n": 14,
+      "win_rate": 64.3,
+      "avg_return": 0.792,
+      "median_return": 1.725
+    },
+    "_overall": {
+      "n": 183,
+      "win_rate": 55.2,
+      "avg_return": 1.695,
+      "median_return": 0.746
+    }
+  },
+  "TSLA": {
+    "0-5": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": 5.438,
+      "median_return": 1.723
+    },
+    "5-10": {
+      "n": 2,
+      "win_rate": 0.0,
+      "avg_return": -3.73,
+      "median_return": -3.73
+    },
+    "10-15": {
+      "n": 5,
+      "win_rate": 20.0,
+      "avg_return": -2.404,
+      "median_return": -4.709
+    },
+    "15-20": {
+      "n": 6,
+      "win_rate": 33.3,
+      "avg_return": -0.42,
+      "median_return": -2.14
+    },
+    "20-25": {
+      "n": 9,
+      "win_rate": 33.3,
+      "avg_return": 0.121,
+      "median_return": -3.966
+    },
+    "25-30": {
+      "n": 7,
+      "win_rate": 28.6,
+      "avg_return": -1.87,
+      "median_return": -2.753
+    },
+    "30-35": {
+      "n": 10,
+      "win_rate": 50.0,
+      "avg_return": -2.218,
+      "median_return": -2.072
+    },
+    "35-40": {
+      "n": 9,
+      "win_rate": 55.6,
+      "avg_return": 2.057,
+      "median_return": 0.785
+    },
+    "40-45": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 2.818,
+      "median_return": 2.648
+    },
+    "45-50": {
+      "n": 7,
+      "win_rate": 28.6,
+      "avg_return": -4.684,
+      "median_return": -5.722
+    },
+    "50-55": {
+      "n": 8,
+      "win_rate": 25.0,
+      "avg_return": -1.571,
+      "median_return": -2.744
+    },
+    "55-60": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": 2.133,
+      "median_return": -1.137
+    },
+    "60-65": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": -0.535,
+      "median_return": 0.768
+    },
+    "65-70": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": 1.017,
+      "median_return": -0.686
+    },
+    "70-75": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": -3.474,
+      "median_return": -6.128
+    },
+    "75-80": {
+      "n": 6,
+      "win_rate": 33.3,
+      "avg_return": -0.478,
+      "median_return": -1.975
+    },
+    "80-85": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": 1.605,
+      "median_return": 3.488
+    },
+    "85-90": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -1.36,
+      "median_return": -0.982
+    },
+    "90-95": {
+      "n": 9,
+      "win_rate": 55.6,
+      "avg_return": 2.959,
+      "median_return": 3.394
+    },
+    "95-100": {
+      "n": 5,
+      "win_rate": 100.0,
+      "avg_return": 9.477,
+      "median_return": 7.714
+    },
+    "_overall": {
+      "n": 125,
+      "win_rate": 45.6,
+      "avg_return": 0.118,
+      "median_return": -0.873
+    }
+  },
+  "NFLX": {
+    "0-5": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": 0.773,
+      "median_return": 0.317
+    },
+    "5-10": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 2.662,
+      "median_return": 3.398
+    },
+    "10-15": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": 3.349,
+      "median_return": 3.779
+    },
+    "15-20": {
+      "n": 10,
+      "win_rate": 50.0,
+      "avg_return": -0.06,
+      "median_return": 0.121
+    },
+    "20-25": {
+      "n": 12,
+      "win_rate": 75.0,
+      "avg_return": 3.364,
+      "median_return": 3.871
+    },
+    "25-30": {
+      "n": 15,
+      "win_rate": 53.3,
+      "avg_return": 0.87,
+      "median_return": 2.523
+    },
+    "30-35": {
+      "n": 13,
+      "win_rate": 53.8,
+      "avg_return": 0.884,
+      "median_return": 2.143
+    },
+    "35-40": {
+      "n": 13,
+      "win_rate": 53.8,
+      "avg_return": 0.335,
+      "median_return": 2.016
+    },
+    "40-45": {
+      "n": 16,
+      "win_rate": 62.5,
+      "avg_return": 1.149,
+      "median_return": 1.666
+    },
+    "45-50": {
+      "n": 14,
+      "win_rate": 42.9,
+      "avg_return": -1.493,
+      "median_return": -1.956
+    },
+    "50-55": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": 0.811,
+      "median_return": 0.808
+    },
+    "55-60": {
+      "n": 14,
+      "win_rate": 50.0,
+      "avg_return": 0.878,
+      "median_return": 0.908
+    },
+    "60-65": {
+      "n": 16,
+      "win_rate": 50.0,
+      "avg_return": 0.598,
+      "median_return": -0.416
+    },
+    "65-70": {
+      "n": 12,
+      "win_rate": 58.3,
+      "avg_return": -0.078,
+      "median_return": 1.286
+    },
+    "70-75": {
+      "n": 8,
+      "win_rate": 25.0,
+      "avg_return": -0.924,
+      "median_return": -1.271
+    },
+    "75-80": {
+      "n": 13,
+      "win_rate": 38.5,
+      "avg_return": 0.028,
+      "median_return": -0.351
+    },
+    "80-85": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": 0.307,
+      "median_return": 1.055
+    },
+    "85-90": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": 0.693,
+      "median_return": 1.445
+    },
+    "90-95": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": 0.582,
+      "median_return": 0.841
+    },
+    "95-100": {
+      "n": 5,
+      "win_rate": 60.0,
+      "avg_return": 1.399,
+      "median_return": 1.778
+    },
+    "_overall": {
+      "n": 213,
+      "win_rate": 54.9,
+      "avg_return": 0.661,
+      "median_return": 1.127
+    }
+  },
+  "BRK-B": {
+    "0-5": {
+      "n": 1,
+      "win_rate": 100.0,
+      "avg_return": 1.175,
+      "median_return": 1.175
+    },
+    "5-10": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": -0.353,
+      "median_return": -0.523
+    },
+    "10-15": {
+      "n": 4,
+      "win_rate": 0.0,
+      "avg_return": -0.405,
+      "median_return": -0.37
+    },
+    "15-20": {
+      "n": 5,
+      "win_rate": 20.0,
+      "avg_return": -1.803,
+      "median_return": -1.594
+    },
+    "20-25": {
+      "n": 8,
+      "win_rate": 25.0,
+      "avg_return": -0.497,
+      "median_return": -0.798
+    },
+    "25-30": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -0.252,
+      "median_return": -0.252
+    },
+    "30-35": {
+      "n": 3,
+      "win_rate": 0.0,
+      "avg_return": -1.983,
+      "median_return": -2.181
+    },
+    "35-40": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": -0.283,
+      "median_return": -2.041
+    },
+    "40-45": {
+      "n": 8,
+      "win_rate": 37.5,
+      "avg_return": 0.063,
+      "median_return": -1.182
+    },
+    "45-50": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": 0.093,
+      "median_return": 0.339
+    },
+    "50-55": {
+      "n": 8,
+      "win_rate": 37.5,
+      "avg_return": 0.08,
+      "median_return": -1.016
+    },
+    "55-60": {
+      "n": 8,
+      "win_rate": 37.5,
+      "avg_return": -0.809,
+      "median_return": -0.82
+    },
+    "60-65": {
+      "n": 10,
+      "win_rate": 40.0,
+      "avg_return": -1.884,
+      "median_return": -1.702
+    },
+    "65-70": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": -0.615,
+      "median_return": -0.108
+    },
+    "70-75": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": -0.441,
+      "median_return": 0.578
+    },
+    "75-80": {
+      "n": 4,
+      "win_rate": 100.0,
+      "avg_return": 1.866,
+      "median_return": 1.983
+    },
+    "80-85": {
+      "n": 5,
+      "win_rate": 60.0,
+      "avg_return": 0.259,
+      "median_return": 0.198
+    },
+    "85-90": {
+      "n": 8,
+      "win_rate": 25.0,
+      "avg_return": -1.667,
+      "median_return": -1.583
+    },
+    "90-95": {
+      "n": 11,
+      "win_rate": 36.4,
+      "avg_return": -1.297,
+      "median_return": -2.336
+    },
+    "95-100": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": -0.161,
+      "median_return": 0.74
+    },
+    "_overall": {
+      "n": 117,
+      "win_rate": 39.3,
+      "avg_return": -0.615,
+      "median_return": -0.608
+    }
+  },
+  "WMT": {
+    "0-5": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -1.817,
+      "median_return": -2.657
+    },
+    "5-10": {
+      "n": 5,
+      "win_rate": 60.0,
+      "avg_return": 1.087,
+      "median_return": 1.679
+    },
+    "10-15": {
+      "n": 9,
+      "win_rate": 22.2,
+      "avg_return": -1.326,
+      "median_return": -1.548
+    },
+    "15-20": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": 1.202,
+      "median_return": 1.692
+    },
+    "20-25": {
+      "n": 9,
+      "win_rate": 55.6,
+      "avg_return": 1.197,
+      "median_return": 0.952
+    },
+    "25-30": {
+      "n": 15,
+      "win_rate": 53.3,
+      "avg_return": 0.184,
+      "median_return": 0.877
+    },
+    "30-35": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": -0.113,
+      "median_return": 1.016
+    },
+    "35-40": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -0.227,
+      "median_return": -0.349
+    },
+    "40-45": {
+      "n": 17,
+      "win_rate": 58.8,
+      "avg_return": -0.155,
+      "median_return": 0.125
+    },
+    "45-50": {
+      "n": 12,
+      "win_rate": 75.0,
+      "avg_return": 1.471,
+      "median_return": 2.594
+    },
+    "50-55": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": 0.791,
+      "median_return": 1.172
+    },
+    "55-60": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": -0.477,
+      "median_return": 0.279
+    },
+    "60-65": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": -0.159,
+      "median_return": 1.009
+    },
+    "65-70": {
+      "n": 14,
+      "win_rate": 57.1,
+      "avg_return": -0.492,
+      "median_return": 0.205
+    },
+    "70-75": {
+      "n": 13,
+      "win_rate": 46.2,
+      "avg_return": -0.136,
+      "median_return": -0.178
+    },
+    "75-80": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": -0.169,
+      "median_return": 0.67
+    },
+    "80-85": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": -0.21,
+      "median_return": 0.883
+    },
+    "85-90": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 0.871,
+      "median_return": 1.182
+    },
+    "90-95": {
+      "n": 14,
+      "win_rate": 71.4,
+      "avg_return": 1.534,
+      "median_return": 1.566
+    },
+    "95-100": {
+      "n": 12,
+      "win_rate": 66.7,
+      "avg_return": 1.718,
+      "median_return": 1.876
+    },
+    "_overall": {
+      "n": 208,
+      "win_rate": 58.2,
+      "avg_return": 0.306,
+      "median_return": 0.635
+    }
+  },
+  "UNH": {
+    "5-10": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": 0.465,
+      "median_return": 0.465
+    },
+    "10-15": {
+      "n": 3,
+      "win_rate": 100.0,
+      "avg_return": 2.432,
+      "median_return": 2.61
+    },
+    "15-20": {
+      "n": 3,
+      "win_rate": 100.0,
+      "avg_return": 3.191,
+      "median_return": 3.094
+    },
+    "20-25": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 1.976,
+      "median_return": 1.466
+    },
+    "25-30": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": 0.266,
+      "median_return": 0.836
+    },
+    "30-35": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 1.205,
+      "median_return": 1.742
+    },
+    "35-40": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": -2.526,
+      "median_return": -2.526
+    },
+    "40-45": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": -1.886,
+      "median_return": -1.199
+    },
+    "45-50": {
+      "n": 6,
+      "win_rate": 33.3,
+      "avg_return": -1.275,
+      "median_return": -1.089
+    },
+    "50-55": {
+      "n": 3,
+      "win_rate": 0.0,
+      "avg_return": -2.915,
+      "median_return": -2.47
+    },
+    "55-60": {
+      "n": 2,
+      "win_rate": 0.0,
+      "avg_return": -15.168,
+      "median_return": -15.168
+    },
+    "60-65": {
+      "n": 5,
+      "win_rate": 0.0,
+      "avg_return": -2.24,
+      "median_return": -1.922
+    },
+    "65-70": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -4.526,
+      "median_return": 0.0
+    },
+    "70-75": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": -0.446,
+      "median_return": -1.545
+    },
+    "75-80": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": 0.366,
+      "median_return": -1.632
+    },
+    "80-85": {
+      "n": 4,
+      "win_rate": 25.0,
+      "avg_return": -6.903,
+      "median_return": -0.847
+    },
+    "85-90": {
+      "n": 2,
+      "win_rate": 0.0,
+      "avg_return": -4.176,
+      "median_return": -4.176
+    },
+    "90-95": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": -1.794,
+      "median_return": -2.297
+    },
+    "95-100": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -10.288,
+      "median_return": -3.158
+    },
+    "_overall": {
+      "n": 71,
+      "win_rate": 42.3,
+      "avg_return": -2.078,
+      "median_return": -0.716
+    }
+  },
+  "AVGO": {
+    "0-5": {
+      "n": 2,
+      "win_rate": 100.0,
+      "avg_return": 3.088,
+      "median_return": 3.088
+    },
+    "5-10": {
+      "n": 5,
+      "win_rate": 100.0,
+      "avg_return": 4.201,
+      "median_return": 3.528
+    },
+    "10-15": {
+      "n": 8,
+      "win_rate": 62.5,
+      "avg_return": 2.326,
+      "median_return": 2.599
+    },
+    "15-20": {
+      "n": 10,
+      "win_rate": 90.0,
+      "avg_return": 4.203,
+      "median_return": 3.711
+    },
+    "20-25": {
+      "n": 9,
+      "win_rate": 66.7,
+      "avg_return": 3.07,
+      "median_return": 3.1
+    },
+    "25-30": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 4.337,
+      "median_return": 3.868
+    },
+    "30-35": {
+      "n": 15,
+      "win_rate": 60.0,
+      "avg_return": 0.762,
+      "median_return": 1.534
+    },
+    "35-40": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": 1.988,
+      "median_return": 2.258
+    },
+    "40-45": {
+      "n": 12,
+      "win_rate": 66.7,
+      "avg_return": 1.219,
+      "median_return": 1.368
+    },
+    "45-50": {
+      "n": 12,
+      "win_rate": 91.7,
+      "avg_return": 2.903,
+      "median_return": 2.822
+    },
+    "50-55": {
+      "n": 12,
+      "win_rate": 33.3,
+      "avg_return": -1.819,
+      "median_return": -2.551
+    },
+    "55-60": {
+      "n": 10,
+      "win_rate": 80.0,
+      "avg_return": 1.894,
+      "median_return": 2.349
+    },
+    "60-65": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -0.373,
+      "median_return": -0.921
+    },
+    "65-70": {
+      "n": 11,
+      "win_rate": 72.7,
+      "avg_return": 2.944,
+      "median_return": 2.74
+    },
+    "70-75": {
+      "n": 8,
+      "win_rate": 37.5,
+      "avg_return": -1.945,
+      "median_return": -2.172
+    },
+    "75-80": {
+      "n": 12,
+      "win_rate": 33.3,
+      "avg_return": -1.724,
+      "median_return": -2.132
+    },
+    "80-85": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": 0.125,
+      "median_return": -0.869
+    },
+    "85-90": {
+      "n": 9,
+      "win_rate": 33.3,
+      "avg_return": -1.134,
+      "median_return": -0.987
+    },
+    "90-95": {
+      "n": 11,
+      "win_rate": 27.3,
+      "avg_return": -0.561,
+      "median_return": -2.335
+    },
+    "95-100": {
+      "n": 8,
+      "win_rate": 37.5,
+      "avg_return": -2.735,
+      "median_return": -0.532
+    },
+    "_overall": {
+      "n": 185,
+      "win_rate": 58.9,
+      "avg_return": 1.005,
+      "median_return": 1.261
+    }
+  },
+  "LLY": {
+    "0-5": {
+      "n": 5,
+      "win_rate": 20.0,
+      "avg_return": -2.974,
+      "median_return": -3.512
+    },
+    "5-10": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": 1.061,
+      "median_return": 0.576
+    },
+    "10-15": {
+      "n": 6,
+      "win_rate": 83.3,
+      "avg_return": 3.254,
+      "median_return": 1.997
+    },
+    "15-20": {
+      "n": 6,
+      "win_rate": 66.7,
+      "avg_return": 1.44,
+      "median_return": 3.528
+    },
+    "20-25": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": 1.271,
+      "median_return": 1.982
+    },
+    "25-30": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": -0.093,
+      "median_return": 2.319
+    },
+    "30-35": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": 0.312,
+      "median_return": 1.126
+    },
+    "35-40": {
+      "n": 5,
+      "win_rate": 60.0,
+      "avg_return": 0.472,
+      "median_return": 2.955
+    },
+    "40-45": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": -1.022,
+      "median_return": 0.898
+    },
+    "45-50": {
+      "n": 9,
+      "win_rate": 55.6,
+      "avg_return": -1.034,
+      "median_return": 0.271
+    },
+    "50-55": {
+      "n": 10,
+      "win_rate": 50.0,
+      "avg_return": -0.539,
+      "median_return": 0.392
+    },
+    "55-60": {
+      "n": 13,
+      "win_rate": 53.8,
+      "avg_return": 0.337,
+      "median_return": 0.678
+    },
+    "60-65": {
+      "n": 13,
+      "win_rate": 61.5,
+      "avg_return": -1.647,
+      "median_return": 0.779
+    },
+    "65-70": {
+      "n": 7,
+      "win_rate": 28.6,
+      "avg_return": -2.847,
+      "median_return": -6.051
+    },
+    "70-75": {
+      "n": 14,
+      "win_rate": 78.6,
+      "avg_return": 1.307,
+      "median_return": 1.027
+    },
+    "75-80": {
+      "n": 11,
+      "win_rate": 81.8,
+      "avg_return": 2.616,
+      "median_return": 2.63
+    },
+    "80-85": {
+      "n": 11,
+      "win_rate": 45.5,
+      "avg_return": -1.932,
+      "median_return": -1.961
+    },
+    "85-90": {
+      "n": 12,
+      "win_rate": 66.7,
+      "avg_return": 1.32,
+      "median_return": 2.37
+    },
+    "90-95": {
+      "n": 11,
+      "win_rate": 90.9,
+      "avg_return": 2.689,
+      "median_return": 2.427
+    },
+    "95-100": {
+      "n": 9,
+      "win_rate": 88.9,
+      "avg_return": 4.102,
+      "median_return": 2.186
+    },
+    "_overall": {
+      "n": 180,
+      "win_rate": 63.3,
+      "avg_return": 0.463,
+      "median_return": 1.139
+    }
+  },
+  "TSM": {
+    "0-5": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": 2.83,
+      "median_return": 3.86
+    },
+    "5-10": {
+      "n": 7,
+      "win_rate": 85.7,
+      "avg_return": 5.051,
+      "median_return": 2.665
+    },
+    "10-15": {
+      "n": 6,
+      "win_rate": 83.3,
+      "avg_return": 4.988,
+      "median_return": 4.046
+    },
+    "15-20": {
+      "n": 5,
+      "win_rate": 100.0,
+      "avg_return": 7.588,
+      "median_return": 7.785
+    },
+    "20-25": {
+      "n": 12,
+      "win_rate": 83.3,
+      "avg_return": 5.363,
+      "median_return": 4.692
+    },
+    "25-30": {
+      "n": 12,
+      "win_rate": 66.7,
+      "avg_return": 2.33,
+      "median_return": 2.253
+    },
+    "30-35": {
+      "n": 9,
+      "win_rate": 22.2,
+      "avg_return": -2.806,
+      "median_return": -3.077
+    },
+    "35-40": {
+      "n": 17,
+      "win_rate": 64.7,
+      "avg_return": 1.621,
+      "median_return": 3.486
+    },
+    "40-45": {
+      "n": 8,
+      "win_rate": 25.0,
+      "avg_return": -1.264,
+      "median_return": -2.045
+    },
+    "45-50": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": 1.084,
+      "median_return": 1.235
+    },
+    "50-55": {
+      "n": 14,
+      "win_rate": 42.9,
+      "avg_return": -1.438,
+      "median_return": -0.865
+    },
+    "55-60": {
+      "n": 19,
+      "win_rate": 68.4,
+      "avg_return": -0.015,
+      "median_return": 0.724
+    },
+    "60-65": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 3.905,
+      "median_return": 2.874
+    },
+    "65-70": {
+      "n": 14,
+      "win_rate": 71.4,
+      "avg_return": 2.097,
+      "median_return": 1.945
+    },
+    "70-75": {
+      "n": 13,
+      "win_rate": 76.9,
+      "avg_return": 3.578,
+      "median_return": 1.485
+    },
+    "75-80": {
+      "n": 12,
+      "win_rate": 33.3,
+      "avg_return": -0.387,
+      "median_return": -2.185
+    },
+    "80-85": {
+      "n": 17,
+      "win_rate": 47.1,
+      "avg_return": -0.158,
+      "median_return": -0.029
+    },
+    "85-90": {
+      "n": 10,
+      "win_rate": 30.0,
+      "avg_return": -1.182,
+      "median_return": -1.047
+    },
+    "90-95": {
+      "n": 14,
+      "win_rate": 71.4,
+      "avg_return": 1.964,
+      "median_return": 1.89
+    },
+    "95-100": {
+      "n": 11,
+      "win_rate": 45.5,
+      "avg_return": -1.213,
+      "median_return": -0.062
+    },
+    "_overall": {
+      "n": 222,
+      "win_rate": 59.5,
+      "avg_return": 1.306,
+      "median_return": 1.082
+    }
+  },
+  "ORCL": {
+    "0-5": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": 0.163,
+      "median_return": -0.006
+    },
+    "5-10": {
+      "n": 3,
+      "win_rate": 0.0,
+      "avg_return": -0.83,
+      "median_return": -0.756
+    },
+    "10-15": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": 0.723,
+      "median_return": 0.608
+    },
+    "15-20": {
+      "n": 16,
+      "win_rate": 37.5,
+      "avg_return": -0.01,
+      "median_return": -0.948
+    },
+    "20-25": {
+      "n": 12,
+      "win_rate": 66.7,
+      "avg_return": 2.312,
+      "median_return": 0.221
+    },
+    "25-30": {
+      "n": 17,
+      "win_rate": 29.4,
+      "avg_return": -1.289,
+      "median_return": -1.405
+    },
+    "30-35": {
+      "n": 13,
+      "win_rate": 53.8,
+      "avg_return": 1.619,
+      "median_return": 1.387
+    },
+    "35-40": {
+      "n": 17,
+      "win_rate": 41.2,
+      "avg_return": 0.404,
+      "median_return": -0.907
+    },
+    "40-45": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": 1.626,
+      "median_return": 1.846
+    },
+    "45-50": {
+      "n": 15,
+      "win_rate": 46.7,
+      "avg_return": -1.151,
+      "median_return": -0.941
+    },
+    "50-55": {
+      "n": 20,
+      "win_rate": 65.0,
+      "avg_return": 1.099,
+      "median_return": 1.328
+    },
+    "55-60": {
+      "n": 17,
+      "win_rate": 70.6,
+      "avg_return": 5.218,
+      "median_return": 2.209
+    },
+    "60-65": {
+      "n": 18,
+      "win_rate": 66.7,
+      "avg_return": 1.797,
+      "median_return": 1.787
+    },
+    "65-70": {
+      "n": 13,
+      "win_rate": 38.5,
+      "avg_return": 0.976,
+      "median_return": -1.482
+    },
+    "70-75": {
+      "n": 16,
+      "win_rate": 56.2,
+      "avg_return": 2.986,
+      "median_return": 0.763
+    },
+    "75-80": {
+      "n": 10,
+      "win_rate": 90.0,
+      "avg_return": 5.944,
+      "median_return": 3.125
+    },
+    "80-85": {
+      "n": 11,
+      "win_rate": 72.7,
+      "avg_return": 2.54,
+      "median_return": 1.503
+    },
+    "85-90": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": -0.061,
+      "median_return": 0.741
+    },
+    "90-95": {
+      "n": 13,
+      "win_rate": 61.5,
+      "avg_return": -1.345,
+      "median_return": 0.376
+    },
+    "95-100": {
+      "n": 9,
+      "win_rate": 55.6,
+      "avg_return": 1.395,
+      "median_return": 2.092
+    },
+    "_overall": {
+      "n": 251,
+      "win_rate": 55.8,
+      "avg_return": 1.299,
+      "median_return": 0.46
+    }
+  },
+  "OXY": {
+    "0-5": {
+      "n": 1,
+      "win_rate": 100.0,
+      "avg_return": 1.586,
+      "median_return": 1.586
+    },
+    "10-15": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": 2.788,
+      "median_return": -0.953
+    },
+    "20-25": {
+      "n": 2,
+      "win_rate": 100.0,
+      "avg_return": 4.717,
+      "median_return": 4.717
+    },
+    "25-30": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -5.093,
+      "median_return": -5.093
+    },
+    "30-35": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": 1.512,
+      "median_return": 0.978
+    },
+    "40-45": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -1.513,
+      "median_return": -2.891
+    },
+    "45-50": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -4.862,
+      "median_return": -4.862
+    },
+    "50-55": {
+      "n": 2,
+      "win_rate": 100.0,
+      "avg_return": 6.879,
+      "median_return": 6.879
+    },
+    "55-60": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -2.362,
+      "median_return": -2.362
+    },
+    "60-65": {
+      "n": 2,
+      "win_rate": 0.0,
+      "avg_return": -4.866,
+      "median_return": -4.866
+    },
+    "65-70": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": 1.659,
+      "median_return": 5.209
+    },
+    "70-75": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": -3.134,
+      "median_return": -3.134
+    },
+    "75-80": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": -5.045,
+      "median_return": -5.045
+    },
+    "80-85": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": -1.476,
+      "median_return": -1.476
+    },
+    "85-90": {
+      "n": 2,
+      "win_rate": 100.0,
+      "avg_return": 2.184,
+      "median_return": 2.184
+    },
+    "90-95": {
+      "n": 3,
+      "win_rate": 100.0,
+      "avg_return": 8.474,
+      "median_return": 4.868
+    },
+    "95-100": {
+      "n": 2,
+      "win_rate": 0.0,
+      "avg_return": -3.798,
+      "median_return": -3.798
+    },
+    "_overall": {
+      "n": 35,
+      "win_rate": 54.3,
+      "avg_return": 0.541,
+      "median_return": 0.978
+    }
+  },
+  "XOM": {
+    "0-5": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": -4.978,
+      "median_return": -4.978
+    },
+    "5-10": {
+      "n": 2,
+      "win_rate": 100.0,
+      "avg_return": 2.148,
+      "median_return": 2.148
+    },
+    "10-15": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -0.153,
+      "median_return": -0.153
+    },
+    "15-20": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": -0.003,
+      "median_return": 0.049
+    },
+    "20-25": {
+      "n": 2,
+      "win_rate": 0.0,
+      "avg_return": -5.999,
+      "median_return": -5.999
+    },
+    "25-30": {
+      "n": 4,
+      "win_rate": 0.0,
+      "avg_return": -6.299,
+      "median_return": -4.954
+    },
+    "30-35": {
+      "n": 2,
+      "win_rate": 100.0,
+      "avg_return": 3.838,
+      "median_return": 3.838
+    },
+    "35-40": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": 2.232,
+      "median_return": -0.407
+    },
+    "40-45": {
+      "n": 1,
+      "win_rate": 100.0,
+      "avg_return": 0.212,
+      "median_return": 0.212
+    },
+    "45-50": {
+      "n": 6,
+      "win_rate": 83.3,
+      "avg_return": 2.477,
+      "median_return": 2.344
+    },
+    "50-55": {
+      "n": 5,
+      "win_rate": 0.0,
+      "avg_return": -1.296,
+      "median_return": -0.617
+    },
+    "55-60": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": -1.95,
+      "median_return": -1.863
+    },
+    "60-65": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": -0.632,
+      "median_return": 0.157
+    },
+    "65-70": {
+      "n": 8,
+      "win_rate": 87.5,
+      "avg_return": 2.901,
+      "median_return": 3.895
+    },
+    "70-75": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": 1.738,
+      "median_return": 1.178
+    },
+    "75-80": {
+      "n": 5,
+      "win_rate": 60.0,
+      "avg_return": 3.421,
+      "median_return": 2.824
+    },
+    "80-85": {
+      "n": 9,
+      "win_rate": 88.9,
+      "avg_return": 2.036,
+      "median_return": 2.981
+    },
+    "85-90": {
+      "n": 8,
+      "win_rate": 62.5,
+      "avg_return": 0.823,
+      "median_return": 1.442
+    },
+    "90-95": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": 1.18,
+      "median_return": 1.253
+    },
+    "95-100": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": -3.96,
+      "median_return": -3.96
+    },
+    "_overall": {
+      "n": 89,
+      "win_rate": 57.3,
+      "avg_return": 0.587,
+      "median_return": 0.897
+    }
+  },
+  "CVX": {
+    "0-5": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": -0.182,
+      "median_return": -0.182
+    },
+    "5-10": {
+      "n": 3,
+      "win_rate": 100.0,
+      "avg_return": 3.466,
+      "median_return": 3.639
+    },
+    "10-15": {
+      "n": 1,
+      "win_rate": 100.0,
+      "avg_return": 0.69,
+      "median_return": 0.69
+    },
+    "15-20": {
+      "n": 4,
+      "win_rate": 100.0,
+      "avg_return": 1.822,
+      "median_return": 1.715
+    },
+    "20-25": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -1.259,
+      "median_return": -0.926
+    },
+    "25-30": {
+      "n": 4,
+      "win_rate": 0.0,
+      "avg_return": -2.104,
+      "median_return": -1.803
+    },
+    "30-35": {
+      "n": 3,
+      "win_rate": 0.0,
+      "avg_return": -7.577,
+      "median_return": -3.045
+    },
+    "35-40": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": 0.083,
+      "median_return": 0.019
+    },
+    "40-45": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -2.899,
+      "median_return": -0.474
+    },
+    "45-50": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -3.341,
+      "median_return": -0.732
+    },
+    "50-55": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": -0.639,
+      "median_return": 1.682
+    },
+    "55-60": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 0.903,
+      "median_return": 1.352
+    },
+    "60-65": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -1.948,
+      "median_return": -0.334
+    },
+    "65-70": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -1.641,
+      "median_return": -1.641
+    },
+    "70-75": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": 4.151,
+      "median_return": 6.1
+    },
+    "75-80": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": -0.801,
+      "median_return": -1.642
+    },
+    "80-85": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 1.026,
+      "median_return": 1.961
+    },
+    "85-90": {
+      "n": 1,
+      "win_rate": 100.0,
+      "avg_return": 1.739,
+      "median_return": 1.739
+    },
+    "90-95": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": -0.472,
+      "median_return": 0.121
+    },
+    "95-100": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": 1.712,
+      "median_return": 1.385
+    },
+    "_overall": {
+      "n": 75,
+      "win_rate": 57.3,
+      "avg_return": -0.394,
+      "median_return": 0.179
+    }
+  },
+  "JPM": {
+    "0-5": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -1.531,
+      "median_return": -2.316
+    },
+    "5-10": {
+      "n": 5,
+      "win_rate": 20.0,
+      "avg_return": -2.421,
+      "median_return": -1.422
+    },
+    "10-15": {
+      "n": 5,
+      "win_rate": 40.0,
+      "avg_return": 0.8,
+      "median_return": -0.205
+    },
+    "15-20": {
+      "n": 8,
+      "win_rate": 25.0,
+      "avg_return": -1.68,
+      "median_return": -1.613
+    },
+    "20-25": {
+      "n": 12,
+      "win_rate": 58.3,
+      "avg_return": -0.46,
+      "median_return": 1.179
+    },
+    "25-30": {
+      "n": 11,
+      "win_rate": 72.7,
+      "avg_return": 0.348,
+      "median_return": 0.924
+    },
+    "30-35": {
+      "n": 13,
+      "win_rate": 76.9,
+      "avg_return": 0.882,
+      "median_return": 2.272
+    },
+    "35-40": {
+      "n": 13,
+      "win_rate": 38.5,
+      "avg_return": -0.895,
+      "median_return": -1.171
+    },
+    "40-45": {
+      "n": 12,
+      "win_rate": 41.7,
+      "avg_return": -0.815,
+      "median_return": -0.77
+    },
+    "45-50": {
+      "n": 10,
+      "win_rate": 20.0,
+      "avg_return": -1.171,
+      "median_return": -1.827
+    },
+    "50-55": {
+      "n": 10,
+      "win_rate": 40.0,
+      "avg_return": -0.472,
+      "median_return": -0.799
+    },
+    "55-60": {
+      "n": 11,
+      "win_rate": 72.7,
+      "avg_return": 1.127,
+      "median_return": 2.037
+    },
+    "60-65": {
+      "n": 13,
+      "win_rate": 69.2,
+      "avg_return": 1.597,
+      "median_return": 2.083
+    },
+    "65-70": {
+      "n": 8,
+      "win_rate": 62.5,
+      "avg_return": 2.003,
+      "median_return": 3.343
+    },
+    "70-75": {
+      "n": 9,
+      "win_rate": 77.8,
+      "avg_return": 1.656,
+      "median_return": 1.332
+    },
+    "75-80": {
+      "n": 12,
+      "win_rate": 58.3,
+      "avg_return": 1.003,
+      "median_return": 1.319
+    },
+    "80-85": {
+      "n": 10,
+      "win_rate": 90.0,
+      "avg_return": 2.375,
+      "median_return": 1.829
+    },
+    "85-90": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 2.279,
+      "median_return": 1.972
+    },
+    "90-95": {
+      "n": 9,
+      "win_rate": 55.6,
+      "avg_return": -0.311,
+      "median_return": 1.101
+    },
+    "95-100": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -0.153,
+      "median_return": -0.308
+    },
+    "_overall": {
+      "n": 187,
+      "win_rate": 56.1,
+      "avg_return": 0.31,
+      "median_return": 0.85
+    }
+  },
+  "BAC": {
+    "5-10": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -0.385,
+      "median_return": -1.033
+    },
+    "10-15": {
+      "n": 5,
+      "win_rate": 20.0,
+      "avg_return": -1.501,
+      "median_return": -1.496
+    },
+    "15-20": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": -0.967,
+      "median_return": -0.928
+    },
+    "20-25": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": 0.274,
+      "median_return": 0.274
+    },
+    "25-30": {
+      "n": 11,
+      "win_rate": 27.3,
+      "avg_return": -1.353,
+      "median_return": -1.528
+    },
+    "30-35": {
+      "n": 12,
+      "win_rate": 25.0,
+      "avg_return": -1.75,
+      "median_return": -2.1
+    },
+    "35-40": {
+      "n": 12,
+      "win_rate": 58.3,
+      "avg_return": 1.265,
+      "median_return": 1.718
+    },
+    "40-45": {
+      "n": 9,
+      "win_rate": 77.8,
+      "avg_return": 1.815,
+      "median_return": 0.775
+    },
+    "45-50": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": -0.003,
+      "median_return": 0.423
+    },
+    "50-55": {
+      "n": 10,
+      "win_rate": 40.0,
+      "avg_return": -0.613,
+      "median_return": -0.78
+    },
+    "55-60": {
+      "n": 7,
+      "win_rate": 14.3,
+      "avg_return": -2.864,
+      "median_return": -3.095
+    },
+    "60-65": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 1.626,
+      "median_return": 1.314
+    },
+    "65-70": {
+      "n": 7,
+      "win_rate": 85.7,
+      "avg_return": 1.894,
+      "median_return": 2.247
+    },
+    "70-75": {
+      "n": 7,
+      "win_rate": 28.6,
+      "avg_return": -1.645,
+      "median_return": -1.263
+    },
+    "75-80": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -0.316,
+      "median_return": -0.331
+    },
+    "80-85": {
+      "n": 10,
+      "win_rate": 50.0,
+      "avg_return": 0.015,
+      "median_return": -0.077
+    },
+    "85-90": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -0.891,
+      "median_return": -0.653
+    },
+    "90-95": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -0.992,
+      "median_return": -0.56
+    },
+    "95-100": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -1.988,
+      "median_return": -1.126
+    },
+    "_overall": {
+      "n": 137,
+      "win_rate": 46.7,
+      "avg_return": -0.329,
+      "median_return": -0.276
+    }
+  },
+  "ES=F": {
+    "0-5": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": 0.502,
+      "median_return": 0.107
+    },
+    "5-10": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": -0.325,
+      "median_return": 0.4
+    },
+    "10-15": {
+      "n": 3,
+      "win_rate": 100.0,
+      "avg_return": 3.355,
+      "median_return": 3.468
+    },
+    "15-20": {
+      "n": 10,
+      "win_rate": 80.0,
+      "avg_return": 1.278,
+      "median_return": 2.014
+    },
+    "20-25": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 0.823,
+      "median_return": 1.402
+    },
+    "25-30": {
+      "n": 9,
+      "win_rate": 77.8,
+      "avg_return": 0.911,
+      "median_return": 1.601
+    },
+    "30-35": {
+      "n": 17,
+      "win_rate": 64.7,
+      "avg_return": 0.389,
+      "median_return": 0.433
+    },
+    "35-40": {
+      "n": 14,
+      "win_rate": 78.6,
+      "avg_return": 0.877,
+      "median_return": 1.009
+    },
+    "40-45": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 0.582,
+      "median_return": 0.796
+    },
+    "45-50": {
+      "n": 15,
+      "win_rate": 53.3,
+      "avg_return": -0.079,
+      "median_return": 0.436
+    },
+    "50-55": {
+      "n": 13,
+      "win_rate": 61.5,
+      "avg_return": 0.06,
+      "median_return": 0.324
+    },
+    "55-60": {
+      "n": 14,
+      "win_rate": 71.4,
+      "avg_return": 0.705,
+      "median_return": 0.974
+    },
+    "60-65": {
+      "n": 15,
+      "win_rate": 53.3,
+      "avg_return": 0.156,
+      "median_return": 1.041
+    },
+    "65-70": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": 0.479,
+      "median_return": 0.365
+    },
+    "70-75": {
+      "n": 10,
+      "win_rate": 70.0,
+      "avg_return": 0.198,
+      "median_return": 0.199
+    },
+    "75-80": {
+      "n": 14,
+      "win_rate": 57.1,
+      "avg_return": -0.411,
+      "median_return": 0.226
+    },
+    "80-85": {
+      "n": 10,
+      "win_rate": 70.0,
+      "avg_return": 0.042,
+      "median_return": 0.383
+    },
+    "85-90": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -0.249,
+      "median_return": 0.173
+    },
+    "90-95": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": 0.445,
+      "median_return": 0.771
+    },
+    "95-100": {
+      "n": 3,
+      "win_rate": 66.7,
+      "avg_return": 0.901,
+      "median_return": 0.819
+    },
+    "_overall": {
+      "n": 188,
+      "win_rate": 65.4,
+      "avg_return": 0.387,
+      "median_return": 0.713
+    }
+  },
+  "NQ=F": {
+    "0-5": {
+      "n": 4,
+      "win_rate": 75.0,
+      "avg_return": 1.137,
+      "median_return": 2.02
+    },
+    "5-10": {
+      "n": 3,
+      "win_rate": 100.0,
+      "avg_return": 3.768,
+      "median_return": 4.378
+    },
+    "10-15": {
+      "n": 3,
+      "win_rate": 100.0,
+      "avg_return": 2.753,
+      "median_return": 2.009
+    },
+    "15-20": {
+      "n": 11,
+      "win_rate": 72.7,
+      "avg_return": 1.179,
+      "median_return": 1.778
+    },
+    "20-25": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 0.345,
+      "median_return": 0.597
+    },
+    "25-30": {
+      "n": 9,
+      "win_rate": 77.8,
+      "avg_return": 0.647,
+      "median_return": 1.573
+    },
+    "30-35": {
+      "n": 9,
+      "win_rate": 66.7,
+      "avg_return": 0.753,
+      "median_return": 0.537
+    },
+    "35-40": {
+      "n": 10,
+      "win_rate": 80.0,
+      "avg_return": 0.63,
+      "median_return": 0.918
+    },
+    "40-45": {
+      "n": 10,
+      "win_rate": 70.0,
+      "avg_return": 1.176,
+      "median_return": 0.842
+    },
+    "45-50": {
+      "n": 11,
+      "win_rate": 63.6,
+      "avg_return": 0.494,
+      "median_return": 0.744
+    },
+    "50-55": {
+      "n": 9,
+      "win_rate": 55.6,
+      "avg_return": 0.067,
+      "median_return": 0.459
+    },
+    "55-60": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -0.351,
+      "median_return": -0.276
+    },
+    "60-65": {
+      "n": 9,
+      "win_rate": 44.4,
+      "avg_return": 0.231,
+      "median_return": -0.286
+    },
+    "65-70": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": 0.112,
+      "median_return": 1.068
+    },
+    "70-75": {
+      "n": 16,
+      "win_rate": 31.2,
+      "avg_return": -0.639,
+      "median_return": -0.343
+    },
+    "75-80": {
+      "n": 10,
+      "win_rate": 70.0,
+      "avg_return": 1.142,
+      "median_return": 1.405
+    },
+    "80-85": {
+      "n": 10,
+      "win_rate": 40.0,
+      "avg_return": 0.197,
+      "median_return": -0.545
+    },
+    "85-90": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -0.382,
+      "median_return": -1.218
+    },
+    "90-95": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -0.347,
+      "median_return": -0.11
+    },
+    "95-100": {
+      "n": 5,
+      "win_rate": 80.0,
+      "avg_return": 0.784,
+      "median_return": 0.89
+    },
+    "_overall": {
+      "n": 164,
+      "win_rate": 60.4,
+      "avg_return": 0.479,
+      "median_return": 0.636
+    }
+  },
+  "BTC-USD": {
+    "0-5": {
+      "n": 6,
+      "win_rate": 66.7,
+      "avg_return": 4.511,
+      "median_return": 2.061
+    },
+    "5-10": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 1.421,
+      "median_return": 2.67
+    },
+    "10-15": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": 0.864,
+      "median_return": -0.35
+    },
+    "15-20": {
+      "n": 11,
+      "win_rate": 72.7,
+      "avg_return": 2.741,
+      "median_return": 1.635
+    },
+    "20-25": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": -0.238,
+      "median_return": 0.715
+    },
+    "25-30": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 1.552,
+      "median_return": 1.595
+    },
+    "30-35": {
+      "n": 9,
+      "win_rate": 77.8,
+      "avg_return": 0.79,
+      "median_return": 1.306
+    },
+    "35-40": {
+      "n": 9,
+      "win_rate": 33.3,
+      "avg_return": 1.301,
+      "median_return": -0.509
+    },
+    "40-45": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -0.895,
+      "median_return": 0.134
+    },
+    "45-50": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": -1.31,
+      "median_return": 0.545
+    },
+    "50-55": {
+      "n": 10,
+      "win_rate": 70.0,
+      "avg_return": 2.213,
+      "median_return": 2.061
+    },
+    "55-60": {
+      "n": 6,
+      "win_rate": 66.7,
+      "avg_return": 2.261,
+      "median_return": 1.582
+    },
+    "60-65": {
+      "n": 7,
+      "win_rate": 14.3,
+      "avg_return": -2.718,
+      "median_return": -1.728
+    },
+    "65-70": {
+      "n": 9,
+      "win_rate": 33.3,
+      "avg_return": -2.828,
+      "median_return": -1.467
+    },
+    "70-75": {
+      "n": 9,
+      "win_rate": 55.6,
+      "avg_return": -0.301,
+      "median_return": 0.014
+    },
+    "75-80": {
+      "n": 13,
+      "win_rate": 53.8,
+      "avg_return": 2.845,
+      "median_return": 0.615
+    },
+    "80-85": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": 0.38,
+      "median_return": -0.621
+    },
+    "85-90": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": 2.875,
+      "median_return": 1.465
+    },
+    "90-95": {
+      "n": 12,
+      "win_rate": 50.0,
+      "avg_return": 4.171,
+      "median_return": 0.038
+    },
+    "95-100": {
+      "n": 12,
+      "win_rate": 75.0,
+      "avg_return": 3.325,
+      "median_return": 4.317
+    },
+    "_overall": {
+      "n": 174,
+      "win_rate": 56.3,
+      "avg_return": 1.342,
+      "median_return": 0.837
+    }
+  },
+  "COST": {
+    "0-5": {
+      "n": 8,
+      "win_rate": 100.0,
+      "avg_return": 2.123,
+      "median_return": 1.193
+    },
+    "5-10": {
+      "n": 5,
+      "win_rate": 100.0,
+      "avg_return": 3.91,
+      "median_return": 4.259
+    },
+    "10-15": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 1.202,
+      "median_return": 3.511
+    },
+    "15-20": {
+      "n": 9,
+      "win_rate": 77.8,
+      "avg_return": 1.588,
+      "median_return": 2.607
+    },
+    "20-25": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": 1.172,
+      "median_return": 1.518
+    },
+    "25-30": {
+      "n": 8,
+      "win_rate": 62.5,
+      "avg_return": -0.93,
+      "median_return": 1.565
+    },
+    "30-35": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": 0.883,
+      "median_return": 0.851
+    },
+    "35-40": {
+      "n": 14,
+      "win_rate": 57.1,
+      "avg_return": 0.162,
+      "median_return": 0.398
+    },
+    "40-45": {
+      "n": 7,
+      "win_rate": 85.7,
+      "avg_return": 1.183,
+      "median_return": 2.099
+    },
+    "45-50": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": -0.603,
+      "median_return": 0.393
+    },
+    "50-55": {
+      "n": 13,
+      "win_rate": 46.2,
+      "avg_return": 0.37,
+      "median_return": -0.053
+    },
+    "55-60": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 1.063,
+      "median_return": 1.006
+    },
+    "60-65": {
+      "n": 9,
+      "win_rate": 44.4,
+      "avg_return": -1.004,
+      "median_return": -1.061
+    },
+    "65-70": {
+      "n": 14,
+      "win_rate": 42.9,
+      "avg_return": -0.599,
+      "median_return": -0.71
+    },
+    "70-75": {
+      "n": 17,
+      "win_rate": 58.8,
+      "avg_return": 0.57,
+      "median_return": 0.673
+    },
+    "75-80": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 2.062,
+      "median_return": 1.149
+    },
+    "80-85": {
+      "n": 9,
+      "win_rate": 44.4,
+      "avg_return": 0.469,
+      "median_return": -0.158
+    },
+    "85-90": {
+      "n": 12,
+      "win_rate": 58.3,
+      "avg_return": 1.079,
+      "median_return": 0.964
+    },
+    "90-95": {
+      "n": 6,
+      "win_rate": 50.0,
+      "avg_return": -0.504,
+      "median_return": 0.75
+    },
+    "95-100": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": 0.166,
+      "median_return": 0.677
+    },
+    "_overall": {
+      "n": 187,
+      "win_rate": 61.0,
+      "avg_return": 0.61,
+      "median_return": 1.01
+    }
+  },
+  "XLI": {
+    "0-5": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -1.704,
+      "median_return": -1.811
+    },
+    "5-10": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -1.012,
+      "median_return": -0.638
+    },
+    "10-15": {
+      "n": 6,
+      "win_rate": 16.7,
+      "avg_return": -1.241,
+      "median_return": -0.516
+    },
+    "15-20": {
+      "n": 7,
+      "win_rate": 85.7,
+      "avg_return": 1.234,
+      "median_return": 1.388
+    },
+    "20-25": {
+      "n": 17,
+      "win_rate": 70.6,
+      "avg_return": 1.203,
+      "median_return": 1.122
+    },
+    "25-30": {
+      "n": 19,
+      "win_rate": 63.2,
+      "avg_return": 0.675,
+      "median_return": 0.934
+    },
+    "30-35": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": 0.092,
+      "median_return": 0.074
+    },
+    "35-40": {
+      "n": 14,
+      "win_rate": 71.4,
+      "avg_return": 0.696,
+      "median_return": 1.859
+    },
+    "40-45": {
+      "n": 13,
+      "win_rate": 61.5,
+      "avg_return": 0.25,
+      "median_return": 0.529
+    },
+    "45-50": {
+      "n": 18,
+      "win_rate": 55.6,
+      "avg_return": 0.188,
+      "median_return": 0.416
+    },
+    "50-55": {
+      "n": 9,
+      "win_rate": 88.9,
+      "avg_return": 1.477,
+      "median_return": 1.887
+    },
+    "55-60": {
+      "n": 12,
+      "win_rate": 66.7,
+      "avg_return": 0.906,
+      "median_return": 1.793
+    },
+    "60-65": {
+      "n": 15,
+      "win_rate": 66.7,
+      "avg_return": 0.934,
+      "median_return": 1.15
+    },
+    "65-70": {
+      "n": 13,
+      "win_rate": 92.3,
+      "avg_return": 1.428,
+      "median_return": 1.009
+    },
+    "70-75": {
+      "n": 8,
+      "win_rate": 62.5,
+      "avg_return": 1.272,
+      "median_return": 1.122
+    },
+    "75-80": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": 0.324,
+      "median_return": 1.363
+    },
+    "80-85": {
+      "n": 18,
+      "win_rate": 66.7,
+      "avg_return": 0.706,
+      "median_return": 1.013
+    },
+    "85-90": {
+      "n": 9,
+      "win_rate": 77.8,
+      "avg_return": 0.855,
+      "median_return": 0.466
+    },
+    "90-95": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 0.686,
+      "median_return": 1.468
+    },
+    "95-100": {
+      "n": 5,
+      "win_rate": 60.0,
+      "avg_return": 0.5,
+      "median_return": 1.074
+    },
+    "_overall": {
+      "n": 215,
+      "win_rate": 66.0,
+      "avg_return": 0.64,
+      "median_return": 0.934
+    }
+  },
+  "CNX1.L": {
+    "0-5": {
+      "n": 7,
+      "win_rate": 42.9,
+      "avg_return": -0.81,
+      "median_return": -1.199
+    },
+    "5-10": {
+      "n": 7,
+      "win_rate": 85.7,
+      "avg_return": 1.334,
+      "median_return": 1.809
+    },
+    "10-15": {
+      "n": 6,
+      "win_rate": 66.7,
+      "avg_return": -0.447,
+      "median_return": 1.285
+    },
+    "15-20": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 0.869,
+      "median_return": 1.743
+    },
+    "20-25": {
+      "n": 10,
+      "win_rate": 80.0,
+      "avg_return": 0.347,
+      "median_return": 1.129
+    },
+    "25-30": {
+      "n": 9,
+      "win_rate": 88.9,
+      "avg_return": 0.795,
+      "median_return": 0.471
+    },
+    "30-35": {
+      "n": 13,
+      "win_rate": 46.2,
+      "avg_return": 0.349,
+      "median_return": -0.032
+    },
+    "35-40": {
+      "n": 8,
+      "win_rate": 25.0,
+      "avg_return": -1.065,
+      "median_return": -0.835
+    },
+    "40-45": {
+      "n": 13,
+      "win_rate": 53.8,
+      "avg_return": 0.263,
+      "median_return": 0.46
+    },
+    "45-50": {
+      "n": 13,
+      "win_rate": 38.5,
+      "avg_return": -0.518,
+      "median_return": -1.128
+    },
+    "50-55": {
+      "n": 7,
+      "win_rate": 28.6,
+      "avg_return": -0.59,
+      "median_return": -1.151
+    },
+    "55-60": {
+      "n": 13,
+      "win_rate": 53.8,
+      "avg_return": -0.528,
+      "median_return": 0.939
+    },
+    "60-65": {
+      "n": 16,
+      "win_rate": 81.2,
+      "avg_return": 0.789,
+      "median_return": 1.142
+    },
+    "65-70": {
+      "n": 11,
+      "win_rate": 45.5,
+      "avg_return": -0.18,
+      "median_return": -0.06
+    },
+    "70-75": {
+      "n": 15,
+      "win_rate": 33.3,
+      "avg_return": -0.641,
+      "median_return": -0.17
+    },
+    "75-80": {
+      "n": 9,
+      "win_rate": 66.7,
+      "avg_return": -0.043,
+      "median_return": 0.506
+    },
+    "80-85": {
+      "n": 10,
+      "win_rate": 40.0,
+      "avg_return": -0.49,
+      "median_return": -0.6
+    },
+    "85-90": {
+      "n": 8,
+      "win_rate": 87.5,
+      "avg_return": 1.549,
+      "median_return": 0.671
+    },
+    "90-95": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": 0.389,
+      "median_return": 0.063
+    },
+    "95-100": {
+      "n": 10,
+      "win_rate": 50.0,
+      "avg_return": 0.058,
+      "median_return": -0.128
+    },
+    "_overall": {
+      "n": 201,
+      "win_rate": 56.2,
+      "avg_return": 0.06,
+      "median_return": 0.32
+    }
+  },
+  "CSP1.L": {
+    "0-5": {
+      "n": 4,
+      "win_rate": 50.0,
+      "avg_return": 1.436,
+      "median_return": 0.691
+    },
+    "5-10": {
+      "n": 7,
+      "win_rate": 71.4,
+      "avg_return": 1.172,
+      "median_return": 1.176
+    },
+    "10-15": {
+      "n": 6,
+      "win_rate": 83.3,
+      "avg_return": 0.848,
+      "median_return": 0.904
+    },
+    "15-20": {
+      "n": 11,
+      "win_rate": 72.7,
+      "avg_return": 0.611,
+      "median_return": 0.545
+    },
+    "20-25": {
+      "n": 14,
+      "win_rate": 71.4,
+      "avg_return": 0.487,
+      "median_return": 0.443
+    },
+    "25-30": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": 0.225,
+      "median_return": 0.079
+    },
+    "30-35": {
+      "n": 10,
+      "win_rate": 60.0,
+      "avg_return": 0.842,
+      "median_return": 0.531
+    },
+    "35-40": {
+      "n": 8,
+      "win_rate": 50.0,
+      "avg_return": -0.151,
+      "median_return": -0.212
+    },
+    "40-45": {
+      "n": 11,
+      "win_rate": 45.5,
+      "avg_return": 0.075,
+      "median_return": -0.294
+    },
+    "45-50": {
+      "n": 13,
+      "win_rate": 46.2,
+      "avg_return": 0.138,
+      "median_return": -0.053
+    },
+    "50-55": {
+      "n": 11,
+      "win_rate": 36.4,
+      "avg_return": -0.082,
+      "median_return": -0.347
+    },
+    "55-60": {
+      "n": 7,
+      "win_rate": 28.6,
+      "avg_return": -0.128,
+      "median_return": -0.368
+    },
+    "60-65": {
+      "n": 9,
+      "win_rate": 44.4,
+      "avg_return": -0.394,
+      "median_return": -0.132
+    },
+    "65-70": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 0.586,
+      "median_return": 0.421
+    },
+    "70-75": {
+      "n": 14,
+      "win_rate": 50.0,
+      "avg_return": 0.238,
+      "median_return": 0.167
+    },
+    "75-80": {
+      "n": 12,
+      "win_rate": 50.0,
+      "avg_return": -0.32,
+      "median_return": -0.026
+    },
+    "80-85": {
+      "n": 15,
+      "win_rate": 60.0,
+      "avg_return": 0.261,
+      "median_return": 0.284
+    },
+    "85-90": {
+      "n": 11,
+      "win_rate": 54.5,
+      "avg_return": 0.358,
+      "median_return": 0.367
+    },
+    "90-95": {
+      "n": 7,
+      "win_rate": 57.1,
+      "avg_return": 0.396,
+      "median_return": 0.517
+    },
+    "95-100": {
+      "n": 8,
+      "win_rate": 75.0,
+      "avg_return": 0.057,
+      "median_return": 0.293
+    },
+    "_overall": {
+      "n": 197,
+      "win_rate": 56.3,
+      "avg_return": 0.278,
+      "median_return": 0.157
+    }
+  },
+  "IGLS.L": {
+    "0-5": {
+      "n": 2,
+      "win_rate": 100.0,
+      "avg_return": 0.379,
+      "median_return": 0.379
+    },
+    "5-10": {
+      "n": 2,
+      "win_rate": 50.0,
+      "avg_return": 0.206,
+      "median_return": 0.206
+    },
+    "10-15": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -0.368,
+      "median_return": -0.368
+    },
+    "15-20": {
+      "n": 2,
+      "win_rate": 100.0,
+      "avg_return": 0.374,
+      "median_return": 0.374
+    },
+    "20-25": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -0.008,
+      "median_return": -0.008
+    },
+    "50-55": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -0.032,
+      "median_return": -0.032
+    },
+    "65-70": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -0.209,
+      "median_return": -0.188
+    },
+    "70-75": {
+      "n": 2,
+      "win_rate": 0.0,
+      "avg_return": -0.179,
+      "median_return": -0.179
+    },
+    "75-80": {
+      "n": 2,
+      "win_rate": 0.0,
+      "avg_return": -0.203,
+      "median_return": -0.203
+    },
+    "80-85": {
+      "n": 3,
+      "win_rate": 33.3,
+      "avg_return": -0.009,
+      "median_return": -0.367
+    },
+    "85-90": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -0.108,
+      "median_return": -0.108
+    },
+    "90-95": {
+      "n": 1,
+      "win_rate": 0.0,
+      "avg_return": -0.473,
+      "median_return": -0.473
+    },
+    "95-100": {
+      "n": 1,
+      "win_rate": 100.0,
+      "avg_return": 0.109,
+      "median_return": 0.109
+    },
+    "_overall": {
+      "n": 22,
+      "win_rate": 36.4,
+      "avg_return": -0.017,
+      "median_return": -0.046
+    }
+  }
+}
