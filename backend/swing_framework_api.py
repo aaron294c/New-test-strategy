@@ -716,6 +716,123 @@ async def _augment_with_macdv_d7_stats(response: Dict[str, Any]) -> Dict[str, An
     return response
 
 
+# ── Momentum Regime (MACD-V > 100) D7 Lookup ────────────────────────────────
+
+_momentum_d7_stats: Dict[str, Dict[str, Any]] | None = None
+
+def _load_momentum_d7_stats() -> Dict[str, Dict[str, Any]]:
+    """Load precomputed momentum regime D7 stats from JSON."""
+    global _momentum_d7_stats
+    if _momentum_d7_stats is not None:
+        return _momentum_d7_stats
+    path = Path(__file__).resolve().parent / "momentum_regime_d7_stats.json"
+    if path.exists():
+        try:
+            _momentum_d7_stats = json.loads(path.read_text())
+        except Exception as e:
+            print(f"  Warning: Could not load momentum D7 stats: {e}")
+            _momentum_d7_stats = {}
+    else:
+        _momentum_d7_stats = {}
+    return _momentum_d7_stats
+
+
+def _pct_to_bucket(pct: float | None) -> str | None:
+    """Map a percentile value to its bucket label (e.g. '15-20')."""
+    if pct is None:
+        return None
+    try:
+        val = float(pct)
+    except Exception:
+        return None
+    if not np.isfinite(val):
+        return None
+    val = min(max(val, 0.0), 99.999)
+    for lo in range(0, 100, 5):
+        if val >= lo and val < lo + 5:
+            return f"{lo}-{lo+5}"
+    return "95-100"
+
+
+async def _augment_with_momentum_regime(response: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Add momentum regime D7 stats to market state.
+
+    When MACD-V > 100: shows backtest win rate, avg/median return for the
+    current RSI-MA percentile bucket under bullish momentum regime (7-day hold).
+    """
+    if response.get("timeframe") == "4h":
+        return response
+
+    market_state = response.get("market_state")
+    if not isinstance(market_state, list) or not market_state:
+        return response
+
+    stats_db = _load_momentum_d7_stats()
+
+    for state in market_state:
+        if not isinstance(state, dict):
+            continue
+
+        # Defaults
+        state["mom_regime_active"] = False
+        state["mom_d7_win_rate"] = None
+        state["mom_d7_avg_return"] = None
+        state["mom_d7_median_return"] = None
+        state["mom_d7_n"] = None
+
+        macdv_daily = state.get("macdv_daily")
+        if macdv_daily is None:
+            continue
+        try:
+            macdv_val = float(macdv_daily)
+        except Exception:
+            continue
+        if not np.isfinite(macdv_val) or macdv_val <= 100.0:
+            continue
+
+        # Momentum regime is active
+        state["mom_regime_active"] = True
+
+        ticker = state.get("ticker")
+        if not isinstance(ticker, str):
+            continue
+
+        ticker_stats = stats_db.get(ticker)
+        if not isinstance(ticker_stats, dict):
+            continue
+
+        # Find bucket for current percentile
+        current_pct = state.get("current_percentile")
+        bucket = _pct_to_bucket(current_pct)
+        if bucket is None:
+            # Fall back to overall stats
+            overall = ticker_stats.get("_overall")
+            if isinstance(overall, dict):
+                state["mom_d7_win_rate"] = overall.get("win_rate")
+                state["mom_d7_avg_return"] = overall.get("avg_return")
+                state["mom_d7_median_return"] = overall.get("median_return")
+                state["mom_d7_n"] = overall.get("n")
+            continue
+
+        bucket_stats = ticker_stats.get(bucket)
+        if isinstance(bucket_stats, dict):
+            state["mom_d7_win_rate"] = bucket_stats.get("win_rate")
+            state["mom_d7_avg_return"] = bucket_stats.get("avg_return")
+            state["mom_d7_median_return"] = bucket_stats.get("median_return")
+            state["mom_d7_n"] = bucket_stats.get("n")
+        else:
+            # No data for this specific bucket, use overall
+            overall = ticker_stats.get("_overall")
+            if isinstance(overall, dict):
+                state["mom_d7_win_rate"] = overall.get("win_rate")
+                state["mom_d7_avg_return"] = overall.get("avg_return")
+                state["mom_d7_median_return"] = overall.get("median_return")
+                state["mom_d7_n"] = overall.get("n")
+
+    return response
+
+
 # Initialize MACD-V Reference Lookup (singleton)
 _macdv_reference_lookup: Optional[MACDVReferenceLookup] = None
 _macdv_reference_lock = asyncio.Lock()
@@ -2027,6 +2144,7 @@ async def get_current_market_state(
             payload = _augment_with_prev_midday_snapshot(dict(static_payload), "daily")
             payload = await _augment_with_macdv_daily(payload)
             payload = await _augment_with_macdv_d7_stats(payload)
+            payload = await _augment_with_momentum_regime(payload)
             payload = await _augment_with_macdv_percentiles(payload)
             payload = await _augment_with_divergence_metrics(payload)
             return payload
@@ -2038,6 +2156,7 @@ async def get_current_market_state(
         if not _has_macdv_daily(payload):
             payload = await _augment_with_macdv_daily(payload)
             payload = await _augment_with_macdv_d7_stats(payload)
+            payload = await _augment_with_momentum_regime(payload)
             payload = await _augment_with_macdv_percentiles(payload)
             payload = await _augment_with_divergence_metrics(payload)
             _current_state_cache = payload
@@ -2052,6 +2171,7 @@ async def get_current_market_state(
             if not _has_macdv_daily(payload):
                 payload = await _augment_with_macdv_daily(payload)
                 payload = await _augment_with_macdv_d7_stats(payload)
+                payload = await _augment_with_momentum_regime(payload)
                 payload = await _augment_with_macdv_percentiles(payload)
                 payload = await _augment_with_divergence_metrics(payload)
                 _current_state_cache = payload
@@ -2240,6 +2360,7 @@ async def get_current_market_state(
         response = _augment_with_prev_midday_snapshot(response, "daily")
         response = await _augment_with_macdv_daily(response)
         response = await _augment_with_macdv_d7_stats(response)
+        response = await _augment_with_momentum_regime(response)
         response = await _augment_with_macdv_percentiles(response)
         response = await _augment_with_divergence_metrics(response)
 

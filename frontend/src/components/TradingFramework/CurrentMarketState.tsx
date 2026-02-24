@@ -74,6 +74,12 @@ interface MarketState {
   macdv_d7_median_return?: number | null;
   macdv_d7_n?: number | null;
   macdv_d7_rsi_band?: string | null;
+  // Momentum regime (MACD-V > 100) fields
+  mom_regime_active?: boolean;
+  mom_d7_win_rate?: number | null;
+  mom_d7_avg_return?: number | null;
+  mom_d7_median_return?: number | null;
+  mom_d7_n?: number | null;
   prev_midday_percentile?: number | null;
   change_since_prev_midday?: number | null;
   prev_midday_price?: number | null;
@@ -131,6 +137,8 @@ type SortField =
   | 'divergence_pct'
   | 'abs_divergence_pct'
   | 'macdv_daily'
+  | 'mom_d7_win_rate'
+  | 'mom_d7_avg_return'
   | 'macdv_delta_1d'
   | 'macdv_delta_5d'
   | 'macdv_delta_10d'
@@ -387,6 +395,14 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
         case 'macdv_daily':
           aValue = normalizeNumber(a.macdv_daily);
           bValue = normalizeNumber(b.macdv_daily);
+          break;
+        case 'mom_d7_win_rate':
+          aValue = normalizeNumber(a.mom_d7_win_rate);
+          bValue = normalizeNumber(b.mom_d7_win_rate);
+          break;
+        case 'mom_d7_avg_return':
+          aValue = normalizeNumber(a.mom_d7_avg_return);
+          bValue = normalizeNumber(b.mom_d7_avg_return);
           break;
         case 'macdv_delta_1d':
           aValue = normalizeNumber(a.macdv_delta_1d);
@@ -747,6 +763,28 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                   onClick={() => handleSort('macdv_daily')}
                 >
                   MACD-V (D)
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'mom_d7_win_rate'}
+                  direction={sortField === 'mom_d7_win_rate' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('mom_d7_win_rate')}
+                >
+                  <Tooltip title="Momentum regime (MACD-V>100): 7-day win rate for current RSI percentile bucket. Only shown when MACD-V is currently above 100.">
+                    <span>Mom Win%</span>
+                  </Tooltip>
+                </TableSortLabel>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'mom_d7_avg_return'}
+                  direction={sortField === 'mom_d7_avg_return' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('mom_d7_avg_return')}
+                >
+                  <Tooltip title="Momentum regime (MACD-V>100): 7-day average return for current RSI percentile bucket. Only shown when MACD-V is currently above 100.">
+                    <span>Mom D7 Ret</span>
+                  </Tooltip>
                 </TableSortLabel>
               </TableCell>
               <TableCell>
@@ -1203,6 +1241,44 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                       </>
                     );
                   })()}
+                </TableCell>
+
+                {/* Mom Win% */}
+                <TableCell align="right">
+                  {state.mom_regime_active && state.mom_d7_win_rate != null ? (
+                    <Tooltip title={`Momentum regime (MACD-V > 100) D7 win rate | n=${state.mom_d7_n ?? '?'}`}>
+                      <Typography
+                        variant="body2"
+                        fontWeight="medium"
+                        sx={{
+                          color: state.mom_d7_win_rate >= 60 ? '#4caf50' : state.mom_d7_win_rate < 50 ? '#f44336' : 'text.secondary',
+                        }}
+                      >
+                        {state.mom_d7_win_rate.toFixed(1)}%
+                      </Typography>
+                    </Tooltip>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* Mom D7 Ret */}
+                <TableCell align="right">
+                  {state.mom_regime_active && state.mom_d7_avg_return != null ? (
+                    <Tooltip title={`Momentum regime D7 avg return | median: ${state.mom_d7_median_return != null ? state.mom_d7_median_return.toFixed(2) + '%' : '?'} | n=${state.mom_d7_n ?? '?'}`}>
+                      <Typography
+                        variant="body2"
+                        fontWeight="medium"
+                        sx={{
+                          color: state.mom_d7_avg_return > 0 ? '#4caf50' : state.mom_d7_avg_return < 0 ? '#f44336' : 'text.secondary',
+                        }}
+                      >
+                        {state.mom_d7_avg_return > 0 ? '+' : ''}{state.mom_d7_avg_return.toFixed(2)}%
+                      </Typography>
+                    </Tooltip>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
                 </TableCell>
 
                 {/* MACD-V Zone */}
