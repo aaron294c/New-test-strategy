@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test MiniMax 2.5 API setup via direct MiniMax API"""
+"""Test MiniMax 2.5 API setup via OpenRouter"""
 
 import os
 import requests
@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv('.env.local')
 
-def test_minimax_direct():
-    """Test connection to MiniMax 2.5 directly"""
+def test_minimax_openrouter():
+    """Test connection to MiniMax 2.5 via OpenRouter"""
 
     api_key = os.getenv('OPENROUTER_API_KEY')
 
@@ -19,15 +19,17 @@ def test_minimax_direct():
 
     print(f"✓ API Key configured")
 
-    # Test direct MiniMax endpoint
-    url = "https://api.minimax.ai/v1/messages"
+    # OpenRouter endpoint
+    url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost",
+        "X-Title": "MiniMax Test"
     }
 
     payload = {
-        "model": "MiniMax-01",
+        "model": "minimax/minimax-01",
         "max_tokens": 256,
         "messages": [
             {
@@ -38,15 +40,16 @@ def test_minimax_direct():
     }
 
     print(f"✓ Base URL: {url}")
-    print("\n📡 Testing MiniMax 2.5 connection...")
+    print("✓ Model: minimax/minimax-01")
+    print("\n📡 Testing MiniMax 2.5 connection via OpenRouter...")
 
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
 
         if response.status_code == 200:
             data = response.json()
             print("✅ Connection successful!")
-            print(f"\nResponse:\n{data}")
+            print(f"\nResponse:\n{data['choices'][0]['message']['content']}")
             return True
         else:
             print(f"❌ Connection failed with status {response.status_code}")
@@ -58,4 +61,4 @@ def test_minimax_direct():
         return False
 
 if __name__ == "__main__":
-    test_minimax_direct()
+    test_minimax_openrouter()
