@@ -58,23 +58,23 @@ _cache_ttl_seconds = 3600  # 1 hour TTL
 
 _current_state_cache: Dict | None = None
 _current_state_cache_timestamp: datetime | None = None
-_current_state_cache_ttl_seconds = 60  # 1 minute TTL
+_current_state_cache_ttl_seconds = 300  # 5 minute TTL
 _current_state_lock = asyncio.Lock()
 
 _current_state_4h_cache: Dict | None = None
 _current_state_4h_cache_timestamp: datetime | None = None
-_current_state_4h_cache_ttl_seconds = 60  # 1 minute TTL
+_current_state_4h_cache_ttl_seconds = 300  # 5 minute TTL
 _current_state_4h_lock = asyncio.Lock()
 
 _current_state_enriched_cache: Dict | None = None
 _current_state_enriched_cache_timestamp: datetime | None = None
-_current_state_enriched_cache_ttl_seconds = 60  # 1 minute TTL
+_current_state_enriched_cache_ttl_seconds = 300  # 5 minute TTL
 _current_state_enriched_lock = asyncio.Lock()
 
 _macdv_daily_cache: Dict[str, Dict[str, Any]] | None = None
 _macdv_daily_cache_key: str | None = None
 _macdv_daily_cache_timestamp: datetime | None = None
-_macdv_daily_cache_ttl_seconds = 60  # 1 minute TTL (match dashboard refresh cadence)
+_macdv_daily_cache_ttl_seconds = 300  # 5 minute TTL
 _macdv_daily_lock = asyncio.Lock()
 
 _macdv_d7_lock = asyncio.Lock()
@@ -500,12 +500,11 @@ async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str
         }
 
         try:
-            calculator = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
+            loop = asyncio.get_event_loop()
 
-            # Fetch historical data for momentum analysis (need at least 50 days for ATR calculation + 10 days lookback)
-            for yahoo_symbol in yahoo_symbols:
+            def _fetch_and_compute_macdv(yahoo_symbol: str) -> tuple:
+                """Fetch 60d OHLCV and compute MACD-V for a single symbol (runs in thread pool)."""
                 try:
-                    # Download 60 days of data to ensure we have enough for calculations
                     df = yf.download(
                         yahoo_symbol,
                         period="60d",
@@ -513,43 +512,48 @@ async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str
                         progress=False,
                         auto_adjust=True
                     )
-
                     if df.empty:
-                        continue
-
-                    # Normalize column names
+                        return yahoo_symbol, None
                     if isinstance(df.columns, pd.MultiIndex):
                         df.columns = [col[0].lower() if isinstance(col, tuple) else str(col).lower() for col in df.columns]
                     else:
                         df.columns = [str(c).lower() for c in df.columns]
-
-                    # Calculate MACD-V
-                    df = calculator.calculate_macdv(df)
-
-                    # Get latest value
+                    calc = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
+                    df = calc.calculate_macdv(df)
                     latest = df.iloc[-1]
-
-                    # Get historical MACD-V series for momentum analysis (last 15 days)
                     macdv_series = df['macdv_val'].tail(15)
                     momentum = _calculate_macdv_momentum_analysis(macdv_series)
-
-                    display = yahoo_to_display.get(yahoo_symbol)
-                    if display:
-                        out[display] = {
-                            "macdv_daily": float(latest['macdv_val']) if pd.notna(latest['macdv_val']) else None,
-                            "macdv_daily_trend": str(latest['macdv_trend']),
-                            "macdv_delta_1d": momentum["macdv_delta_1d"],
-                            "macdv_delta_5d": momentum["macdv_delta_5d"],
-                            "macdv_delta_10d": momentum["macdv_delta_10d"],
-                            "macdv_trend": momentum["macdv_trend"],
-                            "macdv_trend_label": momentum["macdv_trend_label"],
-                            "days_in_zone": momentum["days_in_zone"],
-                            "next_threshold": momentum["next_threshold"],
-                            "next_threshold_distance": momentum["next_threshold_distance"],
-                        }
+                    return yahoo_symbol, {
+                        "macdv_daily": float(latest['macdv_val']) if pd.notna(latest['macdv_val']) else None,
+                        "macdv_daily_trend": str(latest['macdv_trend']),
+                        "macdv_delta_1d": momentum["macdv_delta_1d"],
+                        "macdv_delta_5d": momentum["macdv_delta_5d"],
+                        "macdv_delta_10d": momentum["macdv_delta_10d"],
+                        "macdv_trend": momentum["macdv_trend"],
+                        "macdv_trend_label": momentum["macdv_trend_label"],
+                        "days_in_zone": momentum["days_in_zone"],
+                        "next_threshold": momentum["next_threshold"],
+                        "next_threshold_distance": momentum["next_threshold_distance"],
+                    }
                 except Exception as e:
                     print(f"  Error processing MACD-V for {yahoo_symbol}: {e}")
+                    return yahoo_symbol, None
+
+            # Fetch all symbols concurrently in a thread pool instead of sequentially
+            fetch_tasks = [
+                loop.run_in_executor(None, _fetch_and_compute_macdv, sym)
+                for sym in yahoo_symbols
+            ]
+            fetch_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
+
+            for result in fetch_results:
+                if isinstance(result, Exception):
                     continue
+                yahoo_symbol, data = result
+                if data is not None:
+                    display = yahoo_to_display.get(yahoo_symbol)
+                    if display:
+                        out[display] = data
 
         except Exception as e:
             print(f"  MACD-V daily augmentation failed: {e}")
@@ -2135,18 +2139,22 @@ async def get_current_market_state(
     """
     global _current_state_cache, _current_state_cache_timestamp
 
-    # Static snapshots are a fast cold-start path, but once this process has produced
-    # a live baseline (e.g. via `force_refresh=true`), we should not "snap back" to an
-    # older repo snapshot on subsequent refreshes.
-    if not force_refresh and _current_state_cache is None:
+    # For non-force_refresh requests, always serve from the static snapshot when available.
+    # Snapshots are refreshed 3x daily by GitHub Actions and already contain all augmented
+    # fields (MACD-V, divergence, D7 stats, etc.), so no live yfinance calls are needed.
+    # force_refresh=True skips this block and runs the full live computation.
+    if not force_refresh and not _is_cache_valid(
+        _current_state_cache, _current_state_cache_timestamp, _current_state_cache_ttl_seconds
+    ):
         static_payload = _load_static_snapshot("current-state.json")
         if static_payload is not None:
             payload = _augment_with_prev_midday_snapshot(dict(static_payload), "daily")
-            payload = await _augment_with_macdv_daily(payload)
-            payload = await _augment_with_macdv_d7_stats(payload)
-            payload = await _augment_with_momentum_regime(payload)
-            payload = await _augment_with_macdv_percentiles(payload)
-            payload = await _augment_with_divergence_metrics(payload)
+            if not _has_macdv_daily(payload):
+                payload = await _augment_with_macdv_daily(payload)
+                payload = await _augment_with_macdv_d7_stats(payload)
+                payload = await _augment_with_momentum_regime(payload)
+                payload = await _augment_with_macdv_percentiles(payload)
+                payload = await _augment_with_divergence_metrics(payload)
             return payload
 
     if not force_refresh and _is_cache_valid(
@@ -2410,12 +2418,15 @@ async def get_current_market_state_4h(
     """
     global _current_state_4h_cache, _current_state_4h_cache_timestamp
 
-    if not force_refresh and _current_state_4h_cache is None:
+    if not force_refresh and not _is_cache_valid(
+        _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
+    ):
         static_payload = _load_static_snapshot("current-state-4h.json")
         if static_payload is not None:
             payload = _augment_with_prev_midday_snapshot(dict(static_payload), "4h")
-            payload = await _augment_with_macdv_daily(payload)
-            payload = await _augment_with_macdv_percentiles(payload)
+            if not _has_macdv_daily(payload):
+                payload = await _augment_with_macdv_daily(payload)
+                payload = await _augment_with_macdv_percentiles(payload)
             return payload
 
     if not force_refresh and _is_cache_valid(
