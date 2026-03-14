@@ -594,10 +594,6 @@ async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str
         ):
             return dict(_macdv_daily_cache)
 
-        display_to_yahoo: Dict[str, str] = {t: resolve_yahoo_symbol(t) for t in display_tickers}
-        yahoo_to_display: Dict[str, str] = {y: d for d, y in display_to_yahoo.items()}
-        yahoo_symbols = sorted(set(display_to_yahoo.values()))
-
         out: Dict[str, Dict[str, Any]] = {
             t: {
                 "macdv_daily": None,
@@ -615,81 +611,46 @@ async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str
         }
 
         try:
-            # Use a single batch download instead of concurrent per-ticker calls
-            # to avoid yfinance thread-safety issues that cause data cross-contamination.
+            # Reuse fetch_daily_batch (proven batch download) with 60d period,
+            # then compute MACD-V per ticker from the extracted frames.
             loop = asyncio.get_event_loop()
+            batch_frames = await loop.run_in_executor(
+                None, fetch_daily_batch, display_tickers, "60d"
+            )
 
-            def _batch_fetch_macdv_data() -> pd.DataFrame:
-                """Batch-fetch 60d OHLCV for all symbols in a single yf.download call."""
-                return yf.download(
-                    yahoo_symbols,
-                    period="60d",
-                    interval="1d",
-                    group_by="ticker",
-                    auto_adjust=True,
-                    progress=False,
-                    threads=True,
-                )
-
-            batch_data = await loop.run_in_executor(None, _batch_fetch_macdv_data)
-
-            if batch_data is not None and not getattr(batch_data, "empty", True):
-                multi = isinstance(batch_data.columns, pd.MultiIndex)
-                for yahoo_symbol in yahoo_symbols:
-                    display = yahoo_to_display.get(yahoo_symbol)
-                    if not display:
+            for display_ticker in display_tickers:
+                try:
+                    df = batch_frames.get(display_ticker, pd.DataFrame())
+                    if df.empty:
                         continue
-                    try:
-                        # Extract per-ticker DataFrame from batch result
-                        if multi:
-                            level0 = batch_data.columns.get_level_values(0)
-                            level1 = batch_data.columns.get_level_values(1)
-                            if yahoo_symbol in level0:
-                                df = batch_data[yahoo_symbol].copy()
-                            elif yahoo_symbol in level1:
-                                df = batch_data.xs(yahoo_symbol, level=1, axis=1).copy()
-                            else:
-                                continue
-                        else:
-                            # Single ticker in batch — the DataFrame IS the data
-                            if len(yahoo_symbols) == 1:
-                                df = batch_data.copy()
-                            else:
-                                continue
 
-                        if df.empty:
-                            continue
-
-                        # Normalize column names to lowercase
-                        if isinstance(df.columns, pd.MultiIndex):
-                            df.columns = [col[0].lower() if isinstance(col, tuple) else str(col).lower() for col in df.columns]
-                        else:
-                            df.columns = [str(c).lower() for c in df.columns]
-
-                        df = df.dropna(subset=["close"])
-                        if df.empty:
-                            continue
-
-                        calc = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
-                        df = calc.calculate_macdv(df)
-                        latest = df.iloc[-1]
-                        macdv_series = df['macdv_val'].tail(15)
-                        momentum = _calculate_macdv_momentum_analysis(macdv_series)
-                        out[display] = {
-                            "macdv_daily": float(latest['macdv_val']) if pd.notna(latest['macdv_val']) else None,
-                            "macdv_daily_trend": str(latest['macdv_trend']),
-                            "macdv_delta_1d": momentum["macdv_delta_1d"],
-                            "macdv_delta_5d": momentum["macdv_delta_5d"],
-                            "macdv_delta_10d": momentum["macdv_delta_10d"],
-                            "macdv_trend": momentum["macdv_trend"],
-                            "macdv_trend_label": momentum["macdv_trend_label"],
-                            "days_in_zone": momentum["days_in_zone"],
-                            "next_threshold": momentum["next_threshold"],
-                            "next_threshold_distance": momentum["next_threshold_distance"],
-                        }
-                    except Exception as e:
-                        print(f"  Error processing MACD-V for {yahoo_symbol}: {e}")
+                    # Normalize column names to lowercase for MACDVCalculator
+                    df = df.copy()
+                    df.columns = [str(c).lower() for c in df.columns]
+                    df = df.dropna(subset=["close"])
+                    if df.empty or len(df) < 26:  # Need at least slow_length bars
                         continue
+
+                    calc = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
+                    df = calc.calculate_macdv(df)
+                    latest = df.iloc[-1]
+                    macdv_series = df['macdv_val'].tail(15)
+                    momentum = _calculate_macdv_momentum_analysis(macdv_series)
+                    out[display_ticker] = {
+                        "macdv_daily": float(latest['macdv_val']) if pd.notna(latest['macdv_val']) else None,
+                        "macdv_daily_trend": str(latest['macdv_trend']),
+                        "macdv_delta_1d": momentum["macdv_delta_1d"],
+                        "macdv_delta_5d": momentum["macdv_delta_5d"],
+                        "macdv_delta_10d": momentum["macdv_delta_10d"],
+                        "macdv_trend": momentum["macdv_trend"],
+                        "macdv_trend_label": momentum["macdv_trend_label"],
+                        "days_in_zone": momentum["days_in_zone"],
+                        "next_threshold": momentum["next_threshold"],
+                        "next_threshold_distance": momentum["next_threshold_distance"],
+                    }
+                except Exception as e:
+                    print(f"  Error processing MACD-V for {display_ticker}: {e}")
+                    continue
 
         except Exception as e:
             print(f"  MACD-V daily augmentation failed: {e}")
@@ -2425,14 +2386,42 @@ async def _quick_refresh_current_state() -> Dict[str, Any] | None:
     # Re-augment with prev midday snapshot
     response = _augment_with_prev_midday_snapshot(response, "daily")
 
-    # Re-run MACD-V augmentation live (uses its own 5-min cache, so fast if warm).
-    # This ensures per-ticker MACD-V values are current rather than stale from the
-    # base state, which may have been a static snapshot without MACD-V data.
-    response = await _augment_with_macdv_daily(response)
-    response = await _augment_with_macdv_d7_stats(response)
-    response = await _augment_with_momentum_regime(response)
-    response = await _augment_with_macdv_percentiles(response)
-    response = await _augment_with_divergence_metrics(response)
+    # Only re-run MACD-V augmentation if the cache is already warm (instant).
+    # If cold, skip it — the background full refresh will populate it.
+    # This keeps quick refresh fast (5-10s target).
+    macdv_cache_warm = _is_cache_valid(
+        _macdv_daily_cache, _macdv_daily_cache_timestamp, _macdv_daily_cache_ttl_seconds
+    )
+    if macdv_cache_warm:
+        response = await _augment_with_macdv_daily(response)
+        response = await _augment_with_macdv_d7_stats(response)
+        response = await _augment_with_momentum_regime(response)
+        response = await _augment_with_macdv_percentiles(response)
+        response = await _augment_with_divergence_metrics(response)
+    elif _has_macdv_daily(base_state):
+        # Preserve MACD-V data from the base state (better than nothing)
+        for i, entry in enumerate(market_state):
+            if not isinstance(entry, dict):
+                continue
+            ticker = entry.get("ticker")
+            if not ticker:
+                continue
+            # Find matching ticker in base state
+            for base_entry in base_state.get("market_state", []):
+                if isinstance(base_entry, dict) and base_entry.get("ticker") == ticker:
+                    for field in ("macdv_daily", "macdv_daily_trend", "macdv_delta_1d",
+                                  "macdv_delta_5d", "macdv_delta_10d", "macdv_trend",
+                                  "macdv_trend_label", "days_in_zone", "next_threshold",
+                                  "next_threshold_distance", "macdv_zone", "macdv_zone_display",
+                                  "macdv_categorical_percentile", "macdv_asymmetric_percentile",
+                                  "macdv_interpretation", "macdv_d7_win_rate", "macdv_d7_mean_return",
+                                  "macdv_d7_median_return", "macdv_d7_n", "macdv_d7_rsi_band",
+                                  "mom_regime_active", "mom_d7_win_rate", "mom_d7_avg_return",
+                                  "mom_d7_median_return", "mom_d7_n", "four_h_percentile",
+                                  "divergence_pct", "divergence_category"):
+                        if field in base_entry:
+                            entry[field] = base_entry[field]
+                    break
 
     # 5. Save to disk and in-memory cache
     _save_computed_state("daily", response)
