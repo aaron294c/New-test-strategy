@@ -2401,15 +2401,17 @@ async def _quick_refresh_current_state() -> Dict[str, Any] | None:
         "base_state_timestamp": base_state.get("timestamp"),
     }
 
-    # Preserve augmentation fields from base state (MACD-V, divergence, etc.)
-    for key in ("macdv_daily_augmented", "momentum_regime_augmented",
-                "macdv_percentiles_augmented", "divergence_metrics_augmented",
-                "macdv_d7_stats_augmented"):
-        if key in base_state:
-            response[key] = base_state[key]
-
     # Re-augment with prev midday snapshot
     response = _augment_with_prev_midday_snapshot(response, "daily")
+
+    # Re-run MACD-V augmentation live (uses its own 5-min cache, so fast if warm).
+    # This ensures per-ticker MACD-V values are current rather than stale from the
+    # base state, which may have been a static snapshot without MACD-V data.
+    response = await _augment_with_macdv_daily(response)
+    response = await _augment_with_macdv_d7_stats(response)
+    response = await _augment_with_momentum_regime(response)
+    response = await _augment_with_macdv_percentiles(response)
+    response = await _augment_with_divergence_metrics(response)
 
     # 5. Save to disk and in-memory cache
     _save_computed_state("daily", response)
