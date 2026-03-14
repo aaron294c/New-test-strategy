@@ -615,60 +615,81 @@ async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str
         }
 
         try:
+            # Use a single batch download instead of concurrent per-ticker calls
+            # to avoid yfinance thread-safety issues that cause data cross-contamination.
             loop = asyncio.get_event_loop()
 
-            def _fetch_and_compute_macdv(yahoo_symbol: str) -> tuple:
-                """Fetch 60d OHLCV and compute MACD-V for a single symbol (runs in thread pool)."""
-                try:
-                    df = yf.download(
-                        yahoo_symbol,
-                        period="60d",
-                        interval="1d",
-                        progress=False,
-                        auto_adjust=True
-                    )
-                    if df.empty:
-                        return yahoo_symbol, None
-                    if isinstance(df.columns, pd.MultiIndex):
-                        df.columns = [col[0].lower() if isinstance(col, tuple) else str(col).lower() for col in df.columns]
-                    else:
-                        df.columns = [str(c).lower() for c in df.columns]
-                    calc = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
-                    df = calc.calculate_macdv(df)
-                    latest = df.iloc[-1]
-                    macdv_series = df['macdv_val'].tail(15)
-                    momentum = _calculate_macdv_momentum_analysis(macdv_series)
-                    return yahoo_symbol, {
-                        "macdv_daily": float(latest['macdv_val']) if pd.notna(latest['macdv_val']) else None,
-                        "macdv_daily_trend": str(latest['macdv_trend']),
-                        "macdv_delta_1d": momentum["macdv_delta_1d"],
-                        "macdv_delta_5d": momentum["macdv_delta_5d"],
-                        "macdv_delta_10d": momentum["macdv_delta_10d"],
-                        "macdv_trend": momentum["macdv_trend"],
-                        "macdv_trend_label": momentum["macdv_trend_label"],
-                        "days_in_zone": momentum["days_in_zone"],
-                        "next_threshold": momentum["next_threshold"],
-                        "next_threshold_distance": momentum["next_threshold_distance"],
-                    }
-                except Exception as e:
-                    print(f"  Error processing MACD-V for {yahoo_symbol}: {e}")
-                    return yahoo_symbol, None
+            def _batch_fetch_macdv_data() -> pd.DataFrame:
+                """Batch-fetch 60d OHLCV for all symbols in a single yf.download call."""
+                return yf.download(
+                    yahoo_symbols,
+                    period="60d",
+                    interval="1d",
+                    group_by="ticker",
+                    auto_adjust=True,
+                    progress=False,
+                    threads=True,
+                )
 
-            # Fetch all symbols concurrently in a thread pool instead of sequentially
-            fetch_tasks = [
-                loop.run_in_executor(None, _fetch_and_compute_macdv, sym)
-                for sym in yahoo_symbols
-            ]
-            fetch_results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
+            batch_data = await loop.run_in_executor(None, _batch_fetch_macdv_data)
 
-            for result in fetch_results:
-                if isinstance(result, Exception):
-                    continue
-                yahoo_symbol, data = result
-                if data is not None:
+            if batch_data is not None and not getattr(batch_data, "empty", True):
+                multi = isinstance(batch_data.columns, pd.MultiIndex)
+                for yahoo_symbol in yahoo_symbols:
                     display = yahoo_to_display.get(yahoo_symbol)
-                    if display:
-                        out[display] = data
+                    if not display:
+                        continue
+                    try:
+                        # Extract per-ticker DataFrame from batch result
+                        if multi:
+                            level0 = batch_data.columns.get_level_values(0)
+                            level1 = batch_data.columns.get_level_values(1)
+                            if yahoo_symbol in level0:
+                                df = batch_data[yahoo_symbol].copy()
+                            elif yahoo_symbol in level1:
+                                df = batch_data.xs(yahoo_symbol, level=1, axis=1).copy()
+                            else:
+                                continue
+                        else:
+                            # Single ticker in batch — the DataFrame IS the data
+                            if len(yahoo_symbols) == 1:
+                                df = batch_data.copy()
+                            else:
+                                continue
+
+                        if df.empty:
+                            continue
+
+                        # Normalize column names to lowercase
+                        if isinstance(df.columns, pd.MultiIndex):
+                            df.columns = [col[0].lower() if isinstance(col, tuple) else str(col).lower() for col in df.columns]
+                        else:
+                            df.columns = [str(c).lower() for c in df.columns]
+
+                        df = df.dropna(subset=["close"])
+                        if df.empty:
+                            continue
+
+                        calc = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
+                        df = calc.calculate_macdv(df)
+                        latest = df.iloc[-1]
+                        macdv_series = df['macdv_val'].tail(15)
+                        momentum = _calculate_macdv_momentum_analysis(macdv_series)
+                        out[display] = {
+                            "macdv_daily": float(latest['macdv_val']) if pd.notna(latest['macdv_val']) else None,
+                            "macdv_daily_trend": str(latest['macdv_trend']),
+                            "macdv_delta_1d": momentum["macdv_delta_1d"],
+                            "macdv_delta_5d": momentum["macdv_delta_5d"],
+                            "macdv_delta_10d": momentum["macdv_delta_10d"],
+                            "macdv_trend": momentum["macdv_trend"],
+                            "macdv_trend_label": momentum["macdv_trend_label"],
+                            "days_in_zone": momentum["days_in_zone"],
+                            "next_threshold": momentum["next_threshold"],
+                            "next_threshold_distance": momentum["next_threshold_distance"],
+                        }
+                    except Exception as e:
+                        print(f"  Error processing MACD-V for {yahoo_symbol}: {e}")
+                        continue
 
         except Exception as e:
             print(f"  MACD-V daily augmentation failed: {e}")
