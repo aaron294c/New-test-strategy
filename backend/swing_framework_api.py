@@ -2249,57 +2249,64 @@ async def _quick_refresh_current_state() -> Dict[str, Any] | None:
     if not tickers_in_state:
         return None
 
-    print(f"Quick refresh: base state loaded with {len(tickers_in_state)} tickers, fetching live prices...")
+    print(f"Quick refresh: base state loaded with {len(tickers_in_state)} tickers, fetching 60d data...")
 
-    # 2. Batch-fetch today's prices only (~2-4 seconds)
-    yahoo_by_display = {t: resolve_yahoo_symbol(t) for t in tickers_in_state}
-    yahoo_symbols = list(dict.fromkeys(yahoo_by_display.values()))
-
+    # 2. Single batch-fetch of 60d data — provides BOTH live prices AND MACD-V input
+    #    This replaces two separate downloads (1d + 60d) with one call (~3-4s total).
+    loop = asyncio.get_event_loop()
     try:
-        live_data = yf.download(
-            yahoo_symbols,
-            period="1d",
-            auto_adjust=True,
-            prepost=True,
-            progress=False,
-            threads=True,
+        batch_frames_60d = await loop.run_in_executor(
+            None, fetch_daily_batch, tickers_in_state, "60d"
         )
     except Exception as e:
-        print(f"Quick refresh: live price fetch failed: {e}")
-        # Return the base state with updated timestamp rather than failing entirely
+        print(f"Quick refresh: 60d batch fetch failed: {e}")
         base_state["timestamp"] = datetime.now(timezone.utc).isoformat()
         base_state["quick_refresh"] = True
-        base_state["quick_refresh_note"] = "Live price fetch failed, showing cached data"
+        base_state["quick_refresh_note"] = "Live data fetch failed, showing cached data"
         return base_state
 
-    # Parse live prices from the batch download
-    live_prices: Dict[str, tuple[float, str]] = {}  # ticker -> (price, date_str)
-    if live_data is not None and not getattr(live_data, "empty", True):
-        multi = isinstance(live_data.columns, pd.MultiIndex)
-        for display_ticker, yahoo_symbol in yahoo_by_display.items():
-            try:
-                if multi:
-                    level0 = live_data.columns.get_level_values(0)
-                    level1 = live_data.columns.get_level_values(1)
-                    if yahoo_symbol in level0:
-                        frame = live_data[yahoo_symbol]
-                    elif yahoo_symbol in level1:
-                        frame = live_data.xs(yahoo_symbol, level=1, axis=1)
-                    else:
-                        continue
-                else:
-                    frame = live_data
+    # Extract live prices from the latest row of each 60d frame
+    live_prices: Dict[str, tuple[float, str]] = {}
+    for display_ticker, df in batch_frames_60d.items():
+        if not df.empty and "Close" in df.columns:
+            close_vals = df["Close"].dropna()
+            if not close_vals.empty:
+                price = float(close_vals.iloc[-1])
+                date_str = close_vals.index[-1].strftime("%Y-%m-%d")
+                live_prices[display_ticker] = (price, date_str)
 
-                if not frame.empty and "Close" in frame.columns:
-                    close_vals = frame["Close"].dropna()
-                    if not close_vals.empty:
-                        price = float(close_vals.iloc[-1])
-                        date_str = close_vals.index[-1].strftime("%Y-%m-%d")
-                        live_prices[display_ticker] = (price, date_str)
-            except Exception:
+    # Pre-compute MACD-V from the same 60d frames (no second download needed)
+    macdv_map: Dict[str, Dict[str, Any]] = {}
+    for display_ticker, df in batch_frames_60d.items():
+        if df.empty:
+            continue
+        try:
+            df_lc = df.copy()
+            df_lc.columns = [str(c).lower() for c in df_lc.columns]
+            df_lc = df_lc.dropna(subset=["close"])
+            if len(df_lc) < 26:
                 continue
+            calc = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
+            df_lc = calc.calculate_macdv(df_lc)
+            latest = df_lc.iloc[-1]
+            macdv_series = df_lc["macdv_val"].tail(15)
+            momentum = _calculate_macdv_momentum_analysis(macdv_series)
+            macdv_map[display_ticker] = {
+                "macdv_daily": float(latest["macdv_val"]) if pd.notna(latest["macdv_val"]) else None,
+                "macdv_daily_trend": str(latest["macdv_trend"]),
+                "macdv_delta_1d": momentum["macdv_delta_1d"],
+                "macdv_delta_5d": momentum["macdv_delta_5d"],
+                "macdv_delta_10d": momentum["macdv_delta_10d"],
+                "macdv_trend": momentum["macdv_trend"],
+                "macdv_trend_label": momentum["macdv_trend_label"],
+                "days_in_zone": momentum["days_in_zone"],
+                "next_threshold": momentum["next_threshold"],
+                "next_threshold_distance": momentum["next_threshold_distance"],
+            }
+        except Exception as e:
+            print(f"  Quick refresh MACD-V error for {display_ticker}: {e}")
 
-    print(f"Quick refresh: got live prices for {len(live_prices)} tickers")
+    print(f"Quick refresh: got live prices for {len(live_prices)}, MACD-V for {len(macdv_map)} tickers")
 
     # 3. Update each ticker in the base state
     backtester = EnhancedPerformanceMatrixBacktester(
@@ -2383,25 +2390,35 @@ async def _quick_refresh_current_state() -> Dict[str, Any] | None:
         "base_state_timestamp": base_state.get("timestamp"),
     }
 
+    # Inject pre-computed MACD-V data directly (already computed from the same 60d download)
+    for entry in response["market_state"]:
+        if not isinstance(entry, dict):
+            continue
+        ticker = entry.get("ticker")
+        if ticker and ticker in macdv_map:
+            entry.update(macdv_map[ticker])
+
     # Re-augment with prev midday snapshot
     response = _augment_with_prev_midday_snapshot(response, "daily")
-
-    # Always run MACD-V daily augmentation — it's a single batch 60d download
-    # (~3-4s) and provides the core MACD-V score/deltas/trend per ticker.
-    response = await _augment_with_macdv_daily(response)
     # D7 stats and momentum regime use local precomputed data (instant)
     response = await _augment_with_macdv_d7_stats(response)
     response = await _augment_with_momentum_regime(response)
     # MACD-V percentiles use a local reference JSON (instant)
     response = await _augment_with_macdv_percentiles(response)
-    # Divergence metrics require 4H data — only run if 4H cache is warm,
-    # otherwise it triggers a full 4H computation that takes minutes.
+    # Divergence metrics require 4H data — only run if 4H cache is warm
     if _is_cache_valid(
         _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
     ):
         response = await _augment_with_divergence_metrics(response)
 
-    # 5. Save to disk and in-memory cache
+    # 5. Warm the MACD-V in-memory cache so subsequent non-force requests are instant
+    if macdv_map:
+        global _macdv_daily_cache, _macdv_daily_cache_key, _macdv_daily_cache_timestamp
+        _macdv_daily_cache = macdv_map
+        _macdv_daily_cache_key = ",".join(sorted(macdv_map.keys()))
+        _macdv_daily_cache_timestamp = datetime.now(timezone.utc)
+
+    # Save to disk cache
     _save_computed_state("daily", response)
 
     elapsed = time.monotonic() - t0
