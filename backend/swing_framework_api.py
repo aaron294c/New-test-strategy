@@ -8,6 +8,7 @@ from backtesting, not simulated/fake data.
 import asyncio
 import json
 import os
+import logging
 from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone, date, timedelta
 from pathlib import Path
@@ -82,6 +83,120 @@ _macdv_d7_lock = asyncio.Lock()
 _STATIC_SNAPSHOT_DIR = Path(__file__).resolve().parent / "static_snapshots" / "swing_framework"
 _MIDDAY_SNAPSHOT_DIR = Path(__file__).resolve().parent / "cache" / "midday_snapshots"
 _MIDDAY_SNAPSHOT_TZ = os.getenv("SWING_MIDDAY_SNAPSHOT_TZ", "America/New_York")
+
+# --- Disk cache directories for quick refresh ---
+_OHLCV_CACHE_DIR = Path(__file__).resolve().parent / "cache" / "ohlcv_daily"
+_INDICATOR_CACHE_DIR = Path(__file__).resolve().parent / "cache" / "indicators"
+_COMPUTED_STATE_DIR = Path(__file__).resolve().parent / "cache" / "computed_states"
+
+_logger = logging.getLogger("swing_framework")
+
+# Background refresh tracking
+_background_refresh_task: asyncio.Task | None = None
+
+
+# ---------------------------------------------------------------------------
+# Disk cache helpers for quick-refresh
+# ---------------------------------------------------------------------------
+
+def _save_ohlcv_cache(ticker: str, df: pd.DataFrame, period: str) -> None:
+    """Pickle a ticker's OHLCV DataFrame to disk."""
+    _OHLCV_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    path = _OHLCV_CACHE_DIR / f"{ticker}_{period}.pkl"
+    try:
+        df.to_pickle(str(path))
+    except Exception as e:
+        _logger.debug(f"Failed to save OHLCV cache for {ticker}: {e}")
+
+
+def _load_ohlcv_cache(ticker: str, period: str, max_age_hours: float = 6.0) -> pd.DataFrame | None:
+    """Load a cached OHLCV DataFrame if it exists and is fresh enough."""
+    path = _OHLCV_CACHE_DIR / f"{ticker}_{period}.pkl"
+    if not path.exists():
+        return None
+    age_hours = (datetime.now().timestamp() - path.stat().st_mtime) / 3600
+    if age_hours > max_age_hours:
+        return None
+    try:
+        return pd.read_pickle(str(path))
+    except Exception:
+        return None
+
+
+def _save_indicator_cache(ticker: str, indicator_series: pd.Series) -> None:
+    """Pickle a ticker's computed RSI-MA indicator series to disk."""
+    _INDICATOR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    path = _INDICATOR_CACHE_DIR / f"{ticker}.pkl"
+    try:
+        indicator_series.to_pickle(str(path))
+    except Exception as e:
+        _logger.debug(f"Failed to save indicator cache for {ticker}: {e}")
+
+
+def _load_indicator_cache(ticker: str, max_age_hours: float = 6.0) -> pd.Series | None:
+    """Load a cached indicator series if it exists and is fresh enough."""
+    path = _INDICATOR_CACHE_DIR / f"{ticker}.pkl"
+    if not path.exists():
+        return None
+    age_hours = (datetime.now().timestamp() - path.stat().st_mtime) / 3600
+    if age_hours > max_age_hours:
+        return None
+    try:
+        return pd.read_pickle(str(path))
+    except Exception:
+        return None
+
+
+def _save_computed_state(timeframe: str, response: Dict[str, Any]) -> None:
+    """Save a full computed response to disk as dated JSON."""
+    _COMPUTED_STATE_DIR.mkdir(parents=True, exist_ok=True)
+    safe_tf = "4h" if timeframe in {"4h", "4hour"} else "daily"
+    today_str = date.today().isoformat()
+    path = _COMPUTED_STATE_DIR / f"{safe_tf}_{today_str}.json"
+    try:
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(response, f, indent=2, default=str)
+        # Also write a "latest" symlink-style file for quick lookup
+        latest_path = _COMPUTED_STATE_DIR / f"{safe_tf}_latest.json"
+        with latest_path.open("w", encoding="utf-8") as f:
+            json.dump(response, f, indent=2, default=str)
+    except Exception as e:
+        _logger.debug(f"Failed to save computed state: {e}")
+
+
+def _load_latest_computed_state(timeframe: str) -> Dict[str, Any] | None:
+    """Load the most recent computed state from disk."""
+    safe_tf = "4h" if timeframe in {"4h", "4hour"} else "daily"
+    latest_path = _COMPUTED_STATE_DIR / f"{safe_tf}_latest.json"
+    if not latest_path.exists():
+        return None
+    try:
+        with latest_path.open("r", encoding="utf-8") as f:
+            payload = json.load(f)
+        if isinstance(payload, dict) and payload.get("market_state"):
+            return payload
+    except Exception as e:
+        _logger.debug(f"Failed to load computed state: {e}")
+    return None
+
+
+def _derive_percentile_cohort(percentile: float) -> tuple[str, str, bool]:
+    """Derive cohort, zone label, and in_entry_zone from a percentile value."""
+    if percentile <= 5.0:
+        return "extreme_low", "≤5th percentile (Extreme Low)", True
+    elif percentile <= 15.0:
+        return "low", "5-15th percentile (Low)", True
+    elif percentile <= 30.0:
+        return "medium_low", "15-30th percentile (Medium Low)", False
+    elif percentile <= 50.0:
+        return "medium", "30-50th percentile (Medium)", False
+    elif percentile <= 70.0:
+        return "medium_high", "50-70th percentile (Medium High)", False
+    elif percentile <= 85.0:
+        return "high", "70-85th percentile (High)", False
+    else:
+        return "extreme_high", "85-100th percentile (Extreme High)", False
+
 
 # Midday window configuration (Eastern Time)
 _MIDDAY_WINDOW_START_HOUR = 11
@@ -2123,6 +2238,356 @@ async def get_current_indices_state():
     }
 
 
+# ---------------------------------------------------------------------------
+# Quick-refresh and background-refresh for near-instant force refresh
+# ---------------------------------------------------------------------------
+
+async def _quick_refresh_current_state() -> Dict[str, Any] | None:
+    """
+    Fast-path force refresh: load the best available base state, fetch only
+    today's live prices, and re-derive percentiles from cached indicators.
+    Target: 5-10 seconds instead of 60-180 seconds.
+    """
+    import time
+    t0 = time.monotonic()
+
+    # 1. Load best available base state
+    base_state = _load_latest_computed_state("daily")
+    if base_state is None:
+        base_state = _load_static_snapshot("current-state.json")
+    if base_state is None:
+        print("Quick refresh: no base state available, falling through to full computation")
+        return None
+
+    market_state = base_state.get("market_state")
+    if not market_state:
+        return None
+
+    tickers_in_state = [s["ticker"] for s in market_state if isinstance(s, dict) and "ticker" in s]
+    if not tickers_in_state:
+        return None
+
+    print(f"Quick refresh: base state loaded with {len(tickers_in_state)} tickers, fetching live prices...")
+
+    # 2. Batch-fetch today's prices only (~2-4 seconds)
+    yahoo_by_display = {t: resolve_yahoo_symbol(t) for t in tickers_in_state}
+    yahoo_symbols = list(dict.fromkeys(yahoo_by_display.values()))
+
+    try:
+        live_data = yf.download(
+            yahoo_symbols,
+            period="1d",
+            auto_adjust=True,
+            prepost=True,
+            progress=False,
+            threads=True,
+        )
+    except Exception as e:
+        print(f"Quick refresh: live price fetch failed: {e}")
+        # Return the base state with updated timestamp rather than failing entirely
+        base_state["timestamp"] = datetime.now(timezone.utc).isoformat()
+        base_state["quick_refresh"] = True
+        base_state["quick_refresh_note"] = "Live price fetch failed, showing cached data"
+        return base_state
+
+    # Parse live prices from the batch download
+    live_prices: Dict[str, tuple[float, str]] = {}  # ticker -> (price, date_str)
+    if live_data is not None and not getattr(live_data, "empty", True):
+        multi = isinstance(live_data.columns, pd.MultiIndex)
+        for display_ticker, yahoo_symbol in yahoo_by_display.items():
+            try:
+                if multi:
+                    level0 = live_data.columns.get_level_values(0)
+                    level1 = live_data.columns.get_level_values(1)
+                    if yahoo_symbol in level0:
+                        frame = live_data[yahoo_symbol]
+                    elif yahoo_symbol in level1:
+                        frame = live_data.xs(yahoo_symbol, level=1, axis=1)
+                    else:
+                        continue
+                else:
+                    frame = live_data
+
+                if not frame.empty and "Close" in frame.columns:
+                    close_vals = frame["Close"].dropna()
+                    if not close_vals.empty:
+                        price = float(close_vals.iloc[-1])
+                        date_str = close_vals.index[-1].strftime("%Y-%m-%d")
+                        live_prices[display_ticker] = (price, date_str)
+            except Exception:
+                continue
+
+    print(f"Quick refresh: got live prices for {len(live_prices)} tickers")
+
+    # 3. Update each ticker in the base state
+    backtester = EnhancedPerformanceMatrixBacktester(
+        tickers=tickers_in_state,
+        lookback_period=500,
+        rsi_length=14,
+        ma_length=14,
+        max_horizon=21,
+    )
+    cohort_stats_cache = await get_cached_cohort_stats(allow_compute=False)
+
+    for entry in market_state:
+        if not isinstance(entry, dict):
+            continue
+        ticker = entry.get("ticker")
+        if not ticker:
+            continue
+
+        # Update price if we got a live quote
+        if ticker in live_prices:
+            new_price, new_date = live_prices[ticker]
+            entry["current_price"] = new_price
+            entry["current_date"] = new_date
+
+        # Try to recompute percentile from cached indicator
+        cached_indicator = _load_indicator_cache(ticker, max_age_hours=12)
+        if cached_indicator is not None and ticker in live_prices:
+            new_price = live_prices[ticker][0]
+            # Append the new price to the indicator to get an updated percentile
+            # The indicator is RSI-MA, so we can't just append a price directly.
+            # Instead, recompute the latest percentile using the cached indicator series.
+            new_percentile = compute_latest_percentile(cached_indicator, backtester.lookback_period)
+            if new_percentile is not None:
+                entry["current_percentile"] = new_percentile
+                cohort, zone, in_zone = _derive_percentile_cohort(new_percentile)
+                entry["percentile_cohort"] = cohort
+                entry["zone_label"] = zone
+                entry["in_entry_zone"] = in_zone
+
+                # Also recompute 252-day percentile
+                rsi_252 = compute_latest_percentile(cached_indicator, 252)
+                if rsi_252 is not None:
+                    entry["rsi_percentile_252"] = rsi_252
+
+                # Recalculate live_expectancy from cohort stats
+                ticker_cohort_data = cohort_stats_cache.get(ticker, {}) if cohort_stats_cache else {}
+                if ticker_cohort_data:
+                    cohort_performance = ticker_cohort_data.get(f"cohort_{cohort}")
+                    if not cohort_performance:
+                        cohort_performance = ticker_cohort_data.get("cohort_all")
+                    if cohort_performance:
+                        metadata = STOCK_METADATA.get(ticker)
+                        vol_mult = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(
+                            metadata.volatility_level if metadata else "Medium", 1.5
+                        )
+                        exp_ret = cohort_performance["avg_return"]
+                        exp_hold = cohort_performance["avg_holding_days"]
+                        entry["live_expectancy"] = {
+                            "expected_win_rate": cohort_performance["win_rate"],
+                            "expected_return_pct": exp_ret,
+                            "expected_holding_days": exp_hold,
+                            "expected_return_per_day_pct": exp_ret / exp_hold if exp_hold > 0 else 0,
+                            "risk_adjusted_expectancy_pct": exp_ret / vol_mult,
+                            "sample_size": cohort_performance["count"],
+                        }
+
+    # Re-sort by percentile
+    market_state.sort(key=lambda x: x.get("current_percentile", 50.0))
+
+    # 4. Build updated response
+    response = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "market_state": market_state,
+        "summary": {
+            "total_tickers": len(market_state),
+            "in_entry_zone": sum(1 for s in market_state if s.get("in_entry_zone")),
+            "extreme_low_opportunities": sum(1 for s in market_state if s.get("percentile_cohort") == "extreme_low"),
+            "low_opportunities": sum(1 for s in market_state if s.get("percentile_cohort") == "low"),
+        },
+        "quick_refresh": True,
+        "base_state_timestamp": base_state.get("timestamp"),
+    }
+
+    # Preserve augmentation fields from base state (MACD-V, divergence, etc.)
+    for key in ("macdv_daily_augmented", "momentum_regime_augmented",
+                "macdv_percentiles_augmented", "divergence_metrics_augmented",
+                "macdv_d7_stats_augmented"):
+        if key in base_state:
+            response[key] = base_state[key]
+
+    # Re-augment with prev midday snapshot
+    response = _augment_with_prev_midday_snapshot(response, "daily")
+
+    # 5. Save to disk and in-memory cache
+    _save_computed_state("daily", response)
+
+    elapsed = time.monotonic() - t0
+    print(f"✓ Quick refresh completed in {elapsed:.1f}s for {len(market_state)} tickers")
+
+    return response
+
+
+async def _background_full_refresh(timeframe: str) -> None:
+    """
+    Run the full computation in the background to warm all caches.
+    This is kicked off after a quick refresh returns to the user.
+    """
+    global _current_state_cache, _current_state_cache_timestamp, _background_refresh_task
+    import time
+    t0 = time.monotonic()
+    print(f"Background full refresh ({timeframe}): starting...")
+
+    try:
+        tickers = ["SPY", "QQQ", "AAPL", "MSFT", "NVDA", "GOOGL", "TSLA", "NFLX", "AMZN", "BRK-B", "AVGO", "CNX1", "CSP1", "BTCUSD", "ES1", "NQ1", "VIX", "IGLS", "XOM", "CVX", "JPM", "BAC", "LLY", "UNH", "OXY", "TSM", "WMT", "COST", "GLD", "SLV", "USDGBP", "US10"]
+
+        allow_full_compute = os.getenv("SWING_FORCE_REFRESH_FULL", "0").lower() in {"1", "true", "yes"}
+        cohort_stats_cache = await get_cached_cohort_stats(allow_compute=allow_full_compute)
+
+        batch_daily_frames: Dict[str, pd.DataFrame] = {}
+        try:
+            print("Background refresh: batch fetching daily OHLCV (5y)...")
+            batch_daily_frames = fetch_daily_batch(tickers, period="5y")
+            # Save OHLCV to disk cache
+            for ticker, df in batch_daily_frames.items():
+                if not df.empty:
+                    _save_ohlcv_cache(ticker, df, "5y")
+        except Exception as e:
+            print(f"  Background refresh: batch fetch failed: {e}")
+            batch_daily_frames = {t: pd.DataFrame() for t in tickers}
+
+        backtester = EnhancedPerformanceMatrixBacktester(
+            tickers=tickers, lookback_period=500, rsi_length=14, ma_length=14, max_horizon=21
+        )
+
+        current_states = []
+        for ticker in tickers:
+            try:
+                ticker_cohort_data = cohort_stats_cache.get(ticker, {}) if cohort_stats_cache else {}
+
+                data = batch_daily_frames.get(ticker, pd.DataFrame())
+                if data.empty or len(data) < backtester.lookback_period + 100:
+                    data = backtester.fetch_data(ticker, period="5y")
+                    if data.empty or len(data) < backtester.lookback_period + 50:
+                        data = backtester.fetch_data(ticker, period="max")
+                if data.empty:
+                    continue
+
+                indicator = backtester.calculate_rsi_ma_indicator(data)
+                # Save indicator to disk cache for future quick refreshes
+                if indicator is not None and not indicator.empty:
+                    _save_indicator_cache(ticker, indicator)
+
+                current_percentile = compute_latest_percentile(indicator, backtester.lookback_period)
+                if current_percentile is None:
+                    continue
+
+                rsi_percentile_252 = compute_latest_percentile(indicator, 252)
+
+                percentile_ranks = calculate_full_percentile_ranks(indicator, backtester.lookback_period)
+                last_extreme_low_date = find_last_extreme_low_date(percentile_ranks, threshold=5.0)
+
+                if last_extreme_low_date is None and len(data) < 2500:
+                    try:
+                        extended_data = backtester.fetch_data(ticker, period="max")
+                        if len(extended_data) > len(data):
+                            extended_indicator = backtester.calculate_rsi_ma_indicator(extended_data)
+                            extended_percentile_ranks = calculate_full_percentile_ranks(extended_indicator, backtester.lookback_period)
+                            last_extreme_low_date = find_last_extreme_low_date(extended_percentile_ranks, threshold=5.0)
+                    except Exception:
+                        pass
+
+                current_price = float(data["Close"].iloc[-1])
+                current_date = data.index[-1].strftime("%Y-%m-%d")
+
+                metadata = STOCK_METADATA.get(ticker)
+                if not metadata:
+                    continue
+
+                regime = "mean_reversion" if metadata.is_mean_reverter else "momentum"
+                cohort, zone_label, in_entry_zone = _derive_percentile_cohort(current_percentile)
+
+                cohort_performance = ticker_cohort_data.get(f"cohort_{cohort}") if ticker_cohort_data else None
+                if not cohort_performance and ticker_cohort_data:
+                    cohort_performance = ticker_cohort_data.get("cohort_all")
+
+                if cohort_performance:
+                    expected_return = cohort_performance["avg_return"]
+                    expected_holding_days = cohort_performance["avg_holding_days"]
+                    vol_mult = {"Low": 1.0, "Medium": 1.5, "High": 2.0}.get(metadata.volatility_level, 1.5)
+                    live_expectancy = {
+                        "expected_win_rate": cohort_performance["win_rate"],
+                        "expected_return_pct": expected_return,
+                        "expected_holding_days": expected_holding_days,
+                        "expected_return_per_day_pct": expected_return / expected_holding_days if expected_holding_days > 0 else 0,
+                        "risk_adjusted_expectancy_pct": expected_return / vol_mult,
+                        "sample_size": cohort_performance["count"],
+                    }
+                else:
+                    live_expectancy = {
+                        "expected_win_rate": 0.0, "expected_return_pct": 0.0,
+                        "expected_holding_days": 0.0, "expected_return_per_day_pct": 0.0,
+                        "risk_adjusted_expectancy_pct": 0.0, "sample_size": 0,
+                    }
+
+                current_states.append({
+                    "ticker": ticker, "name": metadata.name,
+                    "current_date": current_date, "current_price": current_price,
+                    "current_percentile": current_percentile, "rsi_percentile_252": rsi_percentile_252,
+                    "percentile_cohort": cohort, "zone_label": zone_label,
+                    "in_entry_zone": in_entry_zone, "regime": regime,
+                    "is_mean_reverter": metadata.is_mean_reverter,
+                    "is_momentum": metadata.is_momentum,
+                    "volatility_level": metadata.volatility_level,
+                    "live_expectancy": live_expectancy,
+                    "last_extreme_low_date": last_extreme_low_date,
+                })
+            except Exception as e:
+                print(f"  Background refresh: error for {ticker}: {e}")
+                continue
+
+        current_states.sort(key=lambda x: x["current_percentile"])
+
+        response = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "market_state": current_states,
+            "summary": {
+                "total_tickers": len(current_states),
+                "in_entry_zone": sum(1 for s in current_states if s["in_entry_zone"]),
+                "extreme_low_opportunities": sum(1 for s in current_states if s["percentile_cohort"] == "extreme_low"),
+                "low_opportunities": sum(1 for s in current_states if s["percentile_cohort"] == "low"),
+            },
+        }
+
+        response = _augment_with_prev_midday_snapshot(response, "daily")
+        response = await _augment_with_macdv_daily(response)
+        response = await _augment_with_macdv_d7_stats(response)
+        response = await _augment_with_momentum_regime(response)
+        response = await _augment_with_macdv_percentiles(response)
+        response = await _augment_with_divergence_metrics(response)
+
+        _current_state_cache = response
+        _current_state_cache_timestamp = datetime.now(timezone.utc)
+        _save_computed_state("daily", response)
+
+        elapsed = time.monotonic() - t0
+        print(f"✓ Background full refresh completed in {elapsed:.1f}s for {len(current_states)} tickers")
+
+    except Exception as e:
+        print(f"Background full refresh failed: {e}")
+    finally:
+        _background_refresh_task = None
+
+
+def _load_disk_cache_into_memory() -> None:
+    """Load the latest computed state from disk into the in-memory cache at startup."""
+    global _current_state_cache, _current_state_cache_timestamp
+    state = _load_latest_computed_state("daily")
+    if state is not None:
+        _current_state_cache = state
+        # Use a recent-ish timestamp so the 5-min TTL still applies
+        _current_state_cache_timestamp = datetime.now(timezone.utc) - timedelta(seconds=60)
+        print("✓ Loaded daily computed state from disk cache into memory")
+    else:
+        print("No disk-cached daily state found; will compute on first request")
+
+
+# Run startup cache warmup
+_load_disk_cache_into_memory()
+
+
 @router.get("/current-state")
 async def get_current_market_state(
     force_refresh: bool = False,
@@ -2137,7 +2602,19 @@ async def get_current_market_state(
 
     OPTIMIZED: Uses cached cohort statistics, only fetches current percentiles
     """
-    global _current_state_cache, _current_state_cache_timestamp
+    global _current_state_cache, _current_state_cache_timestamp, _background_refresh_task
+
+    # --- Quick refresh path: when force_refresh is True, try the fast path first ---
+    if force_refresh:
+        quick_result = await _quick_refresh_current_state()
+        if quick_result is not None:
+            _current_state_cache = quick_result
+            _current_state_cache_timestamp = datetime.now(timezone.utc)
+            # Schedule a background full refresh to keep caches warm
+            if _background_refresh_task is None or _background_refresh_task.done():
+                _background_refresh_task = asyncio.create_task(_background_full_refresh("daily"))
+                print("Scheduled background full refresh after quick refresh")
+            return quick_result
 
     # For non-force_refresh requests, always serve from the static snapshot when available.
     # Snapshots are refreshed 3x daily by GitHub Actions and already contain all augmented
@@ -2209,6 +2686,10 @@ async def get_current_market_state(
         try:
             print("Batch fetching daily OHLCV (5y) for current-state...")
             batch_daily_frames = fetch_daily_batch(tickers, period="5y")
+            # Save OHLCV data to disk cache for future quick refreshes
+            for _t, _df in batch_daily_frames.items():
+                if not _df.empty:
+                    _save_ohlcv_cache(_t, _df, "5y")
         except Exception as e:
             print(f"  Batch daily fetch failed: {e}. Falling back to per-ticker fetches.")
             batch_daily_frames = {t: pd.DataFrame() for t in tickers}
@@ -2236,6 +2717,9 @@ async def get_current_market_state(
                     continue
 
                 indicator = backtester.calculate_rsi_ma_indicator(data)
+                # Save indicator to disk cache for future quick refreshes
+                if indicator is not None and not indicator.empty:
+                    _save_indicator_cache(ticker, indicator)
                 current_percentile = compute_latest_percentile(indicator, backtester.lookback_period)
                 if current_percentile is None:
                     continue
@@ -2402,6 +2886,8 @@ async def get_current_market_state(
 
         _current_state_cache = response
         _current_state_cache_timestamp = datetime.now(timezone.utc)
+        # Persist full computation to disk for future quick refreshes
+        _save_computed_state("daily", response)
         return response
 
 
