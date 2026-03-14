@@ -2386,42 +2386,20 @@ async def _quick_refresh_current_state() -> Dict[str, Any] | None:
     # Re-augment with prev midday snapshot
     response = _augment_with_prev_midday_snapshot(response, "daily")
 
-    # Only re-run MACD-V augmentation if the cache is already warm (instant).
-    # If cold, skip it — the background full refresh will populate it.
-    # This keeps quick refresh fast (5-10s target).
-    macdv_cache_warm = _is_cache_valid(
-        _macdv_daily_cache, _macdv_daily_cache_timestamp, _macdv_daily_cache_ttl_seconds
-    )
-    if macdv_cache_warm:
-        response = await _augment_with_macdv_daily(response)
-        response = await _augment_with_macdv_d7_stats(response)
-        response = await _augment_with_momentum_regime(response)
-        response = await _augment_with_macdv_percentiles(response)
+    # Always run MACD-V daily augmentation — it's a single batch 60d download
+    # (~3-4s) and provides the core MACD-V score/deltas/trend per ticker.
+    response = await _augment_with_macdv_daily(response)
+    # D7 stats and momentum regime use local precomputed data (instant)
+    response = await _augment_with_macdv_d7_stats(response)
+    response = await _augment_with_momentum_regime(response)
+    # MACD-V percentiles use a local reference JSON (instant)
+    response = await _augment_with_macdv_percentiles(response)
+    # Divergence metrics require 4H data — only run if 4H cache is warm,
+    # otherwise it triggers a full 4H computation that takes minutes.
+    if _is_cache_valid(
+        _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
+    ):
         response = await _augment_with_divergence_metrics(response)
-    elif _has_macdv_daily(base_state):
-        # Preserve MACD-V data from the base state (better than nothing)
-        for i, entry in enumerate(market_state):
-            if not isinstance(entry, dict):
-                continue
-            ticker = entry.get("ticker")
-            if not ticker:
-                continue
-            # Find matching ticker in base state
-            for base_entry in base_state.get("market_state", []):
-                if isinstance(base_entry, dict) and base_entry.get("ticker") == ticker:
-                    for field in ("macdv_daily", "macdv_daily_trend", "macdv_delta_1d",
-                                  "macdv_delta_5d", "macdv_delta_10d", "macdv_trend",
-                                  "macdv_trend_label", "days_in_zone", "next_threshold",
-                                  "next_threshold_distance", "macdv_zone", "macdv_zone_display",
-                                  "macdv_categorical_percentile", "macdv_asymmetric_percentile",
-                                  "macdv_interpretation", "macdv_d7_win_rate", "macdv_d7_mean_return",
-                                  "macdv_d7_median_return", "macdv_d7_n", "macdv_d7_rsi_band",
-                                  "mom_regime_active", "mom_d7_win_rate", "mom_d7_avg_return",
-                                  "mom_d7_median_return", "mom_d7_n", "four_h_percentile",
-                                  "divergence_pct", "divergence_category"):
-                        if field in base_entry:
-                            entry[field] = base_entry[field]
-                    break
 
     # 5. Save to disk and in-memory cache
     _save_computed_state("daily", response)
