@@ -2449,8 +2449,9 @@ async def _quick_refresh_current_state() -> Dict[str, Any] | None:
             calc = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
             df_lc = calc.calculate_macdv(df_lc)
             latest = df_lc.iloc[-1]
-            macdv_series = df_lc["macdv_val"].tail(15)
-            momentum = _calculate_macdv_momentum_analysis(macdv_series)
+            macdv_series  = df_lc["macdv_val"].tail(15)
+            signal_series = df_lc["macdv_signal"].tail(15)
+            momentum = _calculate_macdv_momentum_analysis(macdv_series, signal_series)
             macdv_map[display_ticker] = {
                 "macdv_daily": float(latest["macdv_val"]) if pd.notna(latest["macdv_val"]) else None,
                 "macdv_daily_trend": str(latest["macdv_trend"]),
@@ -2462,6 +2463,10 @@ async def _quick_refresh_current_state() -> Dict[str, Any] | None:
                 "days_in_zone": momentum["days_in_zone"],
                 "next_threshold": momentum["next_threshold"],
                 "next_threshold_distance": momentum["next_threshold_distance"],
+                "signal_crossover": momentum["signal_crossover"],
+                "macdv_decay_accel": momentum["macdv_decay_accel"],
+                "transition_type": momentum["transition_type"],
+                "transition_score": momentum["transition_score"],
             }
         except Exception as e:
             print(f"  Quick refresh MACD-V error for {display_ticker}: {e}")
