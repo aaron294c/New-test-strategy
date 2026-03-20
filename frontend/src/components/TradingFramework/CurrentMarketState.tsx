@@ -111,6 +111,11 @@ interface MarketState {
   dislocation_level?: string | null;
   dislocation_color?: string | null;
   thresholds_text?: string | null;
+  // Momentum transition fields
+  signal_crossover?: 'bullish' | 'bearish' | null;
+  macdv_decay_accel?: number | null;
+  transition_type?: string | null;
+  transition_score?: number | null;
 }
 
 interface MarketStateResponse {
@@ -147,6 +152,7 @@ type SortField =
   | 'macdv_d7_median_return'
   | 'macdv_d7_mean_return'
   | 'macdv_categorical_percentile'
+  | 'transition_score'
   | 'win_rate'
   | 'return'
   | 'risk_adj_expectancy'
@@ -419,6 +425,10 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
         case 'days_in_zone':
           aValue = normalizeNumber(a.days_in_zone);
           bValue = normalizeNumber(b.days_in_zone);
+          break;
+        case 'transition_score':
+          aValue = normalizeNumber(a.transition_score);
+          bValue = normalizeNumber(b.transition_score);
           break;
         case 'macdv_d7_win_rate':
           aValue = normalizeNumber(a.macdv_d7_win_rate);
@@ -861,6 +871,27 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                 <Tooltip title="Distance to next critical threshold (±50, ±100). Warns when within 10 points.">
                   <span>Next Threshold</span>
                 </Tooltip>
+              </TableCell>
+              <TableCell>
+                <Tooltip title="Signal line crossover today: ↑ bullish (MACD-V crossed above signal), ↓ bearish (MACD-V crossed below signal)">
+                  <span>Cross</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell align="right">
+                <Tooltip title="2nd derivative of MACD-V: rate of change of daily change. Positive = accelerating upward, negative = decelerating or falling faster.">
+                  <span>Accel</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell>
+                <TableSortLabel
+                  active={sortField === 'transition_score'}
+                  direction={sortField === 'transition_score' ? sortOrder : 'desc'}
+                  onClick={() => handleSort('transition_score')}
+                >
+                  <Tooltip title="Momentum transition type and conviction score (0-100). Identifies stocks building toward breakout, decelerating from peak, or recovering from bearish territory.">
+                    <span>Transition</span>
+                  </Tooltip>
+                </TableSortLabel>
               </TableCell>
               <TableCell>Regime</TableCell>
               <TableCell align="right">
@@ -1464,6 +1495,81 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                     <Typography variant="body2" color="text.secondary">
                       —
                     </Typography>
+                  )}
+                </TableCell>
+
+                {/* Signal crossover */}
+                <TableCell align="center">
+                  {state.signal_crossover === 'bullish' ? (
+                    <Tooltip title="Bullish crossover today: MACD-V crossed above signal line">
+                      <Typography variant="body2" sx={{ color: '#4caf50', fontWeight: 'bold', fontSize: '1rem' }}>↑</Typography>
+                    </Tooltip>
+                  ) : state.signal_crossover === 'bearish' ? (
+                    <Tooltip title="Bearish crossover today: MACD-V crossed below signal line">
+                      <Typography variant="body2" sx={{ color: '#f44336', fontWeight: 'bold', fontSize: '1rem' }}>↓</Typography>
+                    </Tooltip>
+                  ) : (
+                    <Typography variant="body2" color="text.disabled">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* Decay acceleration (2nd derivative) */}
+                <TableCell align="right">
+                  {state.macdv_decay_accel != null ? (
+                    <Tooltip title={`Momentum acceleration: ${state.macdv_decay_accel > 0 ? 'speeding up ↑' : state.macdv_decay_accel < 0 ? 'slowing down ↓' : 'steady'}. 2nd derivative of MACD-V.`}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color:
+                            state.macdv_decay_accel > 1 ? '#4caf50' :
+                            state.macdv_decay_accel < -1 ? '#f44336' :
+                            'text.secondary',
+                          fontWeight: Math.abs(state.macdv_decay_accel) > 3 ? 'bold' : 'normal',
+                        }}
+                      >
+                        {state.macdv_decay_accel > 0 ? '+' : ''}{state.macdv_decay_accel.toFixed(1)}
+                      </Typography>
+                    </Tooltip>
+                  ) : (
+                    <Typography variant="body2" color="text.disabled">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* Transition type + score */}
+                <TableCell>
+                  {state.transition_type ? (() => {
+                    const typeConfig: Record<string, { label: string; bg: string; color: string }> = {
+                      momentum_building: { label: 'Momentum↑',   bg: '#4caf5020', color: '#4caf50' },
+                      pre_breakout:      { label: 'Pre-Break↑',  bg: '#8bc34a30', color: '#8bc34a' },
+                      peak_risk:         { label: 'Peak Risk',   bg: '#ff980030', color: '#ff9800' },
+                      decelerating:      { label: 'Decelerating',bg: '#ff572230', color: '#ff5722' },
+                      breakdown_risk:    { label: 'Breakdown⚠',  bg: '#f4433630', color: '#f44336' },
+                      pre_breakdown:     { label: 'Pre-Break↓',  bg: '#f4433620', color: '#f44336' },
+                      bearish_recovery:  { label: 'Recovery↑',   bg: '#00bcd420', color: '#00bcd4' },
+                      bearish_exhaustion:{ label: 'Exhaustion',  bg: '#2196f320', color: '#2196f3' },
+                      bearish_stable:    { label: 'Bearish',     bg: '#9e9e9e15', color: '#9e9e9e' },
+                      stable_ranging:    { label: 'Ranging',     bg: '#9e9e9e15', color: '#9e9e9e' },
+                    };
+                    const cfg = typeConfig[state.transition_type] ?? { label: state.transition_type, bg: 'transparent', color: 'text.secondary' };
+                    const score = state.transition_score ?? 0;
+                    return (
+                      <Tooltip title={`Transition: ${state.transition_type} | Score: ${score}/100`}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Chip
+                            label={cfg.label}
+                            size="small"
+                            sx={{ backgroundColor: cfg.bg, color: cfg.color, fontWeight: score >= 70 ? 'bold' : 'normal', fontSize: '0.7rem' }}
+                          />
+                          {score > 0 && (
+                            <Typography variant="caption" sx={{ color: cfg.color, minWidth: 24 }}>
+                              {score}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Tooltip>
+                    );
+                  })() : (
+                    <Typography variant="body2" color="text.disabled">—</Typography>
                   )}
                 </TableCell>
 

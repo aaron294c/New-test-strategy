@@ -88,6 +88,20 @@ class MACDVCalculator:
         # Histogram
         df['macdv_hist'] = (df['macdv_val'] - df['macdv_signal']).round(2)
 
+        # Signal crossover detection (current bar crosses signal line vs prior bar)
+        prev_val = df['macdv_val'].shift(1)
+        prev_signal = df['macdv_signal'].shift(1)
+        df['signal_crossover_bullish'] = (
+            (df['macdv_val'] > df['macdv_signal']) & (prev_val <= prev_signal)
+        ).fillna(False)
+        df['signal_crossover_bearish'] = (
+            (df['macdv_val'] < df['macdv_signal']) & (prev_val >= prev_signal)
+        ).fillna(False)
+
+        # Momentum acceleration: 2nd derivative of MACD-V
+        # Positive = accelerating upward, negative = decelerating / falling faster
+        df['macdv_decay_accel'] = df['macdv_val'].diff().diff().round(2)
+
         # Ranging detection (50 > val > -50 for 19+ bars)
         in_range = (df['macdv_val'] > -50) & (df['macdv_val'] < 50)
         in_range_shifted = in_range.shift(1).fillna(False)

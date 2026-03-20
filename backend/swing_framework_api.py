@@ -455,27 +455,128 @@ def _has_macdv_daily(response: Dict[str, Any]) -> bool:
     return isinstance(first, dict) and ("macdv_daily" in first or "macdv_daily_trend" in first)
 
 
-def _calculate_macdv_momentum_analysis(macdv_series: pd.Series) -> Dict[str, Any]:
+def _classify_macdv_transition(
+    current_val: float,
+    delta_5d: float,
+    delta_10d: float,
+    days_in_zone: int,
+    signal_cross_bear: bool,
+    signal_cross_bull: bool,
+    decay_accel: float,
+    trend_label: str,
+) -> tuple:
     """
-    Calculate MACD-V momentum analysis including deltas, trend, days in zone, and next threshold.
+    Classify momentum transition type and compute a 0-100 transition score.
+
+    Returns: (transition_type: str, transition_score: int)
+
+    Transition types:
+      momentum_building  — healthy upward momentum (50-100+)
+      peak_risk          — elevated zone but losing steam (plateau or signal cross)
+      decelerating       — controlled Pattern B decline from momentum zone
+      breakdown_risk     — rapid Pattern C crash from momentum zone
+      pre_breakout       — ranging stock building toward 50 threshold
+      stable_ranging     — in ranging, no strong directional signal
+      pre_breakdown      — ranging stock sliding toward -50 threshold
+      bearish_recovery   — bearish zone with upward momentum building
+      bearish_exhaustion — extreme bearish decelerating, potential base
+      bearish_stable     — continuing bearish, no recovery signals
+    """
+    d5    = delta_5d    or 0.0
+    d10   = delta_10d   or 0.0
+    decay = decay_accel or 0.0
+
+    if current_val >= 100:
+        zone = "extreme_bullish"
+    elif current_val >= 50:
+        zone = "strong_bullish"
+    elif current_val >= -50:
+        zone = "ranging"
+    elif current_val >= -100:
+        zone = "strong_bearish"
+    else:
+        zone = "extreme_bearish"
+
+    if zone in ("extreme_bullish", "strong_bullish"):
+        # Pattern C: rapid crash (CRASH label or large negative delta with accelerating decay)
+        if trend_label == "CRASH" or (d5 <= -5 and decay <= -1):
+            score = min(100, int(abs(d5) * 8 + (30 if signal_cross_bear else 0) + (20 if decay < -2 else 0)))
+            return "breakdown_risk", score
+        # Bearish signal-line crossover while still elevated — early warning
+        if signal_cross_bear:
+            return "peak_risk", min(100, 55 + int(abs(d5) * 4))
+        # Pattern B: controlled deceleration with sustained negative 10d trend
+        if trend_label == "DECEL" and d10 < -1:
+            return "decelerating", min(100, 35 + int(abs(d5) * 5))
+        # Plateau at peak
+        if trend_label == "FLAT":
+            return "peak_risk", 30
+        # Healthy momentum
+        if trend_label in ("ACC", "STR"):
+            return "momentum_building", min(100, max(10, int(d5 * 8)))
+        return "momentum_building", 20
+
+    elif zone == "ranging":
+        # Pre-breakout upside: above midpoint, velocity positive
+        if current_val > 20 and d5 > 1.5 and trend_label in ("ACC", "STR", "FLAT"):
+            proximity = int(max(0, current_val - 20) / 30 * 40)  # 0–40 pts
+            velocity  = min(30, int(d5 * 6))
+            consist   = 20 if d10 > 0 else 0
+            tenure    = 10 if days_in_zone < 20 else 0
+            return "pre_breakout", min(100, proximity + velocity + consist + tenure)
+        # Pre-breakdown downside: below midpoint, velocity negative
+        if current_val < -20 and d5 < -1.5 and trend_label in ("CRASH", "DECEL"):
+            proximity = int(max(0, -20 - current_val) / 30 * 40)
+            velocity  = min(30, int(abs(d5) * 6))
+            consist   = 20 if d10 < 0 else 0
+            return "pre_breakdown", min(100, proximity + velocity + consist)
+        return "stable_ranging", 0
+
+    else:  # strong_bearish or extreme_bearish
+        # Recovery building: upward velocity or bullish crossover
+        if (d5 > 1.5 and trend_label in ("STR", "ACC", "FLAT")) or signal_cross_bull:
+            proximity   = int(max(0, current_val + 100) / 50 * 30)  # 0 at -100, 30 at -50
+            velocity    = min(30, int(d5 * 6)) if d5 > 0 else 0
+            consist     = 20 if d10 > -1 else 0
+            cross_bonus = 20 if signal_cross_bull else 0
+            return "bearish_recovery", min(100, proximity + velocity + consist + cross_bonus)
+        # Decelerating bearish — potential exhaustion / basing
+        if trend_label in ("DECEL", "FLAT") or (d5 > -2 and zone == "extreme_bearish"):
+            return "bearish_exhaustion", min(100, 20 + int(max(0, current_val + 150) * 0.3))
+        return "bearish_stable", 0
+
+
+def _calculate_macdv_momentum_analysis(
+    macdv_series: pd.Series,
+    signal_series: pd.Series = None,
+) -> Dict[str, Any]:
+    """
+    Calculate MACD-V momentum analysis including deltas, trend, days in zone,
+    next threshold, signal crossover, decay acceleration, and transition classification.
 
     Args:
         macdv_series: Series of MACD-V values (most recent last)
+        signal_series: Optional series of MACD-V signal line values (same length/alignment)
 
     Returns:
         Dict with momentum metrics
     """
+    _empty = {
+        "macdv_delta_1d": None,
+        "macdv_delta_5d": None,
+        "macdv_delta_10d": None,
+        "macdv_trend": None,
+        "macdv_trend_label": None,
+        "days_in_zone": None,
+        "next_threshold": None,
+        "next_threshold_distance": None,
+        "signal_crossover": None,
+        "macdv_decay_accel": None,
+        "transition_type": None,
+        "transition_score": None,
+    }
     if len(macdv_series) < 2:
-        return {
-            "macdv_delta_1d": None,
-            "macdv_delta_5d": None,
-            "macdv_delta_10d": None,
-            "macdv_trend": None,
-            "macdv_trend_label": None,
-            "days_in_zone": None,
-            "next_threshold": None,
-            "next_threshold_distance": None,
-        }
+        return _empty
 
     current_val = macdv_series.iloc[-1]
 
@@ -558,6 +659,48 @@ def _calculate_macdv_momentum_analysis(macdv_series: pd.Series) -> Dict[str, Any
             next_threshold = closest
             next_threshold_distance = distance
 
+    # --- Signal crossover (most recent bar) ---
+    signal_crossover = None
+    if signal_series is not None and len(signal_series) >= 2 and len(macdv_series) >= 2:
+        try:
+            v_cur  = float(macdv_series.iloc[-1])
+            v_prev = float(macdv_series.iloc[-2])
+            s_cur  = float(signal_series.iloc[-1])
+            s_prev = float(signal_series.iloc[-2])
+            if pd.notna(v_cur) and pd.notna(v_prev) and pd.notna(s_cur) and pd.notna(s_prev):
+                if v_cur > s_cur and v_prev <= s_prev:
+                    signal_crossover = "bullish"
+                elif v_cur < s_cur and v_prev >= s_prev:
+                    signal_crossover = "bearish"
+        except Exception:
+            pass
+
+    # --- Momentum acceleration (2nd derivative of MACD-V, per day) ---
+    macdv_decay_accel = None
+    if len(macdv_series) >= 3:
+        try:
+            d_today     = float(macdv_series.iloc[-1]) - float(macdv_series.iloc[-2])
+            d_yesterday = float(macdv_series.iloc[-2]) - float(macdv_series.iloc[-3])
+            if pd.notna(d_today) and pd.notna(d_yesterday):
+                macdv_decay_accel = round(d_today - d_yesterday, 2)
+        except Exception:
+            pass
+
+    # --- Transition classification ---
+    transition_type  = None
+    transition_score = None
+    if pd.notna(current_val) and delta_5d is not None:
+        transition_type, transition_score = _classify_macdv_transition(
+            current_val    = float(current_val),
+            delta_5d       = delta_5d,
+            delta_10d      = delta_10d if delta_10d is not None else 0.0,
+            days_in_zone   = days_in_zone,
+            signal_cross_bear = signal_crossover == "bearish",
+            signal_cross_bull = signal_crossover == "bullish",
+            decay_accel    = macdv_decay_accel if macdv_decay_accel is not None else 0.0,
+            trend_label    = trend_label if trend_label is not None else "FLAT",
+        )
+
     return {
         "macdv_delta_1d": round(delta_1d, 2) if delta_1d is not None else None,
         "macdv_delta_5d": round(delta_5d, 2) if delta_5d is not None else None,
@@ -567,6 +710,10 @@ def _calculate_macdv_momentum_analysis(macdv_series: pd.Series) -> Dict[str, Any
         "days_in_zone": days_in_zone,
         "next_threshold": next_threshold,
         "next_threshold_distance": round(next_threshold_distance, 1) if next_threshold_distance is not None else None,
+        "signal_crossover": signal_crossover,
+        "macdv_decay_accel": macdv_decay_accel,
+        "transition_type": transition_type,
+        "transition_score": transition_score,
     }
 
 
@@ -606,6 +753,10 @@ async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str
                 "days_in_zone": None,
                 "next_threshold": None,
                 "next_threshold_distance": None,
+                "signal_crossover": None,
+                "macdv_decay_accel": None,
+                "transition_type": None,
+                "transition_score": None,
             }
             for t in display_tickers
         }
@@ -634,8 +785,9 @@ async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str
                     calc = MACDVCalculator(fast_length=12, slow_length=26, signal_length=9, atr_length=26)
                     df = calc.calculate_macdv(df)
                     latest = df.iloc[-1]
-                    macdv_series = df['macdv_val'].tail(15)
-                    momentum = _calculate_macdv_momentum_analysis(macdv_series)
+                    macdv_series  = df['macdv_val'].tail(15)
+                    signal_series = df['macdv_signal'].tail(15)
+                    momentum = _calculate_macdv_momentum_analysis(macdv_series, signal_series)
                     out[display_ticker] = {
                         "macdv_daily": float(latest['macdv_val']) if pd.notna(latest['macdv_val']) else None,
                         "macdv_daily_trend": str(latest['macdv_trend']),
@@ -647,6 +799,10 @@ async def _get_macdv_daily_map(display_tickers: List[str]) -> Dict[str, Dict[str
                         "days_in_zone": momentum["days_in_zone"],
                         "next_threshold": momentum["next_threshold"],
                         "next_threshold_distance": momentum["next_threshold_distance"],
+                        "signal_crossover": momentum["signal_crossover"],
+                        "macdv_decay_accel": momentum["macdv_decay_accel"],
+                        "transition_type": momentum["transition_type"],
+                        "transition_score": momentum["transition_score"],
                     }
                 except Exception as e:
                     print(f"  Error processing MACD-V for {display_ticker}: {e}")
@@ -692,6 +848,10 @@ async def _augment_with_macdv_daily(response: Dict[str, Any]) -> Dict[str, Any]:
         state["days_in_zone"] = entry.get("days_in_zone")
         state["next_threshold"] = entry.get("next_threshold")
         state["next_threshold_distance"] = entry.get("next_threshold_distance")
+        state["signal_crossover"] = entry.get("signal_crossover")
+        state["macdv_decay_accel"] = entry.get("macdv_decay_accel")
+        state["transition_type"] = entry.get("transition_type")
+        state["transition_score"] = entry.get("transition_score")
 
     return response
 
