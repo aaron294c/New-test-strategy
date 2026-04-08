@@ -156,6 +156,14 @@ def _telegram_poll_loop() -> None:
 
         except (KeyboardInterrupt, SystemExit):
             break
+        except urllib.error.HTTPError as exc:
+            if exc.code == 409:
+                # Another instance is still polling (deploy overlap) — wait it out
+                print("[poll] 409 Conflict: old instance still running, waiting 15s")
+                time.sleep(15)
+            else:
+                print(f"[poll] HTTP error {exc.code}: {exc} — retrying in 10s")
+                time.sleep(10)
         except urllib.error.URLError as exc:
             print(f"[poll] network error: {exc} — retrying in 10s")
             time.sleep(10)
