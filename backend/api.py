@@ -87,6 +87,13 @@ def _telegram_poll_loop() -> None:
         with urllib.request.urlopen(url, timeout=35) as r:
             return json.loads(r.read())
 
+    # Remove any registered webhook so long-polling works (409 otherwise)
+    try:
+        _get("deleteWebhook", {"drop_pending_updates": "false"})
+        print("[poll] Webhook deleted — long-polling mode active")
+    except Exception as exc:
+        print(f"[poll] deleteWebhook warning: {exc}")
+
     def _send(text: str) -> None:
         payload = json.dumps({
             "chat_id": chat_id, "text": text,
