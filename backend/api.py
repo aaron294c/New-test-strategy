@@ -172,6 +172,24 @@ def _telegram_poll_loop() -> None:
             time.sleep(5)
 
 
+def _self_ping_loop() -> None:
+    """Pings this service every 10 minutes to prevent Render free-tier sleep."""
+    import urllib.request
+    service_url = os.getenv("RENDER_EXTERNAL_URL", "")
+    if not service_url:
+        print("[ping] RENDER_EXTERNAL_URL not set — self-ping disabled")
+        return
+    ping_url = f"{service_url}/api/tickers"
+    print(f"[ping] Self-ping started → {ping_url} every 10 min")
+    while True:
+        time.sleep(600)  # 10 minutes
+        try:
+            with urllib.request.urlopen(ping_url, timeout=10) as r:
+                print(f"[ping] OK ({r.status})")
+        except Exception as exc:
+            print(f"[ping] warning: {exc}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     token   = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -181,6 +199,7 @@ async def lifespan(app: FastAPI):
         t.start()
     else:
         print("[api] Telegram poller disabled — set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID")
+    threading.Thread(target=_self_ping_loop, daemon=True, name="self-ping").start()
     yield
 
 
