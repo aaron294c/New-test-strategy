@@ -10,6 +10,9 @@ Endpoints:
 - /api/optimal-exit/{ticker}/{threshold} - Get optimal exit strategy
 """
 
+from contextlib import asynccontextmanager
+import threading
+
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
@@ -61,11 +64,117 @@ from stock_statistics import (
     OXY_4H_DATA, OXY_DAILY_DATA
 )
 
+# ── Telegram long-polling background thread ───────────────────────────────────
+
+def _telegram_poll_loop() -> None:
+    """Runs forever in a daemon thread; handles Telegram bot commands."""
+    import json
+    import urllib.error
+    import urllib.parse
+    import urllib.request
+
+    token   = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        return
+
+    base = f"https://api.telegram.org/bot{token}"
+
+    def _get(method: str, params: dict | None = None) -> dict:
+        url = f"{base}/{method}"
+        if params:
+            url += "?" + urllib.parse.urlencode(params)
+        with urllib.request.urlopen(url, timeout=35) as r:
+            return json.loads(r.read())
+
+    def _send(text: str) -> None:
+        payload = json.dumps({
+            "chat_id": chat_id, "text": text,
+            "parse_mode": "HTML", "disable_web_page_preview": True,
+        }).encode()
+        req = urllib.request.Request(
+            f"{base}/sendMessage", data=payload,
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as r:
+                json.loads(r.read())
+        except Exception as exc:
+            print(f"[poll] send error: {exc}")
+
+    COMMANDS = {
+        "/update": "all", "/macro": "macro",
+        "/mr": "mr", "/momentum": "momentum",
+    }
+    HELP = (
+        "<b>📊 Market Snapshot Bot</b>\n\n"
+        "  /update   — all three snapshots\n"
+        "  /macro    — macro dashboard\n"
+        "  /mr       — mean reversion table\n"
+        "  /momentum — momentum table\n"
+        "  /help     — this message"
+    )
+
+    offset: int | None = None
+    print(f"[poll] Telegram poller started for chat_id={chat_id}")
+
+    while True:
+        try:
+            params: dict = {"timeout": 30, "allowed_updates": ["message"]}
+            if offset is not None:
+                params["offset"] = offset
+
+            for update in _get("getUpdates", params).get("result", []):
+                offset = update["update_id"] + 1
+                msg  = update.get("message") or {}
+                chat = msg.get("chat") or {}
+                text = (msg.get("text") or "").strip()
+
+                if str(chat.get("id", "")) != chat_id or not text:
+                    continue
+
+                cmd = text.lower().split()[0]
+                print(f"[poll] received: {cmd!r}")
+
+                if cmd == "/help":
+                    _send(HELP)
+                elif cmd in COMMANDS:
+                    _send(f"⏳ Fetching <b>{COMMANDS[cmd]}</b>…")
+                    try:
+                        from telegram_delivery import _deliver
+                        _deliver(chat_id, COMMANDS[cmd])
+                    except Exception as exc:
+                        _send(f"❌ Error: {exc}")
+                        print(f"[poll] delivery error: {exc}")
+
+        except (KeyboardInterrupt, SystemExit):
+            break
+        except urllib.error.URLError as exc:
+            print(f"[poll] network error: {exc} — retrying in 10s")
+            time.sleep(10)
+        except Exception as exc:
+            print(f"[poll] unexpected error: {exc} — retrying in 5s")
+            time.sleep(5)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    token   = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
+    if token and chat_id:
+        t = threading.Thread(target=_telegram_poll_loop, daemon=True, name="telegram-poller")
+        t.start()
+    else:
+        print("[api] Telegram poller disabled — set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID")
+    yield
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="RSI-MA Performance Analytics API",
     description="Backend API for RSI-MA trading strategy analysis",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 @app.get("/api/macdv/reference-database")
@@ -199,6 +308,14 @@ try:
     print("[OK] Price Fetcher API registered")
 except Exception as e:
     print(f"[WARN] Could not load Price Fetcher API: {e}")
+
+# Import and add Telegram Webhook router
+try:
+    from telegram_webhook import router as telegram_router
+    app.include_router(telegram_router)
+    print("[OK] Telegram Webhook registered (/telegram/webhook, /telegram/status)")
+except Exception as e:
+    print(f"[WARN] Could not load Telegram Webhook: {e}")
 
 # Import and add Daily Trend Scanner router
 try:
