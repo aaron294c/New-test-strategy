@@ -19,6 +19,75 @@ from macro_instruments import MACRO_INSTRUMENTS, CATEGORY_ORDER, CATEGORY_HEADER
 
 _SNAPSHOT_PATH = Path(__file__).parent / "static_snapshots" / "swing_framework" / "current-state-enriched.json"
 
+# Empirical P85/P95 of |daily_pct[t] - daily_pct[t-1]| (~948 days per ticker)
+_P85_2ND = {
+    'AAPL': 25.10, 'MSFT': 26.69, 'NVDA': 25.90, 'GOOGL': 27.09,
+    'TSLA': 23.90, 'NFLX': 25.10, 'AMZN': 27.49, 'BRK-B': 25.10,
+    'AVGO': 27.09, 'SPY': 28.27, 'QQQ': 28.29, 'CNX1': 25.10,
+    'CSP1': 26.69, 'BTCUSD': 25.48, 'ES1': 27.49, 'NQ1': 28.29,
+    'VIX': 30.74, 'IGLS': 25.90, 'XOM': 27.49, 'CVX': 26.29,
+    'OXY': 27.49, 'JPM': 23.51, 'BAC': 23.11, 'LLY': 24.70,
+    'UNH': 23.51, 'TSM': 27.09, 'WMT': 23.90, 'COST': 25.10,
+    'GLD': 25.90, 'SLV': 25.90, 'USDGBP': 26.69, 'US10': 26.75,
+}
+_P95_2ND = {
+    'AAPL': 37.85, 'MSFT': 41.04, 'NVDA': 36.91, 'GOOGL': 38.65,
+    'TSLA': 35.06, 'NFLX': 37.05, 'AMZN': 42.89, 'BRK-B': 37.45,
+    'AVGO': 40.50, 'SPY': 36.65, 'QQQ': 39.30, 'CNX1': 36.65,
+    'CSP1': 41.43, 'BTCUSD': 37.85, 'ES1': 37.47, 'NQ1': 39.04,
+    'VIX': 42.23, 'IGLS': 37.71, 'XOM': 38.90, 'CVX': 38.25,
+    'OXY': 42.63, 'JPM': 35.32, 'BAC': 37.31, 'LLY': 37.31,
+    'UNH': 35.86, 'TSM': 39.96, 'WMT': 34.92, 'COST': 36.12,
+    'GLD': 38.11, 'SLV': 37.17, 'USDGBP': 40.20, 'US10': 35.48,
+}
+
+
+def _enrich_second_order(rows: list[dict]) -> list[dict]:
+    """Compute second-order divergence fields on a raw snapshot row list.
+
+    The static snapshot has prev_midday_percentile baked in but second_order_*
+    fields are never persisted, so we compute them fresh each time we load.
+    """
+    for row in rows:
+        ticker   = row.get("ticker", "")
+        cur_pct  = row.get("current_percentile")
+        prev_pct = row.get("prev_midday_percentile")
+
+        if cur_pct is None or prev_pct is None:
+            row.setdefault("second_order_divergence_pct", None)
+            row.setdefault("abs_second_order_divergence_pct", None)
+            row.setdefault("second_order_dislocation_level", None)
+            row.setdefault("second_order_dislocation_color", None)
+            row.setdefault("second_order_p85_threshold", None)
+            row.setdefault("second_order_p95_threshold", None)
+            row.setdefault("second_order_thresholds_text", None)
+            continue
+
+        try:
+            d2  = float(cur_pct) - float(prev_pct)
+            ad2 = abs(d2)
+        except (TypeError, ValueError):
+            continue
+
+        p85 = _P85_2ND.get(ticker, 26.0)
+        p95 = _P95_2ND.get(ticker, 38.0)
+
+        if ad2 <= p85:
+            lvl, col = "Normal", "○"
+        elif ad2 <= p95:
+            lvl, col = "Significant (P85)", "⚠️"
+        else:
+            lvl, col = "Extreme (P95)", "⚡"
+
+        row["second_order_divergence_pct"]     = d2
+        row["abs_second_order_divergence_pct"] = ad2
+        row["second_order_dislocation_level"]  = lvl
+        row["second_order_dislocation_color"]  = col
+        row["second_order_p85_threshold"]      = p85
+        row["second_order_p95_threshold"]      = p95
+        row["second_order_thresholds_text"]    = f"{p85:.1f}% | {p95:.1f}%"
+    return rows
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -30,7 +99,8 @@ def _load_swing_snapshot() -> list[dict]:
             return []
         with open(_SNAPSHOT_PATH) as f:
             data = json.load(f)
-        return data.get("market_state", [])
+        rows = data.get("market_state", [])
+        return _enrich_second_order(rows)
     except Exception as exc:
         print(f"[formatter] snapshot load error: {exc}")
         return []
