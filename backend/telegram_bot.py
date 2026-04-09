@@ -135,3 +135,42 @@ def split_and_send(
 def is_configured() -> bool:
     """Return True if both token and chat ID are set."""
     return bool(os.getenv("TELEGRAM_BOT_TOKEN")) and bool(os.getenv("TELEGRAM_CHAT_ID"))
+
+
+def set_bot_commands() -> bool:
+    """
+    Register the bot's command list with Telegram so they appear in the
+    menu when users type '/'.  Safe to call on every startup — idempotent.
+    """
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    if not token:
+        return False
+
+    commands = [
+        {"command": "update",     "description": "Full snapshot: macro + mean reversion + momentum"},
+        {"command": "macro",      "description": "Macro dashboard (indices, bonds, FX, commodities)"},
+        {"command": "mr",         "description": "Mean reversion table (oversold stocks ≤35th %ile)"},
+        {"command": "momentum",   "description": "Momentum table (MACD-V leaders and laggards)"},
+        {"command": "divergence", "description": "1st & 2nd order divergence/dislocation signals"},
+        {"command": "guide",      "description": "Column reference and metric explanations"},
+        {"command": "help",       "description": "List all available commands"},
+    ]
+
+    payload = json.dumps({"commands": commands}).encode("utf-8")
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{token}/setMyCommands",
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read())
+            if result.get("ok"):
+                print("[telegram] Bot commands registered successfully.")
+                return True
+            print(f"[telegram] setMyCommands failed: {result}")
+            return False
+    except Exception as exc:
+        print(f"[telegram] set_bot_commands error: {exc}")
+        return False

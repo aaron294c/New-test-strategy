@@ -195,6 +195,8 @@ async def lifespan(app: FastAPI):
     token   = os.getenv("TELEGRAM_BOT_TOKEN", "")
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
     if token and chat_id:
+        from telegram_bot import set_bot_commands
+        set_bot_commands()
         t = threading.Thread(target=_telegram_poll_loop, daemon=True, name="telegram-poller")
         t.start()
     else:
