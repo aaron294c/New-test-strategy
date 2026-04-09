@@ -3,7 +3,7 @@ Shared snapshot delivery logic used by both the webhook handler and the poller.
 
 _deliver(chat_id, msg_type)  — fetches live data and sends snapshot(s).
 
-msg_type: "all" | "macro" | "mr" | "momentum"
+msg_type: "all" | "macro" | "mr" | "momentum" | "divergence"
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
     from macro_rsi_calculator import fetch_all_macro_data, compute_live_swing_percentiles
     from telegram_formatters import (
         _load_swing_snapshot,
+        _enrich_second_order,
         format_macro_dashboard,
         format_mean_reversion,
         format_momentum,
@@ -31,11 +32,15 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
 
     print(f"[delivery] type={msg_type}  chat={chat_id}")
 
-    macro_data  = fetch_all_macro_data()
-    swing_data  = _load_swing_snapshot()
+    # Only fetch macro data when it's actually needed
+    needs_macro = msg_type in ("all", "macro", "mr", "momentum")
+    macro_data = fetch_all_macro_data() if needs_macro else {}
+
+    swing_data = _load_swing_snapshot()
 
     # Overlay snapshot with live RSI-MA percentiles from yfinance
-    if msg_type in ("all", "mr", "momentum"):
+    needs_live = msg_type in ("all", "mr", "momentum", "divergence")
+    if needs_live and swing_data:
         live = compute_live_swing_percentiles(swing_data)
         for row in swing_data:
             ld = live.get(row.get("ticker", ""), {})
@@ -44,6 +49,8 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
             if ld.get("price") is not None:
                 row["current_price"]    = ld["price"]
                 row["price_change_pct"] = ld.get("price_chg_pct")
+        # Re-enrich second-order after live percentile update
+        _enrich_second_order(swing_data)
 
     if msg_type in ("all", "macro"):
         split_and_send(format_macro_dashboard(macro_data), chat_id=chat_id)
