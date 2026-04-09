@@ -1272,6 +1272,32 @@ _P95_THRESHOLDS = {
     'GLD': 32.72, 'SLV': 32.75, 'USDGBP': 84.14, 'US10': 45.13
 }
 
+# P85 and P95 thresholds for second-order divergence (Daily Today vs Daily Yesterday).
+# These represent the 85th/95th percentile of |daily_pct[t] - daily_pct[t-1]| computed
+# from ~4 years of history using the identical RSI-MA / 252-bar rolling percentile pipeline
+# as the first-order thresholds. n ≈ 948 trading days per ticker.
+_P85_2ND_ORDER_THRESHOLDS = {
+    'AAPL': 25.10, 'MSFT': 26.69, 'NVDA': 25.90, 'GOOGL': 27.09,
+    'TSLA': 23.90, 'NFLX': 25.10, 'AMZN': 27.49, 'BRK-B': 25.10,
+    'AVGO': 27.09, 'SPY': 28.27, 'QQQ': 28.29, 'CNX1': 25.10,
+    'CSP1': 26.69, 'BTCUSD': 25.48, 'ES1': 27.49, 'NQ1': 28.29,
+    'VIX': 30.74, 'IGLS': 25.90, 'XOM': 27.49, 'CVX': 26.29,
+    'OXY': 27.49, 'JPM': 23.51, 'BAC': 23.11, 'LLY': 24.70,
+    'UNH': 23.51, 'TSM': 27.09, 'WMT': 23.90, 'COST': 25.10,
+    'GLD': 25.90, 'SLV': 25.90, 'USDGBP': 26.69, 'US10': 26.75,
+}
+
+_P95_2ND_ORDER_THRESHOLDS = {
+    'AAPL': 37.85, 'MSFT': 41.04, 'NVDA': 36.91, 'GOOGL': 38.65,
+    'TSLA': 35.06, 'NFLX': 37.05, 'AMZN': 42.89, 'BRK-B': 37.45,
+    'AVGO': 40.50, 'SPY': 36.65, 'QQQ': 39.30, 'CNX1': 36.65,
+    'CSP1': 41.43, 'BTCUSD': 37.85, 'ES1': 37.47, 'NQ1': 39.04,
+    'VIX': 42.23, 'IGLS': 37.71, 'XOM': 38.90, 'CVX': 38.25,
+    'OXY': 42.63, 'JPM': 35.32, 'BAC': 37.31, 'LLY': 37.31,
+    'UNH': 35.86, 'TSM': 39.96, 'WMT': 34.92, 'COST': 36.12,
+    'GLD': 38.11, 'SLV': 37.17, 'USDGBP': 40.20, 'US10': 35.48,
+}
+
 
 async def _augment_with_divergence_metrics(response: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -1393,6 +1419,80 @@ async def _augment_with_divergence_metrics(response: Dict[str, Any]) -> Dict[str
         state["dislocation_level"] = dislocation_level
         state["dislocation_color"] = dislocation_color
         state["thresholds_text"] = f"{p85_threshold:.1f}% | {p95_threshold:.1f}%"
+
+    return response
+
+
+def _augment_with_second_order_divergence(response: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Add second-order divergence metrics: Today's Daily Percentile vs Yesterday's Daily Percentile.
+
+    Captures regime shift / acceleration / deceleration signals independently of the
+    cross-timeframe (Daily vs 4H) first-order divergence:
+    - second_order_divergence_pct: current_percentile - prev_midday_percentile
+    - second_order_dislocation_level: Normal, Significant (P85), Extreme (P95)
+    - second_order_p85/p95_threshold: calibrated per-ticker thresholds
+    - second_order_thresholds_text: formatted "P85 | P95" display string
+    """
+    market_state = response.get("market_state")
+    if not isinstance(market_state, list) or not market_state:
+        return response
+
+    for state in market_state:
+        if not isinstance(state, dict):
+            continue
+
+        # Initialize all fields to None
+        state["second_order_divergence_pct"] = None
+        state["abs_second_order_divergence_pct"] = None
+        state["second_order_dislocation_level"] = None
+        state["second_order_dislocation_color"] = None
+        state["second_order_p85_threshold"] = None
+        state["second_order_p95_threshold"] = None
+        state["second_order_thresholds_text"] = None
+
+        ticker = state.get("ticker")
+        if not isinstance(ticker, str):
+            continue
+
+        daily_pct = state.get("current_percentile")
+        prev_pct = state.get("prev_midday_percentile")
+
+        if daily_pct is None or prev_pct is None:
+            continue
+
+        try:
+            daily_pct = float(daily_pct)
+            prev_pct = float(prev_pct)
+        except (TypeError, ValueError):
+            continue
+
+        # Calculate second-order divergence (today vs yesterday)
+        second_order_div = daily_pct - prev_pct
+        abs_second_order_div = abs(second_order_div)
+
+        # Get per-ticker thresholds
+        p85_threshold = _P85_2ND_ORDER_THRESHOLDS.get(ticker, 26.0)
+        p95_threshold = _P95_2ND_ORDER_THRESHOLDS.get(ticker, 38.0)
+
+        # Determine dislocation level
+        if abs_second_order_div <= p85_threshold:
+            dislocation_level = "Normal"
+            dislocation_color = "○"
+        elif abs_second_order_div <= p95_threshold:
+            dislocation_level = "Significant (P85)"
+            dislocation_color = "⚠️"
+        else:
+            dislocation_level = "Extreme (P95)"
+            dislocation_color = "⚡"
+
+        state["second_order_divergence_pct"] = second_order_div
+        state["abs_second_order_divergence_pct"] = abs_second_order_div
+        state["second_order_dislocation_level"] = dislocation_level
+        state["second_order_dislocation_color"] = dislocation_color
+        state["second_order_p85_threshold"] = p85_threshold
+        state["second_order_p95_threshold"] = p95_threshold
+        state["second_order_thresholds_text"] = f"{p85_threshold:.1f}% | {p95_threshold:.1f}%"
 
     return response
 
@@ -2575,6 +2675,8 @@ async def _quick_refresh_current_state() -> Dict[str, Any] | None:
         _current_state_4h_cache, _current_state_4h_cache_timestamp, _current_state_4h_cache_ttl_seconds
     ):
         response = await _augment_with_divergence_metrics(response)
+    # Second-order divergence only uses daily data (no 4H dependency) — always run
+    response = _augment_with_second_order_divergence(response)
 
     # 5. Warm the MACD-V in-memory cache so subsequent non-force requests are instant
     if macdv_map:
@@ -2729,6 +2831,7 @@ async def _background_full_refresh(timeframe: str) -> None:
         response = await _augment_with_momentum_regime(response)
         response = await _augment_with_macdv_percentiles(response)
         response = await _augment_with_divergence_metrics(response)
+        response = _augment_with_second_order_divergence(response)
 
         _current_state_cache = response
         _current_state_cache_timestamp = datetime.now(timezone.utc)
@@ -2804,6 +2907,7 @@ async def get_current_market_state(
                 payload = await _augment_with_momentum_regime(payload)
                 payload = await _augment_with_macdv_percentiles(payload)
                 payload = await _augment_with_divergence_metrics(payload)
+            payload = _augment_with_second_order_divergence(payload)
             return payload
 
     if not force_refresh and _is_cache_valid(
@@ -2818,6 +2922,7 @@ async def get_current_market_state(
             payload = await _augment_with_divergence_metrics(payload)
             _current_state_cache = payload
             _current_state_cache_timestamp = datetime.now(timezone.utc)
+        payload = _augment_with_second_order_divergence(payload)
         return payload
 
     async with _current_state_lock:
@@ -2833,6 +2938,7 @@ async def get_current_market_state(
                 payload = await _augment_with_divergence_metrics(payload)
                 _current_state_cache = payload
                 _current_state_cache_timestamp = datetime.now(timezone.utc)
+            payload = _augment_with_second_order_divergence(payload)
             return payload
         # NOTE: Keep the expensive work inside the lock to prevent a cache stampede
         # (e.g., current-state and current-state-enriched arriving concurrently).
@@ -3027,6 +3133,7 @@ async def get_current_market_state(
         response = await _augment_with_momentum_regime(response)
         response = await _augment_with_macdv_percentiles(response)
         response = await _augment_with_divergence_metrics(response)
+        response = _augment_with_second_order_divergence(response)
 
         # Auto-save midday snapshot if within window and no snapshot exists for today
         now_utc = datetime.now(timezone.utc)

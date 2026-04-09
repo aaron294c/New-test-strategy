@@ -99,7 +99,7 @@ interface MarketState {
   macdv_categorical_percentile?: number | null;
   macdv_asymmetric_percentile?: number | null;
   macdv_interpretation?: string | null;
-  // Multi-timeframe divergence fields
+  // First-order divergence fields (Daily vs 4H)
   four_h_percentile?: number | null;
   divergence_pct?: number | null;
   abs_divergence_pct?: number | null;
@@ -111,6 +111,14 @@ interface MarketState {
   dislocation_level?: string | null;
   dislocation_color?: string | null;
   thresholds_text?: string | null;
+  // Second-order divergence fields (Daily Today vs Daily Yesterday)
+  second_order_divergence_pct?: number | null;
+  abs_second_order_divergence_pct?: number | null;
+  second_order_dislocation_level?: string | null;
+  second_order_dislocation_color?: string | null;
+  second_order_p85_threshold?: number | null;
+  second_order_p95_threshold?: number | null;
+  second_order_thresholds_text?: string | null;
   // Momentum transition fields
   signal_crossover?: 'bullish' | 'bearish' | null;
   macdv_decay_accel?: number | null;
@@ -141,6 +149,8 @@ type SortField =
   | 'four_h_percentile'
   | 'divergence_pct'
   | 'abs_divergence_pct'
+  | 'second_order_divergence_pct'
+  | 'abs_second_order_divergence_pct'
   | 'macdv_daily'
   | 'mom_d7_win_rate'
   | 'mom_d7_avg_return'
@@ -458,6 +468,14 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
           aValue = normalizeNumber(a.abs_divergence_pct);
           bValue = normalizeNumber(b.abs_divergence_pct);
           break;
+        case 'second_order_divergence_pct':
+          aValue = normalizeNumber(a.second_order_divergence_pct);
+          bValue = normalizeNumber(b.second_order_divergence_pct);
+          break;
+        case 'abs_second_order_divergence_pct':
+          aValue = normalizeNumber(a.abs_second_order_divergence_pct);
+          bValue = normalizeNumber(b.abs_second_order_divergence_pct);
+          break;
         case 'win_rate':
           aValue = a.live_expectancy.expected_win_rate;
           bValue = b.live_expectancy.expected_win_rate;
@@ -708,19 +726,40 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                   direction={sortField === 'divergence_pct' ? sortOrder : 'asc'}
                   onClick={() => handleSort('divergence_pct')}
                 >
-                  <Tooltip title="Divergence between Daily and 4H percentiles (Daily - 4H)">
-                    <span>Divergence</span>
+                  <Tooltip title="First-order divergence: Daily percentile minus 4H percentile. Positive = Daily overextended vs 4H.">
+                    <span>Divergence (Daily vs 4H)</span>
                   </Tooltip>
                 </TableSortLabel>
               </TableCell>
               <TableCell>
-                <Tooltip title="Dislocation level: Normal, Significant (P85), or Extreme (P95)">
-                  <span>Dislocation</span>
+                <Tooltip title="First-order dislocation (Daily vs 4H): Normal, Significant (P85), or Extreme (P95)">
+                  <span>Dislocation (Daily vs 4H)</span>
                 </Tooltip>
               </TableCell>
               <TableCell align="right">
-                <Tooltip title="Historical P85 and P95 divergence thresholds for this ticker">
-                  <span>P85 | P95</span>
+                <Tooltip title="First-order P85 and P95 divergence thresholds (Daily vs 4H) for this ticker">
+                  <span>P85 | P95 (Daily vs 4H)</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell align="right">
+                <TableSortLabel
+                  active={sortField === 'second_order_divergence_pct'}
+                  direction={sortField === 'second_order_divergence_pct' ? sortOrder : 'asc'}
+                  onClick={() => handleSort('second_order_divergence_pct')}
+                >
+                  <Tooltip title="Second-order divergence: Today's daily percentile minus yesterday's daily percentile. Captures regime shift, acceleration, or snapback signals.">
+                    <span>Divergence (Daily Today vs Daily Yesterday)</span>
+                  </Tooltip>
+                </TableSortLabel>
+              </TableCell>
+              <TableCell>
+                <Tooltip title="Second-order dislocation (Daily Today vs Daily Yesterday): Normal, Significant (P85), or Extreme (P95). Large moves indicate regime shift.">
+                  <span>Dislocation (Daily Today vs Daily Yesterday)</span>
+                </Tooltip>
+              </TableCell>
+              <TableCell align="right">
+                <Tooltip title="Second-order P85 and P95 thresholds (Daily Today vs Daily Yesterday) for this ticker">
+                  <span>P85 | P95 (2nd Order)</span>
                 </Tooltip>
               </TableCell>
               <TableCell>Zone</TableCell>
@@ -1140,12 +1179,78 @@ export const CurrentMarketState: React.FC<CurrentMarketStateProps> = ({ timefram
                   )}
                 </TableCell>
 
-                {/* P85 | P95 Thresholds */}
+                {/* P85 | P95 Thresholds (Daily vs 4H) */}
                 <TableCell align="right">
                   {state.thresholds_text ? (
-                    <Tooltip title="Historical P85 (significant) and P95 (extreme) divergence thresholds">
+                    <Tooltip title="First-order P85 (significant) and P95 (extreme) divergence thresholds (Daily vs 4H)">
                       <Typography variant="caption" color="text.secondary">
                         {state.thresholds_text}
+                      </Typography>
+                    </Tooltip>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* Second-Order Divergence (Daily Today vs Daily Yesterday) */}
+                <TableCell align="right">
+                  {state.second_order_divergence_pct != null ? (
+                    <Typography
+                      variant="body2"
+                      fontWeight="medium"
+                      sx={{
+                        color:
+                          state.second_order_divergence_pct > 0
+                            ? '#f44336'
+                            : state.second_order_divergence_pct < 0
+                            ? '#4caf50'
+                            : 'text.secondary',
+                      }}
+                    >
+                      {state.second_order_divergence_pct > 0 ? '+' : ''}
+                      {state.second_order_divergence_pct.toFixed(1)}pp
+                    </Typography>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* Second-Order Dislocation Level */}
+                <TableCell>
+                  {state.second_order_dislocation_level && state.second_order_dislocation_color ? (
+                    <Tooltip title={`Day-over-day regime change: ${state.second_order_dislocation_level}`}>
+                      <Chip
+                        label={`${state.second_order_dislocation_color} ${state.second_order_dislocation_level}`}
+                        size="small"
+                        sx={{
+                          backgroundColor:
+                            state.second_order_dislocation_level === 'Extreme (P95)'
+                              ? '#d32f2f20'
+                              : state.second_order_dislocation_level === 'Significant (P85)'
+                              ? '#ff6f0020'
+                              : '#9e9e9e20',
+                          color:
+                            state.second_order_dislocation_level === 'Extreme (P95)'
+                              ? '#d32f2f'
+                              : state.second_order_dislocation_level === 'Significant (P85)'
+                              ? '#ff6f00'
+                              : '#9e9e9e',
+                          fontSize: '0.7rem',
+                          fontWeight: state.second_order_dislocation_level !== 'Normal' ? 'bold' : 'normal',
+                        }}
+                      />
+                    </Tooltip>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">—</Typography>
+                  )}
+                </TableCell>
+
+                {/* P85 | P95 Thresholds (2nd Order) */}
+                <TableCell align="right">
+                  {state.second_order_thresholds_text ? (
+                    <Tooltip title="Second-order P85 (significant) and P95 (extreme) thresholds (Daily Today vs Daily Yesterday)">
+                      <Typography variant="caption" color="text.secondary">
+                        {state.second_order_thresholds_text}
                       </Typography>
                     </Tooltip>
                   ) : (

@@ -223,7 +223,7 @@ def _mr_row(row: dict) -> str:
 
 
 def _mr_detail(row: dict) -> str:
-    """Indented second line: D-4H | WR | ER | PriceChg."""
+    """Indented second line: D-4H | D2nd | WR | ER | PriceChg."""
     pct    = row.get("current_percentile")
     four_h = row.get("four_h_percentile")
     le     = row.get("live_expectancy") or {}
@@ -231,17 +231,26 @@ def _mr_detail(row: dict) -> str:
     er     = le.get("expected_return_pct")
     chg    = row.get("price_change_pct")
 
-    # Compute D vs 4H live from current values
+    # First-order: Daily vs 4H
     if pct is not None and four_h is not None:
         div_s = f"D-4H:{pct - four_h:+.0f}pp"
     else:
         div_s = ""
 
+    # Second-order: Daily Today vs Daily Yesterday
+    d2 = row.get("second_order_divergence_pct")
+    d2_lvl = row.get("second_order_dislocation_level") or ""
+    if d2 is not None:
+        icon = "⚡" if "Extreme" in d2_lvl else ("⚠" if "Significant" in d2_lvl else "")
+        d2_s = f"D2nd:{d2:+.0f}pp{icon}"
+    else:
+        d2_s = ""
+
     wr_s  = f"WR:{wr*100:.0f}%" if wr is not None else ""
     er_s  = f"ER:{er:+.1f}%" if er is not None else ""
     chg_s = f"Chg:{chg:+.1f}%" if chg is not None else ""
 
-    parts = [p for p in [div_s, wr_s, er_s, chg_s] if p]
+    parts = [p for p in [div_s, d2_s, wr_s, er_s, chg_s] if p]
     return ("  " + "  ".join(parts)) if parts else ""
 
 
@@ -451,6 +460,27 @@ def format_momentum(
 
 
 # ---------------------------------------------------------------------------
+# /help — command reference
+# ---------------------------------------------------------------------------
+
+def get_help_message() -> str:
+    return (
+        "<b>📡 AVAILABLE COMMANDS</b>\n"
+        "\n"
+        "<b>/update</b>  —  Full snapshot: macro + mean reversion + momentum\n"
+        "<b>/macro</b>   —  Macro dashboard (indices, bonds, FX, commodities)\n"
+        "<b>/mr</b>      —  Mean reversion table (oversold stocks ≤35th %ile)\n"
+        "<b>/momentum</b> — Momentum table (MACD-V leaders and laggards)\n"
+        "<b>/divergence</b> — Divergence analysis: 1st-order (Daily vs 4H) and\n"
+        "               2nd-order (Daily today vs Daily yesterday) signals\n"
+        "<b>/guide</b>   —  Column reference and metric explanations\n"
+        "<b>/help</b>    —  This message\n"
+        "\n"
+        "<i>Snapshots are also sent automatically each morning.</i>"
+    )
+
+
+# ---------------------------------------------------------------------------
 # /guide — column reference (sent only on demand)
 # ---------------------------------------------------------------------------
 
@@ -491,5 +521,110 @@ def get_guide_message() -> str:
         "\n"
         "<b>Δ1d / Δ5d</b>\n"
         "  Change in MACD-V over last 1 / 5 days\n"
-        "  Rising = momentum building  ·  Falling = momentum fading"
+        "  Rising = momentum building  ·  Falling = momentum fading\n"
+        "\n"
+        "<b>D-4H (First-order divergence)</b>\n"
+        "  Daily% minus 4H% — cross-timeframe dislocation\n"
+        "  Thresholds are empirical P85/P95 of |Daily−4H| per ticker\n"
+        "  ⚠ Significant (P85) = structural mispricing, watch for reversion\n"
+        "  ⚡ Extreme (P95) = rare setup, historically strong mean-reversion\n"
+        "\n"
+        "<b>D2nd (Second-order divergence)</b>\n"
+        "  Today's Daily% minus yesterday's Daily% — regime change signal\n"
+        "  Thresholds are empirical P85/P95 of |day-over-day Δ%| per ticker\n"
+        "  Typical P85 ≈ 24–31pp  ·  Typical P95 ≈ 35–43pp\n"
+        "  Large positive (+) = accelerating upward regime shift\n"
+        "  Large negative (−) = sharp pullback / snapback from yesterday\n"
+        "  ⚠ Significant (P85) = uncommon regime shift — watch direction\n"
+        "  ⚡ Extreme (P95) = very rare — historically precedes continuation or snap\n"
+        "\n"
+        "Use /divergence to see all tickers ranked by both layers."
     )
+
+
+# ---------------------------------------------------------------------------
+# /divergence — first-order and second-order divergence signals
+# ---------------------------------------------------------------------------
+
+_DIV_HDR = f"{'Ticker':<7} {'D-4H':>6} {'Dis1':>12}  {'D2nd':>6} {'Dis2':>12}"
+_DIV_SEP = "─" * 48
+
+
+def _div_row(row: dict) -> str:
+    ticker = row.get("ticker", "?")
+
+    # First-order (Daily vs 4H)
+    d1   = row.get("divergence_pct")
+    lvl1 = row.get("dislocation_level") or "—"
+    d1_s = f"{d1:+.0f}pp" if d1 is not None else "  —"
+    l1_s = "⚡Ext" if "Extreme" in lvl1 else ("⚠Sig" if "Significant" in lvl1 else "Norm")
+
+    # Second-order (Daily Today vs Daily Yesterday)
+    d2   = row.get("second_order_divergence_pct")
+    lvl2 = row.get("second_order_dislocation_level") or "—"
+    d2_s = f"{d2:+.0f}pp" if d2 is not None else "  —"
+    l2_s = "⚡Ext" if "Extreme" in lvl2 else ("⚠Sig" if "Significant" in lvl2 else "Norm")
+
+    return f"{ticker:<7} {d1_s:>6} {l1_s:>12}  {d2_s:>6} {l2_s:>12}"
+
+
+def format_divergence(
+    swing_data: Optional[list[dict]],
+    macro_data: dict[str, dict],
+) -> str:
+    """Format /divergence message: first-order (Daily vs 4H) and second-order (Daily Today vs Yesterday)."""
+    if swing_data is None:
+        swing_data = _load_swing_snapshot()
+
+    lines: list[str] = []
+    lines.append("<b>📐 DIVERGENCE ANALYSIS</b>")
+    lines.append(f"<i>{_now_uk()}</i>")
+    lines.append("")
+    lines.append(
+        "<i>1st order: Daily vs 4H (cross-timeframe dislocation)\n"
+        "2nd order: Daily today vs Daily yesterday (regime shift)</i>"
+    )
+    lines.append("")
+
+    # Filter: at least one significant dislocation in either order
+    sig1, sig2, both = [], [], []
+    for row in swing_data:
+        lvl1 = row.get("dislocation_level") or ""
+        lvl2 = row.get("second_order_dislocation_level") or ""
+        is_sig1 = "Significant" in lvl1 or "Extreme" in lvl1
+        is_sig2 = "Significant" in lvl2 or "Extreme" in lvl2
+        if is_sig1 and is_sig2:
+            both.append(row)
+        elif is_sig1:
+            sig1.append(row)
+        elif is_sig2:
+            sig2.append(row)
+
+    def _sort_key(r: dict) -> float:
+        a1 = r.get("abs_divergence_pct") or 0
+        a2 = r.get("abs_second_order_divergence_pct") or 0
+        return a1 + a2
+
+    for lst in (both, sig1, sig2):
+        lst.sort(key=_sort_key, reverse=True)
+
+    def _block(title: str, rows: list[dict]) -> None:
+        if not rows:
+            return
+        lines.append(f"<b>{title}</b>")
+        lines.append("<pre>")
+        lines.append(_DIV_HDR)
+        lines.append(_DIV_SEP)
+        for row in rows:
+            lines.append(_div_row(row))
+        lines.append("</pre>")
+        lines.append("")
+
+    _block("🔴 BOTH ORDERS DISLOCATED", both)
+    _block("🟡 1ST ORDER ONLY  (Daily vs 4H)", sig1)
+    _block("🔵 2ND ORDER ONLY  (Daily Today vs Yesterday)", sig2)
+
+    if not both and not sig1 and not sig2:
+        lines.append("<i>No significant divergence or dislocation signals at this time.</i>")
+
+    return "\n".join(lines)

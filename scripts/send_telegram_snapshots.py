@@ -7,6 +7,7 @@ Usage:
   python scripts/send_telegram_snapshots.py --type macro
   python scripts/send_telegram_snapshots.py --type mr
   python scripts/send_telegram_snapshots.py --type momentum
+  python scripts/send_telegram_snapshots.py --type divergence
 
 Called by GitHub Actions cron and can also be run manually.
 Requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID env vars.
@@ -45,6 +46,7 @@ def _send(msg_type: str) -> None:
         format_macro_dashboard,
         format_mean_reversion,
         format_momentum,
+        format_divergence,
     )
 
     if not is_configured():
@@ -58,7 +60,7 @@ def _send(msg_type: str) -> None:
     print(f"[send] Loaded swing snapshot with {len(swing_data)} tickers.")
 
     # Overlay snapshot data with live RSI-MA percentiles from yfinance
-    if msg_type in ("mr", "momentum", "all") and swing_data:
+    if msg_type in ("mr", "momentum", "divergence", "all") and swing_data:
         print("[send] Computing live swing percentiles...")
         live = compute_live_swing_percentiles(swing_data)
         updated = 0
@@ -88,6 +90,11 @@ def _send(msg_type: str) -> None:
         msg = format_momentum(swing_data, macro_data)
         split_and_send(msg)
 
+    if msg_type == "divergence":
+        print("[send] Sending divergence analysis...")
+        msg = format_divergence(swing_data, macro_data)
+        split_and_send(msg)
+
     print("[send] Done.")
 
 
@@ -95,7 +102,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Send Telegram market snapshots")
     parser.add_argument(
         "--type",
-        choices=["all", "macro", "mr", "momentum"],
+        choices=["all", "macro", "mr", "momentum", "divergence"],
         default="all",
         help="Which snapshot(s) to send (default: all)",
     )

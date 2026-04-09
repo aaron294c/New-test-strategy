@@ -25,6 +25,7 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
         format_macro_dashboard,
         format_mean_reversion,
         format_momentum,
+        format_divergence,
     )
     from telegram_bot import split_and_send
 
@@ -52,5 +53,8 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
 
     if msg_type in ("all", "momentum"):
         split_and_send(format_momentum(swing_data, macro_data), chat_id=chat_id)
+
+    if msg_type == "divergence":
+        split_and_send(format_divergence(swing_data, macro_data), chat_id=chat_id)
 
     print("[delivery] done.")
