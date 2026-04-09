@@ -110,17 +110,12 @@ def _telegram_poll_loop() -> None:
             print(f"[poll] send error: {exc}")
 
     COMMANDS = {
-        "/update": "all", "/macro": "macro",
-        "/mr": "mr", "/momentum": "momentum",
+        "/update":     "all",
+        "/macro":      "macro",
+        "/mr":         "mr",
+        "/momentum":   "momentum",
+        "/divergence": "divergence",
     }
-    HELP = (
-        "<b>📊 Market Snapshot Bot</b>\n\n"
-        "  /update   — all three snapshots\n"
-        "  /macro    — macro dashboard\n"
-        "  /mr       — mean reversion table\n"
-        "  /momentum — momentum table\n"
-        "  /help     — this message"
-    )
 
     offset: int | None = None
     print(f"[poll] Telegram poller started for chat_id={chat_id}")
@@ -143,8 +138,12 @@ def _telegram_poll_loop() -> None:
                 cmd = text.lower().split()[0]
                 print(f"[poll] received: {cmd!r}")
 
-                if cmd == "/help":
-                    _send(HELP)
+                if cmd in ("/help", "/guide"):
+                    try:
+                        from telegram_formatters import get_help_message, get_guide_message
+                        _send(get_help_message() if cmd == "/help" else get_guide_message())
+                    except Exception as exc:
+                        _send(f"❌ Error: {exc}")
                 elif cmd in COMMANDS:
                     _send(f"⏳ Fetching <b>{COMMANDS[cmd]}</b>…")
                     try:
