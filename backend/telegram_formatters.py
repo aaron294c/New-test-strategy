@@ -616,33 +616,52 @@ def get_guide_message() -> str:
 # /divergence — first-order and second-order divergence signals
 # ---------------------------------------------------------------------------
 
-_DIV_HDR = f"{'Ticker':<7} {'D-4H':>6} {'Dis1':>12}  {'D2nd':>6} {'Dis2':>12}"
-_DIV_SEP = "─" * 48
+# First-order table header
+_DIV1_HDR = f"{'Ticker':<7} {'Daily%':>7} {'4H%':>6} {'D-4H':>7}  {'Level'}"
+_DIV1_SEP = "─" * 44
+
+# Second-order table header
+_DIV2_HDR = f"{'Ticker':<7} {'Today%':>7} {'Yest%':>6} {'D2nd':>7}  {'Level'}"
+_DIV2_SEP = "─" * 44
 
 
-def _div_row(row: dict) -> str:
+def _div1_row(row: dict) -> str:
+    """First-order row: Daily vs 4H."""
     ticker = row.get("ticker", "?")
+    daily  = row.get("current_percentile")
+    fh     = row.get("four_h_percentile")
+    d1     = row.get("divergence_pct")
+    lvl1   = row.get("dislocation_level") or ""
 
-    # First-order (Daily vs 4H)
-    d1   = row.get("divergence_pct")
-    lvl1 = row.get("dislocation_level") or "—"
-    d1_s = f"{d1:+.0f}pp" if d1 is not None else "  —"
-    l1_s = "⚡Ext" if "Extreme" in lvl1 else ("⚠Sig" if "Significant" in lvl1 else "Norm")
+    daily_s = f"{daily:.1f}%" if daily is not None else "  —"
+    fh_s    = f"{fh:.1f}%" if fh is not None else "  —"
+    d1_s    = f"{d1:+.0f}pp" if d1 is not None else "  —"
+    badge   = "⚡Ext" if "Extreme" in lvl1 else ("⚠Sig" if "Significant" in lvl1 else "")
 
-    # Second-order (Daily Today vs Daily Yesterday)
-    d2   = row.get("second_order_divergence_pct")
-    lvl2 = row.get("second_order_dislocation_level") or "—"
-    d2_s = f"{d2:+.0f}pp" if d2 is not None else "  —"
-    l2_s = "⚡Ext" if "Extreme" in lvl2 else ("⚠Sig" if "Significant" in lvl2 else "Norm")
+    return f"{ticker:<7} {daily_s:>7} {fh_s:>6} {d1_s:>7}  {badge}"
 
-    return f"{ticker:<7} {d1_s:>6} {l1_s:>12}  {d2_s:>6} {l2_s:>12}"
+
+def _div2_row(row: dict) -> str:
+    """Second-order row: Daily today vs Daily yesterday."""
+    ticker = row.get("ticker", "?")
+    cur    = row.get("current_percentile")
+    prev   = row.get("prev_midday_percentile")
+    d2     = row.get("second_order_divergence_pct")
+    lvl2   = row.get("second_order_dislocation_level") or ""
+
+    cur_s  = f"{cur:.1f}%" if cur is not None else "  —"
+    prev_s = f"{prev:.1f}%" if prev is not None else "  —"
+    d2_s   = f"{d2:+.0f}pp" if d2 is not None else "  —"
+    badge  = "⚡Ext" if "Extreme" in lvl2 else ("⚠Sig" if "Significant" in lvl2 else "")
+
+    return f"{ticker:<7} {cur_s:>7} {prev_s:>6} {d2_s:>7}  {badge}"
 
 
 def format_divergence(
     swing_data: Optional[list[dict]],
     macro_data: dict[str, dict],
 ) -> str:
-    """Format /divergence message: first-order (Daily vs 4H) and second-order (Daily Today vs Yesterday)."""
+    """Format /divergence message: two separate ranked tables, always showing all tickers."""
     if swing_data is None:
         swing_data = _load_swing_snapshot()
 
@@ -650,51 +669,35 @@ def format_divergence(
     lines.append("<b>📐 DIVERGENCE ANALYSIS</b>")
     lines.append(f"<i>{_now_uk()}</i>")
     lines.append("")
-    lines.append(
-        "<i>1st order: Daily vs 4H (cross-timeframe dislocation)\n"
-        "2nd order: Daily today vs Daily yesterday (regime shift)</i>"
-    )
+
+    # ── Section 1: First-order (Daily vs 4H) ─────────────────────────────
+    rows_1 = [r for r in swing_data if r.get("divergence_pct") is not None]
+    rows_1.sort(key=lambda r: abs(r.get("divergence_pct") or 0), reverse=True)
+
+    lines.append("<b>1️⃣ FIRST ORDER — Daily vs 4H</b>")
+    lines.append("<i>Cross-timeframe dislocation  ·  ⚠ P85  ⚡ P95</i>")
+    lines.append("<pre>")
+    lines.append(_DIV1_HDR)
+    lines.append(_DIV1_SEP)
+    for row in rows_1:
+        lines.append(_div1_row(row))
+    lines.append("</pre>")
     lines.append("")
 
-    # Filter: at least one significant dislocation in either order
-    sig1, sig2, both = [], [], []
-    for row in swing_data:
-        lvl1 = row.get("dislocation_level") or ""
-        lvl2 = row.get("second_order_dislocation_level") or ""
-        is_sig1 = "Significant" in lvl1 or "Extreme" in lvl1
-        is_sig2 = "Significant" in lvl2 or "Extreme" in lvl2
-        if is_sig1 and is_sig2:
-            both.append(row)
-        elif is_sig1:
-            sig1.append(row)
-        elif is_sig2:
-            sig2.append(row)
+    # ── Section 2: Second-order (Daily today vs Daily yesterday) ─────────
+    rows_2 = [r for r in swing_data if r.get("second_order_divergence_pct") is not None]
+    rows_2.sort(key=lambda r: abs(r.get("second_order_divergence_pct") or 0), reverse=True)
 
-    def _sort_key(r: dict) -> float:
-        a1 = r.get("abs_divergence_pct") or 0
-        a2 = r.get("abs_second_order_divergence_pct") or 0
-        return a1 + a2
+    lines.append("<b>2️⃣ SECOND ORDER — Daily Today vs Daily Yesterday</b>")
+    lines.append("<i>Regime shift / acceleration  ·  ⚠ P85  ⚡ P95</i>")
+    lines.append("<pre>")
+    lines.append(_DIV2_HDR)
+    lines.append(_DIV2_SEP)
+    for row in rows_2:
+        lines.append(_div2_row(row))
+    lines.append("</pre>")
 
-    for lst in (both, sig1, sig2):
-        lst.sort(key=_sort_key, reverse=True)
-
-    def _block(title: str, rows: list[dict]) -> None:
-        if not rows:
-            return
-        lines.append(f"<b>{title}</b>")
-        lines.append("<pre>")
-        lines.append(_DIV_HDR)
-        lines.append(_DIV_SEP)
-        for row in rows:
-            lines.append(_div_row(row))
-        lines.append("</pre>")
-        lines.append("")
-
-    _block("🔴 BOTH ORDERS DISLOCATED", both)
-    _block("🟡 1ST ORDER ONLY  (Daily vs 4H)", sig1)
-    _block("🔵 2ND ORDER ONLY  (Daily Today vs Yesterday)", sig2)
-
-    if not both and not sig1 and not sig2:
-        lines.append("<i>No significant divergence or dislocation signals at this time.</i>")
+    if not rows_1 and not rows_2:
+        lines.append("<i>No divergence data available.</i>")
 
     return "\n".join(lines)
