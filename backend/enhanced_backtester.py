@@ -401,14 +401,24 @@ class EnhancedPerformanceMatrixBacktester:
         return progression, max_drawdown * 100, recovery_day
     
     def find_entry_events_enhanced(self, percentile_ranks: pd.Series, prices: pd.Series,
-                                 threshold: float) -> List[Dict]:
-        """Find entry events with D1-D21 tracking."""
+                                 threshold: float,
+                                 confluence_mask: Optional[pd.Series] = None) -> List[Dict]:
+        """Find entry events with D1-D21 tracking.
+
+        If confluence_mask is provided, only bars where the mask is truthy at
+        the given date are accepted as entries. NaN/missing → skipped.
+        """
         events = []
-        
+
         for i, (date, percentile) in enumerate(percentile_ranks.items()):
             if pd.isna(percentile) or percentile > threshold:
                 continue
-            
+
+            if confluence_mask is not None:
+                cm = confluence_mask.get(date, False)
+                if pd.isna(cm) or not bool(cm):
+                    continue
+
             if i + self.max_horizon >= len(prices):
                 continue
                 

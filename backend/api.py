@@ -115,6 +115,7 @@ def _telegram_poll_loop() -> None:
         "/mr":         "mr",
         "/momentum":   "momentum",
         "/divergence": "divergence",
+        "/cov":        "cov",
     }
 
     offset: int | None = None

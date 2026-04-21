@@ -3,7 +3,7 @@ Shared snapshot delivery logic used by both the webhook handler and the poller.
 
 _deliver(chat_id, msg_type)  — fetches live data and sends snapshot(s).
 
-msg_type: "all" | "macro" | "mr" | "momentum" | "divergence"
+msg_type: "all" | "macro" | "mr" | "momentum" | "divergence" | "cov"
 """
 
 from __future__ import annotations
@@ -27,6 +27,7 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
         format_mean_reversion,
         format_momentum,
         format_divergence,
+        format_cov_snapshot,
     )
     from telegram_bot import split_and_send
 
@@ -39,7 +40,7 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
     swing_data = _load_swing_snapshot()
 
     # Overlay snapshot with live RSI-MA percentiles from yfinance
-    needs_live = msg_type in ("all", "mr", "momentum", "divergence")
+    needs_live = msg_type in ("all", "mr", "momentum", "divergence", "cov")
     if needs_live and swing_data:
         live = compute_live_swing_percentiles(swing_data)
         for row in swing_data:
@@ -49,6 +50,12 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
             if ld.get("price") is not None:
                 row["current_price"]    = ld["price"]
                 row["price_change_pct"] = ld.get("price_chg_pct")
+            if ld.get("rsi_ma") is not None:
+                row["rsi_ma"] = ld["rsi_ma"]
+            if ld.get("cov_dir_metric") is not None:
+                row["cov_dir_metric"] = ld["cov_dir_metric"]
+            if ld.get("cov_bar_color") is not None:
+                row["cov_bar_color"] = ld["cov_bar_color"]
         # Re-enrich second-order after live percentile update
         _enrich_second_order(swing_data)
 
@@ -60,6 +67,9 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
 
     if msg_type in ("all", "momentum"):
         split_and_send(format_momentum(swing_data, macro_data), chat_id=chat_id)
+
+    if msg_type in ("all", "cov"):
+        split_and_send(format_cov_snapshot(swing_data), chat_id=chat_id)
 
     if msg_type == "divergence":
         split_and_send(format_divergence(swing_data, macro_data), chat_id=chat_id)

@@ -8,7 +8,7 @@ on:
         required: false
         default: 'all'
         type: choice
-        options: [all, macro, mr, momentum]
+        options: [all, macro, mr, momentum, divergence, cov]
   schedule:
     # UK times (BST = UTC+1 in summer, GMT = UTC+0 in winter)
     # These are BST times (Mar–Oct).  Adjust by +1h for GMT (Nov–Feb).

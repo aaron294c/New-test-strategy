@@ -305,6 +305,9 @@ def compute_live_swing_percentiles(swing_data: list[dict]) -> dict[str, dict]:
     except Exception as exc:
         print(f"[swing_live] batch download error: {exc}")
 
+    # Lazy import to avoid a circular dependency at module load time.
+    from cov_indicator import compute_cov
+
     results: dict[str, dict] = {}
     for ticker, yf_sym in ticker_to_yf.items():
         close = batch_closes.get(yf_sym)
@@ -313,12 +316,35 @@ def compute_live_swing_percentiles(swing_data: list[dict]) -> dict[str, dict]:
         if close is None:
             results[ticker] = {
                 "current_percentile": None, "price": None,
-                "price_chg_pct": None, "error": "fetch failed",
+                "price_chg_pct": None,
+                "rsi_ma": None,
+                "cov_dir_metric": None, "cov_bar_color": None,
+                "error": "fetch failed",
             }
             continue
         try:
             rsi_ma_series = calculate_rsi_ma(close)
             percentile = compute_percentile(rsi_ma_series)
+
+            rsi_ma_last = None
+            try:
+                last = rsi_ma_series.dropna()
+                if not last.empty:
+                    rsi_ma_last = float(last.iloc[-1])
+            except Exception:
+                rsi_ma_last = None
+
+            cov_dm = None
+            cov_col = None
+            try:
+                cov_df = compute_cov(close)
+                dm_series = cov_df["dir_metric"].dropna()
+                if not dm_series.empty:
+                    cov_dm = float(dm_series.iloc[-1])
+                col_val = cov_df["bar_color"].iloc[-1]
+                cov_col = col_val if isinstance(col_val, str) else None
+            except Exception as exc:
+                print(f"[swing_live] cov compute failed for {ticker}: {exc}")
 
             price = float(close.iloc[-1])
             prev_price = None
@@ -335,12 +361,18 @@ def compute_live_swing_percentiles(swing_data: list[dict]) -> dict[str, dict]:
                 "current_percentile": percentile,
                 "price": price,
                 "price_chg_pct": price_chg,
+                "rsi_ma": rsi_ma_last,
+                "cov_dir_metric": cov_dm,
+                "cov_bar_color": cov_col,
                 "error": None,
             }
         except Exception as exc:
             results[ticker] = {
                 "current_percentile": None, "price": None,
-                "price_chg_pct": None, "error": str(exc),
+                "price_chg_pct": None,
+                "rsi_ma": None,
+                "cov_dir_metric": None, "cov_bar_color": None,
+                "error": str(exc),
             }
 
     return results

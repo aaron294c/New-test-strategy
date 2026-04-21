@@ -8,6 +8,7 @@ Usage:
   python scripts/send_telegram_snapshots.py --type mr
   python scripts/send_telegram_snapshots.py --type momentum
   python scripts/send_telegram_snapshots.py --type divergence
+  python scripts/send_telegram_snapshots.py --type cov
 
 Called by GitHub Actions cron and can also be run manually.
 Requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID env vars.
@@ -47,6 +48,7 @@ def _send(msg_type: str) -> None:
         format_mean_reversion,
         format_momentum,
         format_divergence,
+        format_cov_snapshot,
     )
 
     if not is_configured():
@@ -60,7 +62,7 @@ def _send(msg_type: str) -> None:
     print(f"[send] Loaded swing snapshot with {len(swing_data)} tickers.")
 
     # Overlay snapshot data with live RSI-MA percentiles from yfinance
-    if msg_type in ("mr", "momentum", "divergence", "all") and swing_data:
+    if msg_type in ("mr", "momentum", "divergence", "cov", "all") and swing_data:
         print("[send] Computing live swing percentiles...")
         live = compute_live_swing_percentiles(swing_data)
         updated = 0
@@ -73,6 +75,12 @@ def _send(msg_type: str) -> None:
             if ld.get("price") is not None:
                 row["current_price"] = ld["price"]
                 row["price_change_pct"] = ld.get("price_chg_pct")
+            if ld.get("rsi_ma") is not None:
+                row["rsi_ma"] = ld["rsi_ma"]
+            if ld.get("cov_dir_metric") is not None:
+                row["cov_dir_metric"] = ld["cov_dir_metric"]
+            if ld.get("cov_bar_color") is not None:
+                row["cov_bar_color"] = ld["cov_bar_color"]
         print(f"[send] Updated live percentiles for {updated}/{len(swing_data)} tickers.")
 
     if msg_type in ("macro", "all"):
@@ -90,6 +98,11 @@ def _send(msg_type: str) -> None:
         msg = format_momentum(swing_data, macro_data)
         split_and_send(msg)
 
+    if msg_type in ("cov", "all"):
+        print("[send] Sending CoV red-bar scan...")
+        msg = format_cov_snapshot(swing_data)
+        split_and_send(msg)
+
     if msg_type == "divergence":
         print("[send] Sending divergence analysis...")
         msg = format_divergence(swing_data, macro_data)
@@ -102,7 +115,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Send Telegram market snapshots")
     parser.add_argument(
         "--type",
-        choices=["all", "macro", "mr", "momentum", "divergence"],
+        choices=["all", "macro", "mr", "momentum", "divergence", "cov"],
         default="all",
         help="Which snapshot(s) to send (default: all)",
     )

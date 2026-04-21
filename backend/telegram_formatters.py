@@ -543,6 +543,7 @@ def get_help_message() -> str:
         "<b>/momentum</b> — Momentum table (MACD-V leaders and laggards)\n"
         "<b>/divergence</b> — Divergence analysis: 1st-order (Daily vs 4H) and\n"
         "               2nd-order (Daily today vs Daily yesterday) signals\n"
+        "<b>/cov</b>     —  CoV red-bar scan (Fisher-z ≤ −1.3) with RSI-MA context\n"
         "<b>/guide</b>   —  Column reference and metric explanations\n"
         "<b>/help</b>    —  This message\n"
         "\n"
@@ -699,5 +700,63 @@ def format_divergence(
 
     if not rows_1 and not rows_2:
         lines.append("<i>No divergence data available.</i>")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# /cov — Coefficient-of-Variation red-bar scan
+#
+# Scans the swing-framework universe for tickers currently firing the red
+# CoV signal (Fisher-z dir_metric ≤ −1.3).  Shows dir_metric alongside the
+# current RSI-MA percentile and nominal so the user can manually correlate
+# vs the RSI-MA<5 mean-reversion setup — the two signals are reported
+# independently, not combined.
+# ---------------------------------------------------------------------------
+
+_COV_HDR = f"{'Ticker':<7} {'DirZ':>6} {'RSI':>5} {'Pctl':>6}"
+_COV_SEP = "─" * 27
+
+
+def _cov_row(row: dict) -> str:
+    ticker = row.get("ticker", "?")
+    dm     = row.get("cov_dir_metric")
+    rsi    = row.get("rsi_ma")
+    pct    = row.get("current_percentile")
+
+    dm_s  = f"{dm:+.2f}" if dm is not None else "   —"
+    rsi_s = f"{rsi:.1f}" if rsi is not None else "  —"
+    pct_s = f"{pct:.1f}%" if pct is not None else "   —"
+
+    return f"{ticker:<7} {dm_s:>6} {rsi_s:>5} {pct_s:>6}"
+
+
+def format_cov_snapshot(swing_data: Optional[list[dict]]) -> str:
+    """Format /cov message: tickers currently firing Fisher-z dir_metric ≤ −1.3."""
+    if swing_data is None:
+        swing_data = _load_swing_snapshot()
+
+    red_rows = [r for r in swing_data if r.get("cov_bar_color") == "red"]
+    red_rows.sort(key=lambda r: r.get("cov_dir_metric") or 0.0)  # most-negative first
+
+    lines: list[str] = []
+    lines.append("<b>🔴 CoV RED-BAR SCAN</b>")
+    lines.append(f"<i>{_now_uk()}</i>")
+    lines.append("<i>Fisher-z dir_metric ≤ −1.3  ·  price falling while CV rising</i>")
+    lines.append("")
+
+    if not red_rows:
+        lines.append("<i>No tickers currently firing the red CoV signal.</i>")
+        return "\n".join(lines)
+
+    lines.append(f"<b>{len(red_rows)} / {len(swing_data)} tickers firing</b>")
+    lines.append("<pre>")
+    lines.append(_COV_HDR)
+    lines.append(_COV_SEP)
+    for row in red_rows:
+        lines.append(_cov_row(row))
+    lines.append("</pre>")
+    lines.append("")
+    lines.append("<i>DirZ = Fisher-z dir_metric · RSI = nominal RSI-MA · Pctl = 252-bar percentile</i>")
 
     return "\n".join(lines)
