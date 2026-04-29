@@ -147,14 +147,17 @@ def set_bot_commands() -> bool:
         return False
 
     commands = [
-        {"command": "update",     "description": "Full snapshot: macro + mean reversion + momentum"},
-        {"command": "macro",      "description": "Macro dashboard (indices, bonds, FX, commodities)"},
-        {"command": "mr",         "description": "Mean reversion table (oversold stocks ≤35th %ile)"},
-        {"command": "momentum",   "description": "Momentum table (MACD-V leaders and laggards)"},
-        {"command": "divergence", "description": "1st & 2nd order divergence/dislocation signals"},
-        {"command": "cov",        "description": "CoV red-bar scan (Fisher-z ≤ −1.3) with RSI-MA context"},
-        {"command": "guide",      "description": "Column reference and metric explanations"},
-        {"command": "help",       "description": "List all available commands"},
+        {"command": "update",        "description": "Full snapshot: macro + mean reversion + momentum + CoV"},
+        {"command": "macro",         "description": "Macro dashboard (indices, bonds, FX, commodities)"},
+        {"command": "mr",            "description": "Mean reversion table (oversold stocks ≤35th %ile)"},
+        {"command": "momentum",      "description": "Momentum table (MACD-V leaders and laggards)"},
+        {"command": "divergence",    "description": "1st & 2nd order divergence/dislocation signals"},
+        {"command": "cov",           "description": "CoV red-bar scan (Fisher-z ≤ −1.3) with RSI-MA context"},
+        {"command": "covgreen",      "description": "CoV Green Exhaustion scan (Fisher-z ≥ +1.3, overextended)"},
+        {"command": "200sma",        "description": "200-day SMA distances, ranked negative to positive"},
+        {"command": "riskdistances", "description": "Gamma walls & max pain ranked by put wall proximity"},
+        {"command": "guide",         "description": "Column reference and metric explanations"},
+        {"command": "help",          "description": "List all available commands"},
     ]
 
     payload = json.dumps({"commands": commands}).encode("utf-8")

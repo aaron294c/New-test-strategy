@@ -537,15 +537,17 @@ def get_help_message() -> str:
     return (
         "<b>📡 AVAILABLE COMMANDS</b>\n"
         "\n"
-        "<b>/update</b>  —  Full snapshot: macro + mean reversion + momentum\n"
-        "<b>/macro</b>   —  Macro dashboard (indices, bonds, FX, commodities)\n"
-        "<b>/mr</b>      —  Mean reversion table (oversold stocks ≤35th %ile)\n"
-        "<b>/momentum</b> — Momentum table (MACD-V leaders and laggards)\n"
-        "<b>/divergence</b> — Divergence analysis: 1st-order (Daily vs 4H) and\n"
-        "               2nd-order (Daily today vs Daily yesterday) signals\n"
-        "<b>/cov</b>     —  CoV red-bar scan (Fisher-z ≤ −1.3) with RSI-MA context\n"
-        "<b>/guide</b>   —  Column reference and metric explanations\n"
-        "<b>/help</b>    —  This message\n"
+        "<b>/update</b>       —  Full snapshot: macro + mean reversion + momentum + CoV\n"
+        "<b>/macro</b>        —  Macro dashboard (indices, bonds, FX, commodities)\n"
+        "<b>/mr</b>           —  Mean reversion table (oversold stocks ≤35th %ile)\n"
+        "<b>/momentum</b>     —  Momentum table (MACD-V leaders and laggards)\n"
+        "<b>/divergence</b>   —  1st-order (Daily vs 4H) and 2nd-order divergence\n"
+        "<b>/cov</b>          —  CoV red-bar scan (Fisher-z ≤ −1.3, risk entries)\n"
+        "<b>/covgreen</b>     —  CoV green exhaustion (Fisher-z ≥ +1.3, overextended)\n"
+        "<b>/200sma</b>       —  Distance to 200-day SMA, ranked negative→positive\n"
+        "<b>/riskdistances</b> — Gamma walls & max pain ranked by put wall proximity\n"
+        "<b>/guide</b>        —  Column reference and metric explanations\n"
+        "<b>/help</b>         —  This message\n"
         "\n"
         "<i>Snapshots are also sent automatically each morning.</i>"
     )
@@ -758,5 +760,161 @@ def format_cov_snapshot(swing_data: Optional[list[dict]]) -> str:
     lines.append("</pre>")
     lines.append("")
     lines.append("<i>DirZ = Fisher-z dir_metric · RSI = nominal RSI-MA · Pctl = 252-bar percentile</i>")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# /covgreen — CoV Green Exhaustion scan (dir_metric ≥ +1.3)
+# ---------------------------------------------------------------------------
+
+def format_cov_green_snapshot(swing_data: Optional[list[dict]]) -> str:
+    """Format /covgreen: tickers with Fisher-z dir_metric ≥ +1.3 (Green Exhaustion)."""
+    if swing_data is None:
+        swing_data = _load_swing_snapshot()
+
+    green_rows = [r for r in swing_data if r.get("cov_bar_color") == "green"]
+    green_rows.sort(key=lambda r: r.get("cov_dir_metric") or 0.0, reverse=True)
+
+    lines: list[str] = []
+    lines.append("<b>🟢 CoV GREEN EXHAUSTION SCAN</b>")
+    lines.append(f"<i>{_now_uk()}</i>")
+    lines.append("<i>Fisher-z dir_metric ≥ +1.3  ·  price rising while CV rising (overextended)</i>")
+    lines.append("")
+
+    if not green_rows:
+        lines.append("<i>No tickers currently firing the green CoV signal.</i>")
+        return "\n".join(lines)
+
+    lines.append(f"<b>{len(green_rows)} / {len(swing_data)} tickers firing</b>")
+    lines.append("<pre>")
+    lines.append(_COV_HDR)
+    lines.append(_COV_SEP)
+    for row in green_rows:
+        lines.append(_cov_row(row))
+    lines.append("</pre>")
+    lines.append("")
+    lines.append("<i>DirZ = Fisher-z dir_metric · RSI = nominal RSI-MA · Pctl = 252-bar percentile</i>")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# /200sma — Distance to 200-day Simple Moving Average
+# ---------------------------------------------------------------------------
+
+def format_sma200_snapshot(tickers: list[str]) -> str:
+    """Format /200sma: distance to 200-day SMA for all tickers, ranked negative→positive."""
+    from macro_rsi_calculator import compute_live_sma200_distances
+
+    live = compute_live_sma200_distances(tickers)
+
+    rows: list[tuple] = []
+    for ticker, data in live.items():
+        if data.get("distance_pct") is not None:
+            rows.append((ticker, data["price"], data["sma200"], data["distance_pct"]))
+
+    rows.sort(key=lambda r: r[3])
+
+    lines: list[str] = []
+    lines.append("<b>📏 200-DAY SMA DISTANCES</b>")
+    lines.append(f"<i>{_now_uk()}</i>")
+    lines.append("<i>Negative = below 200 SMA (breach) · Positive = above</i>")
+    lines.append("")
+
+    if not rows:
+        lines.append("<i>No data available.</i>")
+        return "\n".join(lines)
+
+    below = sum(1 for r in rows if r[3] < 0)
+    lines.append(f"<b>{below} below 200 SMA · {len(rows) - below} above</b>")
+    lines.append("<pre>")
+    lines.append(f"{'Ticker':<8} {'Price':>10} {'200SMA':>10} {'Dist%':>7}")
+    lines.append("─" * 38)
+    for ticker, price, sma200, dist in rows:
+        price_s = f"{price:,.2f}" if price < 10_000 else f"{price:,.0f}"
+        sma_s   = f"{sma200:,.2f}" if sma200 < 10_000 else f"{sma200:,.0f}"
+        dist_s  = f"{dist:+.1f}%"
+        flag    = " ⬇" if dist < -5 else (" ⚠" if dist < 0 else "")
+        lines.append(f"{ticker:<8} {price_s:>10} {sma_s:>10} {dist_s:>7}{flag}")
+    lines.append("</pre>")
+    lines.append("")
+    lines.append("<i>⬇ &gt;5% below SMA  ·  ⚠ breached  ·  Positive = % above SMA</i>")
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# /riskdistances — Gamma walls, max pain, and key price levels
+# ---------------------------------------------------------------------------
+
+_RDIST_OPTIONS_SYMBOLS = [
+    'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NFLX',
+    'WMT', 'UNH', 'AVGO', 'LLY', 'TSM', 'ORCL', 'OXY', 'XOM', 'CVX',
+    'JPM', 'BAC', 'MCD', 'ASML', 'SMCI',
+    'SPY', 'QQQ', 'GLD', 'SLV', 'SMH', 'XLI', 'BRK-B',
+]
+
+_RDIST_HDR = f"{'Symbol':<7} {'Price':>8} {'PutWall':>8} {'PW%':>6} {'MaxPain':>8} {'MP%':>6}"
+_RDIST_SEP = "─" * 50
+
+
+def format_risk_distances() -> str:
+    """Format /riskdistances: gamma put walls & max pain ranked by breach proximity."""
+    from gamma_risk_distance import get_risk_distance_data
+
+    lines: list[str] = []
+    lines.append("<b>🧱 RISK DISTANCES — GAMMA WALLS</b>")
+    lines.append(f"<i>{_now_uk()}</i>")
+    lines.append("<i>PW% negative = put wall breached · ordered by proximity</i>")
+    lines.append("")
+
+    try:
+        data = get_risk_distance_data(_RDIST_OPTIONS_SYMBOLS)
+    except Exception as exc:
+        lines.append(f"<i>Error fetching gamma data: {exc}</i>")
+        return "\n".join(lines)
+
+    if not data:
+        lines.append("<i>No gamma data available.</i>")
+        return "\n".join(lines)
+
+    rows: list[tuple] = []
+    for symbol, profile in data.items():
+        price = profile.get("current_price")
+        if not price:
+            continue
+        pw_dict = profile.get("put_walls", {})
+        swing_pw = pw_dict.get("swing") or pw_dict.get("weekly") or pw_dict.get("long")
+        if not swing_pw:
+            continue
+        pw_strike = swing_pw["strike"]
+        pw_dist   = swing_pw["distance_pct"]
+
+        mp_dict  = profile.get("max_pain", {})
+        swing_mp = mp_dict.get("swing") or mp_dict.get("weekly") or {}
+        mp_strike = swing_mp.get("strike", 0)
+        mp_dist   = swing_mp.get("distance_pct", 0)
+
+        rows.append((symbol, price, pw_strike, pw_dist, mp_strike, mp_dist))
+
+    rows.sort(key=lambda r: r[3])
+
+    breached = sum(1 for r in rows if r[3] < 0)
+    lines.append(f"<b>{breached} symbols at/below key put wall</b>")
+    lines.append("<pre>")
+    lines.append(_RDIST_HDR)
+    lines.append(_RDIST_SEP)
+    for symbol, price, pw_strike, pw_dist, mp_strike, mp_dist in rows:
+        price_s  = f"{price:,.1f}" if price < 10_000 else f"{price:,.0f}"
+        pw_s     = f"{pw_strike:,.1f}" if pw_strike and pw_strike < 10_000 else f"{pw_strike:,.0f}"
+        pw_pct_s = f"{pw_dist:+.1f}%"
+        mp_s     = (f"{mp_strike:,.1f}" if mp_strike and mp_strike < 10_000 else f"{mp_strike:,.0f}") if mp_strike else "     —"
+        mp_pct_s = f"{mp_dist:+.1f}%" if mp_dist else "    —"
+        flag     = " ⬇" if pw_dist < -2 else (" ⚠" if pw_dist < 0 else "")
+        lines.append(f"{symbol:<7} {price_s:>8} {pw_s:>8} {pw_pct_s:>6} {mp_s:>8} {mp_pct_s:>6}{flag}")
+    lines.append("</pre>")
+    lines.append("")
+    lines.append("<i>PW = swing put wall · MP = max pain · ⬇ &gt;2% below wall · ⚠ at wall</i>")
 
     return "\n".join(lines)

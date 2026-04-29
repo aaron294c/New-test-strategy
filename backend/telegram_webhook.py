@@ -78,11 +78,15 @@ async def telegram_webhook(
         background_tasks.add_task(send_message, chat_id, get_help_message())
     else:
         cmd_map = {
-            "/update":     "all",
-            "/macro":      "macro",
-            "/mr":         "mr",
-            "/momentum":   "momentum",
-            "/divergence": "divergence",
+            "/update":        "all",
+            "/macro":         "macro",
+            "/mr":            "mr",
+            "/momentum":      "momentum",
+            "/divergence":    "divergence",
+            "/cov":           "cov",
+            "/covgreen":      "covgreen",
+            "/200sma":        "sma200",
+            "/riskdistances": "riskdistances",
         }
         for cmd, msg_type in cmd_map.items():
             if text.startswith(cmd) and chat_id:

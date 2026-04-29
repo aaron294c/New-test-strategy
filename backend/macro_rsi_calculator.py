@@ -376,3 +376,70 @@ def compute_live_swing_percentiles(swing_data: list[dict]) -> dict[str, dict]:
             }
 
     return results
+
+
+def compute_live_sma200_distances(tickers: list[str]) -> dict[str, dict]:
+    """
+    Compute 200-day SMA distances for a list of tickers.
+
+    Returns {ticker: {"price": float|None, "sma200": float|None,
+                       "distance_pct": float|None, "error": str|None}}
+    where distance_pct = (current_price - sma200) / sma200 * 100.
+    Negative = price is below 200-day SMA (breach).
+    """
+    ticker_to_yf: dict[str, str] = {t: resolve_yahoo_symbol(t) for t in tickers}
+    yf_symbols = list(set(ticker_to_yf.values()))
+
+    batch_closes: dict[str, pd.Series] = {}
+    try:
+        if len(yf_symbols) == 1:
+            raw = yf.download(yf_symbols[0], period="2y", auto_adjust=True, progress=False)
+            if not raw.empty and "Close" in raw.columns:
+                s = raw["Close"].dropna()
+                if s.index.duplicated().any():
+                    s = s[~s.index.duplicated(keep="last")]
+                if len(s) >= 201:
+                    batch_closes[yf_symbols[0]] = s
+        else:
+            raw = yf.download(
+                yf_symbols, period="2y", auto_adjust=True,
+                group_by="ticker", progress=False, threads=True,
+            )
+            for sym in yf_symbols:
+                try:
+                    s = raw[sym]["Close"].dropna()
+                    if s.index.duplicated().any():
+                        s = s[~s.index.duplicated(keep="last")]
+                    if len(s) >= 201:
+                        batch_closes[sym] = s
+                except Exception:
+                    pass
+    except Exception as exc:
+        print(f"[sma200] batch download error: {exc}")
+
+    results: dict[str, dict] = {}
+    for ticker, yf_sym in ticker_to_yf.items():
+        close = batch_closes.get(yf_sym)
+        if close is None:
+            close = _fetch_close(yf_sym, period="2y")
+        if close is None or len(close) < 201:
+            results[ticker] = {
+                "price": None, "sma200": None, "distance_pct": None,
+                "error": "insufficient data",
+            }
+            continue
+        try:
+            sma200 = float(close.rolling(200).mean().iloc[-1])
+            price = float(close.iloc[-1])
+            if sma200 <= 0:
+                results[ticker] = {"price": price, "sma200": None, "distance_pct": None, "error": "SMA200 zero"}
+            else:
+                distance_pct = (price - sma200) / sma200 * 100
+                results[ticker] = {
+                    "price": price, "sma200": round(sma200, 2),
+                    "distance_pct": round(distance_pct, 2), "error": None,
+                }
+        except Exception as exc:
+            results[ticker] = {"price": None, "sma200": None, "distance_pct": None, "error": str(exc)}
+
+    return results

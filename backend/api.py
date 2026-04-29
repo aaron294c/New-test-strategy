@@ -110,12 +110,15 @@ def _telegram_poll_loop() -> None:
             print(f"[poll] send error: {exc}")
 
     COMMANDS = {
-        "/update":     "all",
-        "/macro":      "macro",
-        "/mr":         "mr",
-        "/momentum":   "momentum",
-        "/divergence": "divergence",
-        "/cov":        "cov",
+        "/update":        "all",
+        "/macro":         "macro",
+        "/mr":            "mr",
+        "/momentum":      "momentum",
+        "/divergence":    "divergence",
+        "/cov":           "cov",
+        "/covgreen":      "covgreen",
+        "/200sma":        "sma200",
+        "/riskdistances": "riskdistances",
     }
 
     offset: int | None = None

@@ -4,6 +4,7 @@ Shared snapshot delivery logic used by both the webhook handler and the poller.
 _deliver(chat_id, msg_type)  — fetches live data and sends snapshot(s).
 
 msg_type: "all" | "macro" | "mr" | "momentum" | "divergence" | "cov"
+          | "covgreen" | "sma200" | "riskdistances"
 """
 
 from __future__ import annotations
@@ -28,6 +29,9 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
         format_momentum,
         format_divergence,
         format_cov_snapshot,
+        format_cov_green_snapshot,
+        format_sma200_snapshot,
+        format_risk_distances,
     )
     from telegram_bot import split_and_send
 
@@ -40,7 +44,7 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
     swing_data = _load_swing_snapshot()
 
     # Overlay snapshot with live RSI-MA percentiles from yfinance
-    needs_live = msg_type in ("all", "mr", "momentum", "divergence", "cov")
+    needs_live = msg_type in ("all", "mr", "momentum", "divergence", "cov", "covgreen")
     if needs_live and swing_data:
         live = compute_live_swing_percentiles(swing_data)
         for row in swing_data:
@@ -73,5 +77,15 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
 
     if msg_type == "divergence":
         split_and_send(format_divergence(swing_data, macro_data), chat_id=chat_id)
+
+    if msg_type == "covgreen":
+        split_and_send(format_cov_green_snapshot(swing_data), chat_id=chat_id)
+
+    if msg_type == "sma200":
+        from macdv_calculator import SWING_FRAMEWORK_TICKERS
+        split_and_send(format_sma200_snapshot(SWING_FRAMEWORK_TICKERS), chat_id=chat_id)
+
+    if msg_type == "riskdistances":
+        split_and_send(format_risk_distances(), chat_id=chat_id)
 
     print("[delivery] done.")
