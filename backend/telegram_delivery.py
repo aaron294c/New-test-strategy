@@ -20,7 +20,11 @@ if str(_here) not in sys.path:
 
 def _deliver(chat_id: str, msg_type: str = "all") -> None:
     """Fetch live data and send Telegram snapshot(s) to chat_id."""
-    from macro_rsi_calculator import fetch_all_macro_data, compute_live_swing_percentiles
+    from macro_rsi_calculator import (
+        fetch_all_macro_data,
+        compute_live_swing_percentiles,
+        compute_live_full_rows,
+    )
     from telegram_formatters import (
         _load_swing_snapshot,
         _enrich_second_order,
@@ -41,11 +45,20 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
     needs_macro = msg_type in ("all", "macro", "mr", "momentum")
     macro_data = fetch_all_macro_data() if needs_macro else {}
 
-    swing_data = _load_swing_snapshot()
+    swing_data = list(_load_swing_snapshot() or [])
 
-    # Overlay snapshot with live RSI-MA percentiles from yfinance
     needs_live = msg_type in ("all", "mr", "momentum", "divergence", "cov", "covgreen")
-    if needs_live and swing_data:
+    if needs_live and swing_data is not None:
+        # Inject live rows for tickers in the universe but absent from the snapshot
+        from macdv_calculator import SWING_FRAMEWORK_TICKERS
+        snapshot_tickers = {row.get("ticker") for row in swing_data}
+        new_tickers = [t for t in SWING_FRAMEWORK_TICKERS if t not in snapshot_tickers]
+        if new_tickers:
+            print(f"[delivery] computing live rows for new tickers: {new_tickers}")
+            new_rows = compute_live_full_rows(new_tickers)
+            swing_data.extend(new_rows)
+
+        # Overlay snapshot rows with live RSI-MA / CoV from yfinance
         live = compute_live_swing_percentiles(swing_data)
         for row in swing_data:
             ld = live.get(row.get("ticker", ""), {})

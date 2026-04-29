@@ -343,5 +343,5 @@ SWING_FRAMEWORK_TICKERS = [
     'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO',
     'LLY', 'TSM', 'ORCL', 'OXY', 'XOM', 'CVX', 'JPM', 'BAC',
     'ES=F', 'NQ=F', 'BTC-USD', '^VIX', 'DX-Y.NYB', '^TNX', 'XLI',
-    'MCD', 'SMH', 'ASML', 'SMCI', '^GDAXI', '^FTSE',
+    'MCD', 'SMH', 'ASML', 'SMCI', '^GDAXI', '^FTSE', '^N225',
 ]

@@ -378,6 +378,143 @@ def compute_live_swing_percentiles(swing_data: list[dict]) -> dict[str, dict]:
     return results
 
 
+def _derive_macdv_trend_label(macdv_series: pd.Series) -> str:
+    """Derive ACC/STR/FLAT/DECEL/CRASH from a MACD-V value series."""
+    if len(macdv_series) < 6:
+        return "FLAT"
+    d1 = float(macdv_series.iloc[-1]) - float(macdv_series.iloc[-2])
+    d5 = float(macdv_series.iloc[-1]) - float(macdv_series.iloc[-6])
+    if d1 > 2.0 and d5 > 5.0:
+        return "ACC"
+    if d1 > 0.5:
+        return "STR"
+    if abs(d1) <= 0.5:
+        return "FLAT"
+    if d1 < -2.0 and d5 < -5.0:
+        return "CRASH"
+    return "DECEL"
+
+
+def compute_live_full_rows(tickers: list[str]) -> list[dict]:
+    """
+    Compute full live rows for tickers absent from the static snapshot.
+
+    Downloads OHLCV (1y daily), then computes RSI-MA percentile, CoV, and
+    MACD-V.  Returns a list of dicts in the same format as swing_data rows
+    so they can be directly appended before formatting.
+    """
+    if not tickers:
+        return []
+
+    ticker_to_yf: dict[str, str] = {t: resolve_yahoo_symbol(t) for t in tickers}
+    yf_symbols = list(set(ticker_to_yf.values()))
+
+    batch_ohlcv: dict[str, pd.DataFrame] = {}
+    try:
+        if len(yf_symbols) == 1:
+            raw = yf.download(yf_symbols[0], period="1y", auto_adjust=True, progress=False)
+            if not raw.empty:
+                df = raw.copy()
+                df.columns = [str(c).lower() for c in df.columns]
+                if df.index.duplicated().any():
+                    df = df[~df.index.duplicated(keep="last")]
+                if len(df.dropna(subset=["close"])) >= 30:
+                    batch_ohlcv[yf_symbols[0]] = df.dropna(subset=["close"])
+        else:
+            raw = yf.download(
+                yf_symbols, period="1y", auto_adjust=True,
+                group_by="ticker", progress=False, threads=True,
+            )
+            for sym in yf_symbols:
+                try:
+                    df = raw[sym].copy()
+                    df.columns = [str(c).lower() for c in df.columns]
+                    if df.index.duplicated().any():
+                        df = df[~df.index.duplicated(keep="last")]
+                    clean = df.dropna(subset=["close"])
+                    if len(clean) >= 30:
+                        batch_ohlcv[sym] = clean
+                except Exception:
+                    pass
+    except Exception as exc:
+        print(f"[live_rows] batch download error: {exc}")
+
+    from cov_indicator import compute_cov
+    from macdv_calculator import MACDVCalculator
+    macdv_calc = MACDVCalculator()
+
+    rows: list[dict] = []
+    for ticker, yf_sym in ticker_to_yf.items():
+        ohlcv = batch_ohlcv.get(yf_sym)
+        if ohlcv is None:
+            try:
+                df = yf.download(yf_sym, period="1y", auto_adjust=True, progress=False)
+                if not df.empty:
+                    df.columns = [str(c).lower() for c in df.columns]
+                    if df.index.duplicated().any():
+                        df = df[~df.index.duplicated(keep="last")]
+                    clean = df.dropna(subset=["close"])
+                    ohlcv = clean if len(clean) >= 30 else None
+            except Exception:
+                pass
+
+        if ohlcv is None or "close" not in ohlcv.columns:
+            continue
+
+        close = ohlcv["close"].dropna()
+        if len(close) < 30:
+            continue
+
+        row: dict = {"ticker": ticker}
+
+        # Price
+        try:
+            price = float(close.iloc[-1])
+            prev  = float(close.iloc[-2]) if len(close) >= 2 else None
+            row["current_price"]    = price
+            row["price_change_pct"] = ((price - prev) / prev * 100) if prev else None
+        except Exception:
+            pass
+
+        # RSI-MA percentile
+        try:
+            rsi_series = calculate_rsi_ma(close)
+            row["current_percentile"] = compute_percentile(rsi_series)
+            if not rsi_series.empty:
+                row["rsi_ma"] = float(rsi_series.iloc[-1])
+        except Exception:
+            pass
+
+        # CoV
+        try:
+            cov_df = compute_cov(close)
+            dm = cov_df["dir_metric"].dropna()
+            if not dm.empty:
+                row["cov_dir_metric"] = float(dm.iloc[-1])
+            col = cov_df["bar_color"].iloc[-1]
+            row["cov_bar_color"] = col if isinstance(col, str) else None
+        except Exception as exc:
+            print(f"[live_rows] cov failed for {ticker}: {exc}")
+
+        # MACD-V (needs OHLCV)
+        if all(c in ohlcv.columns for c in ("high", "low", "close")):
+            try:
+                macdv_df = macdv_calc.calculate_macdv(ohlcv)
+                vals = macdv_df["macdv_val"].dropna()
+                if len(vals) >= 2:
+                    row["macdv_daily"]    = float(vals.iloc[-1])
+                    row["macdv_delta_1d"] = float(vals.iloc[-1] - vals.iloc[-2])
+                if len(vals) >= 6:
+                    row["macdv_delta_5d"] = float(vals.iloc[-1] - vals.iloc[-6])
+                row["macdv_trend_label"] = _derive_macdv_trend_label(vals)
+            except Exception as exc:
+                print(f"[live_rows] macdv failed for {ticker}: {exc}")
+
+        rows.append(row)
+
+    return rows
+
+
 def compute_live_sma200_distances(tickers: list[str]) -> dict[str, dict]:
     """
     Compute 200-day SMA distances for a list of tickers.
