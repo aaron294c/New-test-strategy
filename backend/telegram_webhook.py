@@ -84,9 +84,10 @@ async def telegram_webhook(
             "/momentum":      "momentum",
             "/divergence":    "divergence",
             "/cov":           "cov",
-            "/covgreen":      "covgreen",
-            "/200sma":        "sma200",
-            "/riskdistances": "riskdistances",
+            "/covgreen":   "covgreen",
+            "/200sma":     "sma200",
+            "/gammawalls": "gammawalls",
+            "/maxpain":    "maxpain",
         }
         for cmd, msg_type in cmd_map.items():
             if text.startswith(cmd) and chat_id:

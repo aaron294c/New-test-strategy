@@ -4,7 +4,7 @@ Shared snapshot delivery logic used by both the webhook handler and the poller.
 _deliver(chat_id, msg_type)  — fetches live data and sends snapshot(s).
 
 msg_type: "all" | "macro" | "mr" | "momentum" | "divergence" | "cov"
-          | "covgreen" | "sma200" | "riskdistances"
+          | "covgreen" | "sma200" | "gammawalls" | "maxpain"
 """
 
 from __future__ import annotations
@@ -35,7 +35,8 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
         format_cov_snapshot,
         format_cov_green_snapshot,
         format_sma200_snapshot,
-        format_risk_distances,
+        format_gamma_walls,
+        format_max_pain,
     )
     from telegram_bot import split_and_send
 
@@ -98,7 +99,10 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
         from macdv_calculator import SWING_FRAMEWORK_TICKERS
         split_and_send(format_sma200_snapshot(SWING_FRAMEWORK_TICKERS), chat_id=chat_id)
 
-    if msg_type == "riskdistances":
-        split_and_send(format_risk_distances(), chat_id=chat_id)
+    if msg_type == "gammawalls":
+        split_and_send(format_gamma_walls(), chat_id=chat_id)
+
+    if msg_type == "maxpain":
+        split_and_send(format_max_pain(), chat_id=chat_id)
 
     print("[delivery] done.")

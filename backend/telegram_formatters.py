@@ -543,9 +543,10 @@ def get_help_message() -> str:
         "<b>/momentum</b>     —  Momentum table (MACD-V leaders and laggards)\n"
         "<b>/divergence</b>   —  1st-order (Daily vs 4H) and 2nd-order divergence\n"
         "<b>/cov</b>          —  CoV red-bar scan (Fisher-z ≤ −1.3, risk entries)\n"
-        "<b>/covgreen</b>     —  CoV green exhaustion (Fisher-z ≥ +1.3, overextended)\n"
-        "<b>/200sma</b>       —  Distance to 200-day SMA, ranked negative→positive\n"
-        "<b>/riskdistances</b> — Gamma walls & max pain ranked by put wall proximity\n"
+        "<b>/covgreen</b>   —  CoV green exhaustion (Fisher-z ≥ +1.3, overextended)\n"
+        "<b>/200sma</b>     —  Distance to 200-day SMA, ranked negative→positive\n"
+        "<b>/gammawalls</b> —  Gamma put walls (ST/LT/Q) ranked by breach depth\n"
+        "<b>/maxpain</b>    —  Max pain ranked by price below max pain level\n"
         "<b>/guide</b>        —  Column reference and metric explanations\n"
         "<b>/help</b>         —  This message\n"
         "\n"
@@ -845,76 +846,164 @@ def format_sma200_snapshot(tickers: list[str]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# /riskdistances — Gamma walls, max pain, and key price levels
+# /gammawalls and /maxpain — Gamma walls & max pain via v2 calculator
+#
+# Only symbols with US-listed options are included; indices, futures,
+# crypto and FX pairs are excluded as they have no options chain.
+#
+# Distance formula (PineScript convention, v2):
+#   distance_pct = (level - current_price) / current_price * 100
+#   Positive → level is ABOVE current price → wall has been BREACHED
+#                (price dropped below the put wall → entry zone)
+#   Negative → level is BELOW current price → wall intact (support below)
 # ---------------------------------------------------------------------------
 
-_RDIST_OPTIONS_SYMBOLS = [
+_GAMMA_SYMBOLS = [
     'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NFLX',
-    'WMT', 'UNH', 'AVGO', 'LLY', 'TSM', 'ORCL', 'OXY', 'XOM', 'CVX',
-    'JPM', 'BAC', 'MCD', 'ASML', 'SMCI',
-    'SPY', 'QQQ', 'GLD', 'SLV', 'SMH', 'XLI', 'BRK-B',
+    'WMT',  'UNH',  'AVGO', 'LLY',   'TSM',  'ORCL', 'OXY',  'XOM',
+    'CVX',  'JPM',  'BAC',  'MCD',   'ASML', 'SMCI',
+    'SPY',  'QQQ',  'GLD',  'SLV',   'SMH',  'XLI',  'BRK-B',
 ]
 
-_RDIST_HDR = f"{'Symbol':<7} {'Price':>8} {'PutWall':>8} {'PW%':>6} {'MaxPain':>8} {'MP%':>6}"
-_RDIST_SEP = "─" * 50
+_GW_HDR = f"{'Sym':<6} {'Price':>8}  {'ST%':>6}  {'LT%':>6}  {'Q%':>6}"
+_GW_SEP = "─" * 40
+_MP_HDR = f"{'Sym':<6} {'Price':>8}  {'MaxPain':>8}  {'Dist%':>6}  {'Risk'}"
+_MP_SEP = "─" * 42
 
 
-def format_risk_distances() -> str:
-    """Format /riskdistances: gamma put walls & max pain ranked by breach proximity."""
-    from gamma_risk_distance import get_risk_distance_data
+def _price_s(p: Optional[float]) -> str:
+    if p is None:
+        return "  —"
+    return f"{p:,.0f}" if p >= 1_000 else f"{p:.2f}"
 
+
+def _pct_s(d: Optional[float]) -> str:
+    return f"{d:+.1f}%" if d is not None else "    —"
+
+
+def _fetch_gamma_data() -> dict:
+    """Fetch gamma data for all optionable symbols using v2 calculator."""
+    from gamma_risk_distance_v2 import get_risk_distance_data
+    return get_risk_distance_data(_GAMMA_SYMBOLS, max_workers=8)
+
+
+def format_gamma_walls() -> str:
+    """
+    Format /gammawalls: ST/LT/Q put wall distances, ranked by STPUT breach.
+
+    STPUT = swing  (14 DTE)
+    LTPUT = long   (30 DTE)
+    QPUT  = quarterly (90 DTE)
+
+    Positive % = wall is above price (price fell through — entry zone).
+    Negative % = wall is below price (intact support).
+    """
     lines: list[str] = []
-    lines.append("<b>🧱 RISK DISTANCES — GAMMA WALLS</b>")
+    lines.append("<b>🧱 GAMMA PUT WALLS</b>")
     lines.append(f"<i>{_now_uk()}</i>")
-    lines.append("<i>PW% negative = put wall breached · ordered by proximity</i>")
+    lines.append("<i>Positive % = price BELOW wall (breached = entry zone)</i>")
     lines.append("")
 
     try:
-        data = get_risk_distance_data(_RDIST_OPTIONS_SYMBOLS)
+        data = _fetch_gamma_data()
     except Exception as exc:
-        lines.append(f"<i>Error fetching gamma data: {exc}</i>")
+        lines.append(f"<i>Error: {exc}</i>")
         return "\n".join(lines)
 
     if not data:
-        lines.append("<i>No gamma data available.</i>")
+        lines.append("<i>No gamma data returned.</i>")
         return "\n".join(lines)
 
     rows: list[tuple] = []
-    for symbol, profile in data.items():
+    for sym, profile in data.items():
         price = profile.get("current_price")
         if not price:
             continue
-        pw_dict = profile.get("put_walls", {})
-        swing_pw = pw_dict.get("swing") or pw_dict.get("weekly") or pw_dict.get("long")
-        if not swing_pw:
+        pw = profile.get("put_walls", {})
+        st = pw.get("swing",     {}).get("distance_pct")
+        lt = pw.get("long",      {}).get("distance_pct")
+        q  = pw.get("quarterly", {}).get("distance_pct")
+        if st is None and lt is None:
             continue
-        pw_strike = swing_pw["strike"]
-        pw_dist   = swing_pw["distance_pct"]
+        rows.append((sym, price, st, lt, q))
 
-        mp_dict  = profile.get("max_pain", {})
-        swing_mp = mp_dict.get("swing") or mp_dict.get("weekly") or {}
-        mp_strike = swing_mp.get("strike", 0)
-        mp_dist   = swing_mp.get("distance_pct", 0)
+    # Rank: most positive STPUT first (deepest breach = most interesting entry)
+    rows.sort(key=lambda r: -(r[2] if r[2] is not None else -999))
 
-        rows.append((symbol, price, pw_strike, pw_dist, mp_strike, mp_dist))
-
-    rows.sort(key=lambda r: r[3])
-
-    breached = sum(1 for r in rows if r[3] < 0)
-    lines.append(f"<b>{breached} symbols at/below key put wall</b>")
+    breached = sum(1 for r in rows if (r[2] or 0) > 0)
+    lines.append(f"<b>{breached} / {len(rows)} symbols with STPUT breached</b>")
     lines.append("<pre>")
-    lines.append(_RDIST_HDR)
-    lines.append(_RDIST_SEP)
-    for symbol, price, pw_strike, pw_dist, mp_strike, mp_dist in rows:
-        price_s  = f"{price:,.1f}" if price < 10_000 else f"{price:,.0f}"
-        pw_s     = f"{pw_strike:,.1f}" if pw_strike and pw_strike < 10_000 else f"{pw_strike:,.0f}"
-        pw_pct_s = f"{pw_dist:+.1f}%"
-        mp_s     = (f"{mp_strike:,.1f}" if mp_strike and mp_strike < 10_000 else f"{mp_strike:,.0f}") if mp_strike else "     —"
-        mp_pct_s = f"{mp_dist:+.1f}%" if mp_dist else "    —"
-        flag     = " ⬇" if pw_dist < -2 else (" ⚠" if pw_dist < 0 else "")
-        lines.append(f"{symbol:<7} {price_s:>8} {pw_s:>8} {pw_pct_s:>6} {mp_s:>8} {mp_pct_s:>6}{flag}")
+    lines.append(_GW_HDR)
+    lines.append(_GW_SEP)
+    for sym, price, st, lt, q in rows:
+        flag = " ⚠" if (st or 0) > 0 else (" 🔥" if (st or 0) > 3 else "")
+        lines.append(
+            f"{sym:<6} {_price_s(price):>8}  {_pct_s(st):>6}  {_pct_s(lt):>6}  {_pct_s(q):>6}{flag}"
+        )
     lines.append("</pre>")
     lines.append("")
-    lines.append("<i>PW = swing put wall · MP = max pain · ⬇ &gt;2% below wall · ⚠ at wall</i>")
+    lines.append("<i>ST=14DTE  LT=30DTE  Q=90DTE  ·  ⚠ breached  🔥 &gt;3% through wall</i>")
+
+    return "\n".join(lines)
+
+
+def format_max_pain() -> str:
+    """
+    Format /maxpain: max pain levels ranked by price being below max pain.
+
+    Positive % = price is BELOW max pain (market makers incentivised to
+    push price up toward max pain — bullish entry signal).
+    Uses the weekly (7 DTE) expiry, falling back to swing (14 DTE).
+    """
+    lines: list[str] = []
+    lines.append("<b>💊 MAX PAIN LEVELS</b>")
+    lines.append(f"<i>{_now_uk()}</i>")
+    lines.append("<i>Positive % = price BELOW max pain (bullish entry signal)</i>")
+    lines.append("")
+
+    try:
+        data = _fetch_gamma_data()
+    except Exception as exc:
+        lines.append(f"<i>Error: {exc}</i>")
+        return "\n".join(lines)
+
+    if not data:
+        lines.append("<i>No gamma data returned.</i>")
+        return "\n".join(lines)
+
+    rows: list[tuple] = []
+    for sym, profile in data.items():
+        price = profile.get("current_price")
+        if not price:
+            continue
+        mp_dict = profile.get("max_pain", {})
+        # Prefer weekly (7DTE), fall back to swing (14DTE)
+        mp = mp_dict.get("weekly") or mp_dict.get("swing")
+        if not mp:
+            continue
+        strike   = mp.get("strike")
+        dist     = mp.get("distance_pct")
+        pin_risk = mp.get("pin_risk", "")
+        if dist is None:
+            continue
+        rows.append((sym, price, strike, dist, pin_risk))
+
+    # Rank: most positive first (price farthest below max pain = strongest signal)
+    rows.sort(key=lambda r: -r[3])
+
+    below = sum(1 for r in rows if r[3] > 0)
+    lines.append(f"<b>{below} / {len(rows)} symbols with price below max pain</b>")
+    lines.append("<pre>")
+    lines.append(_MP_HDR)
+    lines.append(_MP_SEP)
+    for sym, price, strike, dist, pin_risk in rows:
+        risk_s = {"HIGH": "🔴HIGH", "MEDIUM": "🟡MED", "LOW": "⚪LOW"}.get(pin_risk, pin_risk or "  —")
+        flag   = " ⚠" if dist > 0 else ""
+        lines.append(
+            f"{sym:<6} {_price_s(price):>8}  {_price_s(strike):>8}  {_pct_s(dist):>6}  {risk_s}{flag}"
+        )
+    lines.append("</pre>")
+    lines.append("")
+    lines.append("<i>MaxPain = 7DTE expiry  ·  🔴HIGH = within 2%  ·  ⚠ price below max pain</i>")
 
     return "\n".join(lines)

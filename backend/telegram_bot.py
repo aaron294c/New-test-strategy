@@ -153,9 +153,10 @@ def set_bot_commands() -> bool:
         {"command": "momentum",      "description": "Momentum table (MACD-V leaders and laggards)"},
         {"command": "divergence",    "description": "1st & 2nd order divergence/dislocation signals"},
         {"command": "cov",           "description": "CoV red-bar scan (Fisher-z ≤ −1.3) with RSI-MA context"},
-        {"command": "covgreen",      "description": "CoV Green Exhaustion scan (Fisher-z ≥ +1.3, overextended)"},
-        {"command": "200sma",        "description": "200-day SMA distances, ranked negative to positive"},
-        {"command": "riskdistances", "description": "Gamma walls & max pain ranked by put wall proximity"},
+        {"command": "covgreen",   "description": "CoV Green Exhaustion scan (Fisher-z ≥ +1.3, overextended)"},
+        {"command": "200sma",     "description": "200-day SMA distances, ranked negative to positive"},
+        {"command": "gammawalls", "description": "Gamma put walls (ST/LT/Q) ranked by breach depth"},
+        {"command": "maxpain",    "description": "Max pain levels ranked by price below max pain"},
         {"command": "guide",         "description": "Column reference and metric explanations"},
         {"command": "help",          "description": "List all available commands"},
     ]

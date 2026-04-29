@@ -116,9 +116,10 @@ def _telegram_poll_loop() -> None:
         "/momentum":      "momentum",
         "/divergence":    "divergence",
         "/cov":           "cov",
-        "/covgreen":      "covgreen",
-        "/200sma":        "sma200",
-        "/riskdistances": "riskdistances",
+        "/covgreen":   "covgreen",
+        "/200sma":     "sma200",
+        "/gammawalls": "gammawalls",
+        "/maxpain":    "maxpain",
     }
 
     offset: int | None = None
