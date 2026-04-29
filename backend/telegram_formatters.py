@@ -883,21 +883,20 @@ def _pct_s(d: Optional[float]) -> str:
 
 def _fetch_gamma_data() -> tuple[dict, list[str]]:
     """
-    Fetch gamma data for all optionable symbols sequentially using v2.
+    Fetch gamma data for all optionable symbols using gamma_simple.py.
 
-    Returns (data_dict, errors_list).  Sequential fetch avoids threading
-    issues that kill background-task thread pools on production servers.
+    Returns (data_dict, errors_list).  Uses a small thread pool — large
+    pools get rate-limited or killed on production servers.
     """
-    from gamma_risk_distance_v2 import process_symbol_risk_distance
+    from gamma_simple import fetch_gamma_for_symbol
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
     results: dict = {}
     errors: list[str] = []
 
-    # Use a modest thread pool — large pools get rate-limited or killed
     with ThreadPoolExecutor(max_workers=4) as pool:
         future_map = {
-            pool.submit(process_symbol_risk_distance, sym): sym
+            pool.submit(fetch_gamma_for_symbol, sym): sym
             for sym in _GAMMA_SYMBOLS
         }
         for fut in as_completed(future_map, timeout=120):
