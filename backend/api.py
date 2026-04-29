@@ -110,16 +110,20 @@ def _telegram_poll_loop() -> None:
             print(f"[poll] send error: {exc}")
 
     COMMANDS = {
-        "/update":        "all",
-        "/macro":         "macro",
-        "/mr":            "mr",
-        "/momentum":      "momentum",
-        "/divergence":    "divergence",
-        "/cov":           "cov",
-        "/covgreen":   "covgreen",
-        "/200sma":     "sma200",
-        "/gammawalls": "gammawalls",
-        "/maxpain":    "maxpain",
+        "/update":          "all",
+        "/macro":           "macro",
+        "/mr":              "mr",
+        "/momentum":        "momentum",
+        "/divergence":      "divergence",
+        "/cov":             "cov",
+        "/covgreen":        "covgreen",
+        "/200sma":          "sma200",
+        "/gammawalls":      "gammawalls",
+        "/maxpain":         "maxpain",
+        # Kelly Criterion
+        "/kelly_hist":      "kelly_hist",      # historical 2000-day Kelly ranked
+        "/kelly_dyn":       "kelly_dyn",       # dynamic 252-day Kelly + percentile table
+        "/kelly_strategy":  "kelly_strategy",  # strategy trade-return Kelly by RSI-MA bucket
     }
 
     offset: int | None = None

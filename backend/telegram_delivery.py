@@ -5,6 +5,7 @@ _deliver(chat_id, msg_type)  — fetches live data and sends snapshot(s).
 
 msg_type: "all" | "macro" | "mr" | "momentum" | "divergence" | "cov"
           | "covgreen" | "sma200" | "gammawalls" | "maxpain"
+          | "kelly_hist" | "kelly_dyn" | "kelly_strategy"
 """
 
 from __future__ import annotations
@@ -104,5 +105,29 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
 
     if msg_type == "maxpain":
         split_and_send(format_max_pain(), chat_id=chat_id)
+
+    if msg_type in ("kelly_hist", "kelly_dyn", "kelly_strategy"):
+        from macdv_calculator import SWING_FRAMEWORK_TICKERS
+        from kelly_analyzer import (
+            historical_kelly, dynamic_kelly, strategy_kelly,
+            format_historical_kelly, format_dynamic_kelly,
+            format_percentile_kelly, format_strategy_kelly,
+        )
+        if msg_type == "kelly_hist":
+            split_and_send(
+                format_historical_kelly(historical_kelly(SWING_FRAMEWORK_TICKERS, lookback=2000),
+                                        title="Historical (2000-day)"),
+                chat_id=chat_id,
+            )
+        elif msg_type == "kelly_dyn":
+            res = dynamic_kelly(SWING_FRAMEWORK_TICKERS, lookback=252)
+            split_and_send(format_dynamic_kelly(res), chat_id=chat_id)
+            split_and_send(format_percentile_kelly(res), chat_id=chat_id)
+        elif msg_type == "kelly_strategy":
+            split_and_send(
+                format_strategy_kelly(strategy_kelly(SWING_FRAMEWORK_TICKERS, horizon=5),
+                                      horizon=5),
+                chat_id=chat_id,
+            )
 
     print("[delivery] done.")
