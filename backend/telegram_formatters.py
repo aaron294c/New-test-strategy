@@ -881,10 +881,37 @@ def _pct_s(d: Optional[float]) -> str:
     return f"{d:+.1f}%" if d is not None else "    —"
 
 
-def _fetch_gamma_data() -> dict:
-    """Fetch gamma data for all optionable symbols using v2 calculator."""
-    from gamma_risk_distance_v2 import get_risk_distance_data
-    return get_risk_distance_data(_GAMMA_SYMBOLS, max_workers=8)
+def _fetch_gamma_data() -> tuple[dict, list[str]]:
+    """
+    Fetch gamma data for all optionable symbols sequentially using v2.
+
+    Returns (data_dict, errors_list).  Sequential fetch avoids threading
+    issues that kill background-task thread pools on production servers.
+    """
+    from gamma_risk_distance_v2 import process_symbol_risk_distance
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    results: dict = {}
+    errors: list[str] = []
+
+    # Use a modest thread pool — large pools get rate-limited or killed
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        future_map = {
+            pool.submit(process_symbol_risk_distance, sym): sym
+            for sym in _GAMMA_SYMBOLS
+        }
+        for fut in as_completed(future_map, timeout=120):
+            sym = future_map[fut]
+            try:
+                data = fut.result(timeout=90)
+                if data:
+                    results[sym] = data
+                else:
+                    errors.append(sym)
+            except Exception as exc:
+                errors.append(f"{sym}:{exc}")
+
+    return results, errors
 
 
 def format_gamma_walls() -> str:
@@ -905,13 +932,15 @@ def format_gamma_walls() -> str:
     lines.append("")
 
     try:
-        data = _fetch_gamma_data()
+        data, errors = _fetch_gamma_data()
     except Exception as exc:
         lines.append(f"<i>Error: {exc}</i>")
         return "\n".join(lines)
 
     if not data:
         lines.append("<i>No gamma data returned.</i>")
+        if errors:
+            lines.append(f"<i>Failed symbols ({len(errors)}): {', '.join(str(e) for e in errors[:5])}</i>")
         return "\n".join(lines)
 
     rows: list[tuple] = []
@@ -936,7 +965,7 @@ def format_gamma_walls() -> str:
     lines.append(_GW_HDR)
     lines.append(_GW_SEP)
     for sym, price, st, lt, q in rows:
-        flag = " ⚠" if (st or 0) > 0 else (" 🔥" if (st or 0) > 3 else "")
+        flag = " 🔥" if (st or 0) > 3 else (" ⚠" if (st or 0) > 0 else "")
         lines.append(
             f"{sym:<6} {_price_s(price):>8}  {_pct_s(st):>6}  {_pct_s(lt):>6}  {_pct_s(q):>6}{flag}"
         )
@@ -962,13 +991,15 @@ def format_max_pain() -> str:
     lines.append("")
 
     try:
-        data = _fetch_gamma_data()
+        data, errors = _fetch_gamma_data()
     except Exception as exc:
         lines.append(f"<i>Error: {exc}</i>")
         return "\n".join(lines)
 
     if not data:
         lines.append("<i>No gamma data returned.</i>")
+        if errors:
+            lines.append(f"<i>Failed symbols ({len(errors)}): {', '.join(str(e) for e in errors[:5])}</i>")
         return "\n".join(lines)
 
     rows: list[tuple] = []
