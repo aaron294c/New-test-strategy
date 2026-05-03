@@ -208,11 +208,7 @@ def dynamic_kelly(
         full_log_ret = np.log(close / close.shift(1)).dropna()
         rsi_ma_series = calculate_rsi_ma(close)
 
-        # Rolling percentile rank (same logic as compute_percentile but per bar)
-        rolling_pct = rsi_ma_series.rolling(window=rsi_ma_lookback, min_periods=rsi_ma_lookback).apply(
-            lambda w: float((w[:-1] < w[-1]).sum() / (len(w) - 1) * 100),
-            raw=True,
-        )
+        rolling_pct = rsi_ma_series.rolling(rsi_ma_lookback, min_periods=rsi_ma_lookback).rank(pct=True) * 100
 
         # Build aligned DataFrame
         df = pd.DataFrame({
@@ -399,25 +395,29 @@ def _find_entry_events(
     We skip re-entries within 2*horizon bars of the previous entry to avoid overlapping trades.
     """
     aligned = pd.DataFrame({"pct": pct_series, "close": close}).dropna()
-    in_bucket = (aligned["pct"] >= lo) & (aligned["pct"] < hi)
-    prev_in   = in_bucket.shift(1, fill_value=False)
-    # first bar entering the bucket
+    pct_arr   = aligned["pct"].to_numpy()
+    close_arr = aligned["close"].to_numpy()
+    n = len(aligned)
+
+    in_bucket = (pct_arr >= lo) & (pct_arr < hi)
+    prev_in   = np.empty(n, dtype=bool)
+    prev_in[0] = False
+    prev_in[1:] = in_bucket[:-1]
     crossover = in_bucket & ~prev_in
 
     trade_returns: list[float] = []
     last_entry_i = -999
-    idx_list = list(aligned.index)
 
-    for pos, (date, row) in enumerate(aligned.iterrows()):
-        if not crossover.get(date, False):
+    for pos in range(n):
+        if not crossover[pos]:
             continue
         if pos - last_entry_i < 2 * horizon:
             continue
         exit_pos = pos + horizon
-        if exit_pos >= len(aligned):
+        if exit_pos >= n:
             break
-        entry_price = aligned["close"].iloc[pos]
-        exit_price  = aligned["close"].iloc[exit_pos]
+        entry_price = close_arr[pos]
+        exit_price  = close_arr[exit_pos]
         if entry_price > 0 and exit_price > 0:
             trade_returns.append(math.log(exit_price / entry_price))
         last_entry_i = pos
@@ -455,12 +455,7 @@ def strategy_kelly(
             continue
 
         rsi_ma_series = calculate_rsi_ma(close)
-        rolling_pct = rsi_ma_series.rolling(
-            window=rsi_ma_lookback, min_periods=rsi_ma_lookback
-        ).apply(
-            lambda w: float((w[:-1] < w[-1]).sum() / (len(w) - 1) * 100),
-            raw=True,
-        )
+        rolling_pct = rsi_ma_series.rolling(rsi_ma_lookback, min_periods=rsi_ma_lookback).rank(pct=True) * 100
 
         bucket_results: dict[str, dict] = {}
         all_trade_returns: list[float] = []

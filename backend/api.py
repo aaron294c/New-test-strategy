@@ -154,13 +154,21 @@ def _telegram_poll_loop() -> None:
                     except Exception as exc:
                         _send(f"❌ Error: {exc}")
                 elif cmd in COMMANDS:
-                    _send(f"⏳ Fetching <b>{COMMANDS[cmd]}</b>…")
-                    try:
-                        from telegram_delivery import _deliver
-                        _deliver(chat_id, COMMANDS[cmd])
-                    except Exception as exc:
-                        _send(f"❌ Error: {exc}")
-                        print(f"[poll] delivery error: {exc}")
+                    msg_type = COMMANDS[cmd]
+                    _send(f"⏳ Fetching <b>{msg_type}</b>…")
+
+                    def _run_delivery(cid: str = chat_id, mt: str = msg_type) -> None:
+                        try:
+                            from telegram_delivery import _deliver
+                            _deliver(cid, mt)
+                        except Exception as exc:
+                            import traceback
+                            print(f"[poll] delivery error ({mt}): {traceback.format_exc()}")
+                            _send(f"❌ Error running {mt}: {exc}")
+
+                    threading.Thread(
+                        target=_run_delivery, daemon=True, name=f"delivery-{msg_type}"
+                    ).start()
 
         except (KeyboardInterrupt, SystemExit):
             break

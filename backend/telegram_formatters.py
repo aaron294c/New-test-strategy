@@ -881,13 +881,25 @@ def _pct_s(d: Optional[float]) -> str:
     return f"{d:+.1f}%" if d is not None else "    —"
 
 
+_gamma_cache: dict = {}
+_GAMMA_CACHE_TTL = 300  # 5 minutes — prevents double-hit on back-to-back /gammawalls + /maxpain
+
+
 def _fetch_gamma_data() -> tuple[dict, list[str]]:
     """
     Fetch gamma data for all optionable symbols using gamma_simple.py.
 
     Returns (data_dict, errors_list).  Uses a small thread pool — large
     pools get rate-limited or killed on production servers.
+    Caches results for 5 minutes to absorb rapid successive commands.
     """
+    import time
+    global _gamma_cache
+    now = time.time()
+    if _gamma_cache and (now - _gamma_cache.get("ts", 0)) < _GAMMA_CACHE_TTL:
+        print("[gamma] returning cached data")
+        return _gamma_cache["data"], _gamma_cache["errors"]
+
     from gamma_simple import fetch_gamma_for_symbol
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -910,6 +922,7 @@ def _fetch_gamma_data() -> tuple[dict, list[str]]:
             except Exception as exc:
                 errors.append(f"{sym}:{exc}")
 
+    _gamma_cache = {"data": results, "errors": errors, "ts": time.time()}
     return results, errors
 
 
