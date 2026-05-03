@@ -153,6 +153,16 @@ def _telegram_poll_loop() -> None:
                         _send(get_help_message() if cmd == "/help" else get_guide_message())
                     except Exception as exc:
                         _send(f"❌ Error: {exc}")
+                elif cmd.startswith("/sizing"):
+                    arg = text[len("/sizing"):].strip()
+                    try:
+                        from telegram_sizing_reference import handle_sizing_command
+                        for part in handle_sizing_command(arg):
+                            _send(part)
+                    except Exception as exc:
+                        import traceback
+                        print(f"[poll] /sizing error: {traceback.format_exc()}")
+                        _send(f"❌ /sizing error: {exc}")
                 elif cmd in COMMANDS:
                     msg_type = COMMANDS[cmd]
                     _send(f"⏳ Fetching <b>{msg_type}</b>…")
