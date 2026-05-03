@@ -1,0 +1,177 @@
+# Signal Metrics Reference — 5-Year vs 9-Year Comparison
+
+*Both use non-overlapping entries (10-bar cooldown) and D5 holding period.*
+*Half-Kelly clamped to [5%, 20%]. Max 3 simultaneous positions.*
+
+| Window | Bars | Entry rule | Purpose |
+|--------|------|------------|---------|
+| **5-year** | ~1,560 | Non-overlapping, first entry only | Recent regime — 2020–2025 |
+| **9-year** | ~2,600 | Non-overlapping, first entry only | Full cycle — includes 2015–2019 |
+
+> **How to read the Δ column:** Positive = 9yr half-Kelly is higher (signal more robust
+> across regimes). Negative = 5yr half-Kelly is higher (recent conditions favour it more).
+
+---
+
+## Signal A — RSI-MA < 5th Percentile + COV Red Bar
+
+| # | Ticker | Name | 5yr N | 5yr Win% | 5yr Avg Win | 5yr Avg Loss | 5yr EV | 5yr ½-Kelly | 9yr N | 9yr Win% | 9yr Avg Win | 9yr Avg Loss | 9yr EV | 9yr ½-Kelly | Δ ½-Kelly | Verdict |
+|---|--------|------|-------|---------|------------|-------------|--------|------------|-------|---------|------------|-------------|--------|------------|-----------|---------|
+| 1 | **NQ=F** | NASDAQ 100 Futures | 16 | 68.8% | +3.6% | -2.4% | +1.729% | **20%** | 27 | 74.1% | +2.6% | -2.3% | +1.318% | **20%** | +0% | ⭐⭐⭐ |
+| 2 | **ES=F** | S&P 500 Futures | 17 | 76.5% | +2.3% | -0.8% | +1.540% | **20%** | 30 | 70.0% | +2.0% | -1.9% | +0.847% | **20%** | +0% | ⭐⭐⭐ |
+| 3 | **QQQ** | NASDAQ 100 ETF | 19 | 68.4% | +2.8% | -2.2% | +1.203% | **20%** | 35 | 68.6% | +2.0% | -2.4% | +0.658% | **16%** | -4% | ⭐⭐⭐ |
+| 4 | **SPY** | S&P 500 ETF | 23 | 69.6% | +2.1% | -1.2% | +1.059% | **20%** | 40 | 65.0% | +2.0% | -2.5% | +0.388% | **10%** | -10% | 🔴 5yr stronger |
+| 5 | **MSFT** | Microsoft | 21 | 61.9% | +3.7% | -2.5% | +1.370% | **18%** | 37 | 73.0% | +3.5% | -3.1% | +1.681% | **20%** | +2% | ⭐⭐⭐ |
+| 6 | **NVDA** | NVIDIA | 18 | 61.1% | +5.1% | -3.4% | +1.826% | **18%** | 33 | 57.6% | +4.9% | -3.5% | +1.326% | **14%** | -4% | 🔴 5yr stronger |
+| 7 | **GOOGL** | Alphabet (Google) | 20 | 70.0% | +3.4% | -2.0% | +1.779% | **20%** | 35 | 60.0% | +3.6% | -2.7% | +1.077% | **15%** | -5% | 🔴 5yr stronger |
+| 8 | **AAPL** | Apple | 19 | 57.9% | +3.9% | -2.8% | +1.086% | **14%** | 29 | 51.7% | +3.5% | -2.2% | +0.748% | **11%** | -3% | ⭐ |
+| 9 | **AVGO** | Broadcom | 20 | 60.0% | +7.0% | -2.9% | +3.032% | **20%** | 35 | 51.4% | +4.8% | -3.2% | +0.892% | **9%** | -11% | 🔴 5yr stronger |
+| 10 | **TSM** | Taiwan Semiconductor | 21 | 71.4% | +3.9% | -4.1% | +1.627% | **20%** | 34 | 61.8% | +4.0% | -3.5% | +1.129% | **14%** | -6% | 🔴 5yr stronger |
+| 11 | **META** | Meta (Facebook) | 16 | 56.2% | +5.8% | -5.0% | +1.100% | **9%** | 34 | 67.6% | +5.0% | -5.1% | +1.721% | **17%** | +8% | 🟢 9yr stronger |
+| 12 | **TSLA** | Tesla | 22 | 68.2% | +5.3% | -3.6% | +2.483% | **20%** | 42 | 71.4% | +7.4% | -3.5% | +4.309% | **20%** | +0% | ⭐⭐⭐ |
+| 13 | **AMZN** | Amazon | 18 | 55.6% | +3.2% | -4.5% | -0.216% | **5%** | 30 | 63.3% | +3.7% | -4.9% | +0.540% | **7%** | +2% | 🟢 9yr unlocks edge |
+| 14 | **LLY** | Eli Lilly | 17 | 35.3% | +5.0% | -2.5% | +0.132% | **5%** | 29 | 41.4% | +3.2% | -2.2% | +0.022% | **5%** | +0% | ⭐ |
+| 15 | **WMT** | Walmart | 19 | 57.9% | +2.3% | -1.8% | +0.565% | **12%** | 34 | 55.9% | +3.1% | -1.8% | +0.953% | **15%** | +3% | ⭐⭐ |
+| 16 | **BRK-B** | Berkshire Hathaway | 15 | 46.7% | +3.1% | -2.8% | -0.043% | **5%** | 30 | 56.7% | +2.1% | -2.6% | +0.077% | **5%** | +0% | 🟢 9yr unlocks edge |
+| 17 | **JPM** | JP Morgan Chase | 18 | 61.1% | +3.2% | -3.9% | +0.429% | **7%** | 34 | 58.8% | +2.7% | -3.4% | +0.194% | **5%** | -2% | ⭐ |
+| 18 | **BAC** | Bank of America | 20 | 40.0% | +2.4% | -3.3% | -1.037% | **5%** | 35 | 42.9% | +2.0% | -3.4% | -1.086% | **5%** | +0% | ✗ |
+| 19 | **NFLX** | Netflix | 18 | 44.4% | +2.8% | -4.1% | -1.035% | **5%** | 30 | 43.3% | +3.2% | -3.5% | -0.612% | **5%** | +0% | ✗ |
+| 20 | **ORCL** | Oracle | 22 | 50.0% | +4.5% | -3.1% | +0.677% | **8%** | 40 | 50.0% | +3.7% | -2.6% | +0.555% | **8%** | -0% | ⭐ |
+| 21 | **UNH** | UnitedHealth Group | 24 | 54.2% | +2.9% | -2.7% | +0.350% | **6%** | 38 | 57.9% | +3.2% | -2.8% | +0.699% | **11%** | +5% | ⭐⭐ |
+| 22 | **GLD** | Gold ETF | 14 | 28.6% | +3.1% | -2.5% | -0.920% | **5%** | 30 | 40.0% | +1.9% | -1.8% | -0.338% | **5%** | +0% | ✗ |
+| 23 | **SLV** | Silver ETF | 15 | 40.0% | +2.3% | -2.5% | -0.594% | **5%** | 26 | 46.2% | +2.5% | -3.8% | -0.905% | **5%** | +0% | ✗ |
+| 24 | **BTC-USD** | Bitcoin | 22 | 63.6% | +6.4% | -5.1% | +2.243% | **17%** | 36 | 66.7% | +5.3% | -5.5% | +1.686% | **16%** | -2% | ⭐⭐⭐ |
+| 25 | **SMH** | Semiconductors ETF | 21 | 71.4% | +4.8% | -4.1% | +2.234% | **20%** | 35 | 54.3% | +4.7% | -3.2% | +1.062% | **11%** | -9% | 🔴 5yr stronger |
+| 26 | **XLI** | Industrials ETF | 23 | 69.6% | +2.6% | -1.7% | +1.331% | **20%** | 40 | 67.5% | +2.4% | -3.2% | +0.580% | **12%** | -8% | 🔴 5yr stronger |
+| 27 | **MCD** | McDonald's | 16 | 50.0% | +3.3% | -2.0% | +0.651% | **10%** | 29 | 55.2% | +2.5% | -3.6% | -0.219% | **5%** | -5% | 🔴 9yr loses edge |
+| 28 | **OXY** | Occidental Petroleum | 20 | 60.0% | +3.9% | -5.8% | -0.028% | **5%** | 33 | 54.5% | +3.8% | -6.4% | -0.859% | **5%** | +0% | ✗ |
+| 29 | **XOM** | Exxon Mobil | 18 | 66.7% | +3.4% | -3.3% | +1.130% | **17%** | 31 | 58.1% | +2.9% | -4.2% | -0.057% | **5%** | -12% | 🔴 9yr loses edge |
+| 30 | **CVX** | Chevron | 17 | 58.8% | +2.1% | -5.4% | -0.984% | **5%** | 30 | 56.7% | +1.9% | -5.9% | -1.466% | **5%** | +0% | ✗ |
+| 31 | **ASML** | ASML Holding | 20 | 50.0% | +5.1% | -3.5% | +0.813% | **8%** | 35 | 51.4% | +4.6% | -3.6% | +0.621% | **7%** | -1% | ⭐ |
+| 32 | **SMCI** | Super Micro Computer | 20 | 55.0% | +9.4% | -10.3% | +0.521% | **5%** | 36 | 50.0% | +7.9% | -6.5% | +0.654% | **5%** | +0% | ⭐ |
+| 33 | **^TNX** | 10-Year Treasury Yield | 21 | 71.4% | +3.7% | -3.2% | +1.724% | **20%** | 36 | 66.7% | +5.3% | -4.8% | +1.925% | **18%** | -2% | ⭐⭐⭐ |
+| 34 | **^VIX** | VIX | 14 | 21.4% | +4.1% | -6.8% | -4.435% | **5%** | 21 | 33.3% | +5.7% | -7.2% | -2.881% | **5%** | +0% | ✗ |
+| 35 | **DX-Y.NYB** | US Dollar Index | 18 | 50.0% | +0.8% | -0.5% | +0.190% | **11%** | 29 | 51.7% | +0.8% | -0.6% | +0.147% | **9%** | -3% | ⭐ |
+| 36 | **^GDAXI** | DAX | 20 | 70.0% | +1.4% | -1.7% | +0.482% | **17%** | 33 | 60.6% | +1.7% | -3.2% | -0.233% | **5%** | -12% | 🔴 9yr loses edge |
+| 37 | **^FTSE** | FTSE 100 | 18 | 66.7% | +1.5% | -3.1% | -0.033% | **5%** | 32 | 62.5% | +1.3% | -3.8% | -0.632% | **5%** | +0% | ✗ |
+| 38 | **^N225** | Nikkei 225 | 21 | 61.9% | +3.5% | -2.8% | +1.093% | **16%** | 40 | 60.0% | +3.3% | -3.0% | +0.793% | **12%** | -4% | 🔴 5yr stronger |
+
+---
+
+## Signal B — RSI-MA 5th–15th Percentile + COV Red Bar
+
+| # | Ticker | Name | 5yr N | 5yr Win% | 5yr Avg Win | 5yr Avg Loss | 5yr EV | 5yr ½-Kelly | 9yr N | 9yr Win% | 9yr Avg Win | 9yr Avg Loss | 9yr EV | 9yr ½-Kelly | Δ ½-Kelly | Verdict |
+|---|--------|------|-------|---------|------------|-------------|--------|------------|-------|---------|------------|-------------|--------|------------|-----------|---------|
+| 1 | **NQ=F** | NASDAQ 100 Futures | 21 | 66.7% | +2.9% | -2.3% | +1.181% | **20%** | 36 | 52.8% | +2.9% | -2.7% | +0.280% | **5%** | -15% | 🔴 5yr stronger |
+| 2 | **ES=F** | S&P 500 Futures | 22 | 50.0% | +2.5% | -2.0% | +0.246% | **5%** | 43 | 55.8% | +2.5% | -2.3% | +0.422% | **8%** | +3% | ⭐⭐ |
+| 3 | **QQQ** | NASDAQ 100 ETF | 28 | 64.3% | +2.3% | -3.0% | +0.411% | **9%** | 48 | 60.4% | +2.6% | -2.9% | +0.418% | **8%** | -1% | ⭐⭐ |
+| 4 | **SPY** | S&P 500 ETF | 30 | 53.3% | +2.4% | -2.3% | +0.243% | **5%** | 46 | 54.3% | +2.3% | -2.3% | +0.203% | **5%** | +0% | ⭐ |
+| 5 | **MSFT** | Microsoft | 26 | 57.7% | +3.0% | -3.1% | +0.448% | **7%** | 44 | 56.8% | +3.3% | -2.2% | +0.931% | **14%** | +7% | ⭐⭐ |
+| 6 | **NVDA** | NVIDIA | 25 | 40.0% | +4.5% | -5.6% | -1.560% | **5%** | 44 | 50.0% | +5.6% | -5.4% | +0.117% | **5%** | +0% | 🟢 9yr unlocks edge |
+| 7 | **GOOGL** | Alphabet (Google) | 27 | 51.9% | +4.9% | -3.4% | +0.931% | **10%** | 46 | 52.2% | +3.9% | -3.3% | +0.475% | **6%** | -3% | ⭐ |
+| 8 | **AAPL** | Apple | 34 | 58.8% | +3.5% | -3.2% | +0.748% | **11%** | 52 | 55.8% | +3.9% | -3.7% | +0.561% | **7%** | -4% | ⭐ |
+| 9 | **AVGO** | Broadcom | 25 | 48.0% | +5.6% | -2.9% | +1.201% | **11%** | 45 | 62.2% | +4.5% | -2.9% | +1.737% | **19%** | +8% | 🟢 9yr stronger |
+| 10 | **TSM** | Taiwan Semiconductor | 23 | 56.5% | +3.9% | -3.5% | +0.650% | **8%** | 39 | 61.5% | +3.2% | -3.6% | +0.578% | **9%** | +1% | ⭐⭐ |
+| 11 | **META** | Meta (Facebook) | 24 | 45.8% | +5.2% | -2.0% | +1.343% | **13%** | 49 | 53.1% | +4.9% | -2.1% | +1.601% | **16%** | +4% | ⭐⭐ |
+| 12 | **TSLA** | Tesla | 30 | 53.3% | +7.4% | -3.5% | +2.321% | **16%** | 53 | 52.8% | +6.7% | -3.8% | +1.722% | **13%** | -3% | ⭐⭐ |
+| 13 | **AMZN** | Amazon | 26 | 46.2% | +4.5% | -4.3% | -0.213% | **5%** | 43 | 51.2% | +5.1% | -3.6% | +0.864% | **8%** | +3% | 🟢 9yr unlocks edge |
+| 14 | **LLY** | Eli Lilly | 28 | 64.3% | +6.0% | -3.7% | +2.511% | **20%** | 47 | 68.1% | +4.8% | -3.8% | +2.069% | **20%** | +0% | ⭐⭐⭐ |
+| 15 | **WMT** | Walmart | 26 | 53.8% | +1.5% | -3.1% | -0.613% | **5%** | 43 | 58.1% | +1.8% | -2.8% | -0.135% | **5%** | +0% | ✗ |
+| 16 | **BRK-B** | Berkshire Hathaway | 27 | 59.3% | +2.2% | -1.8% | +0.559% | **13%** | 47 | 61.7% | +1.8% | -1.8% | +0.379% | **11%** | -2% | ⭐⭐ |
+| 17 | **JPM** | JP Morgan Chase | 28 | 53.6% | +3.8% | -3.7% | +0.314% | **5%** | 50 | 58.0% | +3.1% | -3.3% | +0.400% | **6%** | +1% | ⭐ |
+| 18 | **BAC** | Bank of America | 25 | 40.0% | +4.0% | -2.1% | +0.346% | **5%** | 50 | 48.0% | +3.6% | -2.6% | +0.339% | **5%** | +0% | ⭐ |
+| 19 | **NFLX** | Netflix | 30 | 60.0% | +4.4% | -4.6% | +0.830% | **9%** | 50 | 60.0% | +4.4% | -4.0% | +1.010% | **12%** | +2% | ⭐⭐ |
+| 20 | **ORCL** | Oracle | 23 | 56.5% | +2.8% | -3.6% | +0.039% | **5%** | 42 | 52.4% | +2.3% | -3.9% | -0.686% | **5%** | +0% | 🔴 9yr loses edge |
+| 21 | **UNH** | UnitedHealth Group | 22 | 36.4% | +2.6% | -3.4% | -1.219% | **5%** | 43 | 41.9% | +3.0% | -3.2% | -0.605% | **5%** | +0% | ✗ |
+| 22 | **GLD** | Gold ETF | 19 | 42.1% | +1.5% | -1.3% | -0.129% | **5%** | 37 | 54.1% | +1.6% | -1.1% | +0.342% | **11%** | +6% | 🟢 9yr unlocks edge |
+| 23 | **SLV** | Silver ETF | 28 | 50.0% | +2.4% | -2.6% | -0.100% | **5%** | 45 | 44.4% | +2.0% | -2.2% | -0.331% | **5%** | +0% | ✗ |
+| 24 | **BTC-USD** | Bitcoin | 29 | 69.0% | +4.9% | -5.6% | +1.637% | **17%** | 51 | 58.8% | +5.2% | -8.7% | -0.561% | **5%** | -12% | 🔴 9yr loses edge |
+| 25 | **SMH** | Semiconductors ETF | 26 | 46.2% | +3.2% | -4.0% | -0.721% | **5%** | 43 | 53.5% | +2.8% | -3.6% | -0.164% | **5%** | +0% | ✗ |
+| 26 | **XLI** | Industrials ETF | 28 | 46.4% | +2.0% | -1.8% | -0.006% | **5%** | 49 | 51.0% | +2.0% | -2.2% | -0.040% | **5%** | +0% | ✗ |
+| 27 | **MCD** | McDonald's | 25 | 56.0% | +1.4% | -2.4% | -0.293% | **5%** | 41 | 63.4% | +2.4% | -2.4% | +0.679% | **14%** | +9% | 🟢 9yr unlocks edge |
+| 28 | **OXY** | Occidental Petroleum | 27 | 51.9% | +3.8% | -4.5% | -0.184% | **5%** | 43 | 48.8% | +3.7% | -4.0% | -0.241% | **5%** | +0% | ✗ |
+| 29 | **XOM** | Exxon Mobil | 22 | 59.1% | +3.8% | -2.8% | +1.081% | **14%** | 43 | 55.8% | +3.0% | -4.1% | -0.143% | **5%** | -9% | 🔴 9yr loses edge |
+| 30 | **CVX** | Chevron | 21 | 42.9% | +2.8% | -2.3% | -0.114% | **5%** | 40 | 52.5% | +2.2% | -4.4% | -0.927% | **5%** | +0% | ✗ |
+| 31 | **ASML** | ASML Holding | 26 | 53.8% | +4.2% | -5.3% | -0.182% | **5%** | 43 | 46.5% | +5.1% | -3.9% | +0.292% | **5%** | +0% | 🟢 9yr unlocks edge |
+| 32 | **SMCI** | Super Micro Computer | 25 | 48.0% | +7.6% | -6.9% | +0.094% | **5%** | 45 | 46.7% | +7.8% | -6.6% | +0.081% | **5%** | +0% | ⭐ |
+| 33 | **^TNX** | 10-Year Treasury Yield | 23 | 47.8% | +2.6% | -1.9% | +0.255% | **5%** | 41 | 43.9% | +3.8% | -3.6% | -0.358% | **5%** | +0% | 🔴 9yr loses edge |
+| 34 | **^VIX** | VIX | 21 | 61.9% | +10.9% | -7.2% | +4.052% | **18%** | 36 | 58.3% | +12.5% | -6.9% | +4.391% | **18%** | -1% | 🔴 5yr stronger |
+| 35 | **DX-Y.NYB** | US Dollar Index | 18 | 33.3% | +1.0% | -0.9% | -0.266% | **5%** | 33 | 36.4% | +0.7% | -0.8% | -0.242% | **5%** | +0% | ✗ |
+| 36 | **^GDAXI** | DAX | 29 | 48.3% | +2.6% | -1.9% | +0.250% | **5%** | 50 | 50.0% | +2.4% | -1.7% | +0.348% | **7%** | +2% | ⭐ |
+| 37 | **^FTSE** | FTSE 100 | 28 | 42.9% | +1.6% | -1.4% | -0.100% | **5%** | 51 | 49.0% | +1.7% | -1.5% | +0.089% | **5%** | +0% | 🟢 9yr unlocks edge |
+| 38 | **^N225** | Nikkei 225 | 28 | 53.6% | +2.8% | -2.5% | +0.373% | **7%** | 57 | 54.4% | +2.8% | -2.9% | +0.231% | **5%** | -2% | ⭐ |
+
+---
+
+## Summary — Where the Two Windows Agree vs Diverge (Signal A)
+
+| Category | Tickers | Implication |
+|----------|---------|-------------|
+| ⭐ Consistent positive (both windows agree, similar size) | NQ=F, ES=F, QQQ, MSFT, AAPL, TSLA, LLY, WMT, JPM, ORCL, BTC-USD, ASML, SMCI, ^TNX, DX-Y.NYB, ^N225 | High confidence — trade these |
+| 🟢 9yr meaningfully higher | META(+8%), UNH(+5%) | Robust across cycles — favour 9yr sizing |
+| 🔴 5yr meaningfully higher | SPY(-10%), NVDA(-4%), GOOGL(-5%), AVGO(-11%), TSM(-6%), SMH(-9%), XLI(-8%) | Recent conditions better — be cautious on 9yr |
+| 🟢 9yr finds edge, 5yr skips | AMZN, BRK-B | Longer horizon needed to see the edge |
+| 🔴 9yr loses edge, 5yr has it | MCD, XOM, ^GDAXI | Recent bull cycle only — treat with caution |
+| ✗ Both windows say skip | BAC, NFLX, GLD, SLV, OXY, CVX, ^VIX, ^FTSE | No D5 edge regardless of window — floor only |
+
+---
+
+## Quick Sizing Card — Both Windows
+
+*Signal A only. Use the more conservative of the two (lower ½-Kelly) unless you have*
+*a strong view on which regime you are in.*
+
+| Ticker | Name | 5yr ½-K | 9yr ½-K | Conservative | Aggressive | Regime note |
+|--------|------|---------|---------|-------------|-----------|-------------|
+| **NQ=F** | NASDAQ 100 Futures | 20% | 20% | **20%** | 20% | Consistent |
+| **ES=F** | S&P 500 Futures | 20% | 20% | **20%** | 20% | Consistent |
+| **QQQ** | NASDAQ 100 ETF | 20% | 16% | **16%** | 20% | Consistent |
+| **SPY** | S&P 500 ETF | 20% | 10% | **10%** | 20% | 5yr stronger — recent conditions better for this trade |
+| **MSFT** | Microsoft | 18% | 20% | **18%** | 20% | Consistent |
+| **NVDA** | NVIDIA | 18% | 14% | **14%** | 18% | Consistent |
+| **GOOGL** | Alphabet (Google) | 20% | 15% | **15%** | 20% | 5yr stronger — recent conditions better for this trade |
+| **AAPL** | Apple | 14% | 11% | **11%** | 14% | Consistent |
+| **AVGO** | Broadcom | 20% | 9% | **9%** | 20% | 5yr stronger — recent conditions better for this trade |
+| **TSM** | Taiwan Semiconductor | 20% | 14% | **14%** | 20% | 5yr stronger — recent conditions better for this trade |
+| **META** | Meta (Facebook) | 9% | 17% | **9%** | 17% | 9yr stronger — signal improves over longer cycle |
+| **TSLA** | Tesla | 20% | 20% | **20%** | 20% | Consistent |
+| **AMZN** | Amazon | 5% | 7% | **5%** | 7% | Consistent |
+| **LLY** | Eli Lilly | 5% | 5% | **5%** | 5% | No edge in either window |
+| **WMT** | Walmart | 12% | 15% | **12%** | 15% | Consistent |
+| **BRK-B** | Berkshire Hathaway | 5% | 5% | **5%** | 5% | No edge in either window |
+| **JPM** | JP Morgan Chase | 7% | 5% | **5%** | 7% | Consistent |
+| **BAC** | Bank of America | 5% | 5% | **5%** | 5% | No edge in either window |
+| **NFLX** | Netflix | 5% | 5% | **5%** | 5% | No edge in either window |
+| **ORCL** | Oracle | 8% | 8% | **8%** | 8% | Consistent |
+| **UNH** | UnitedHealth Group | 6% | 11% | **6%** | 11% | Consistent |
+| **GLD** | Gold ETF | 5% | 5% | **5%** | 5% | No edge in either window |
+| **SLV** | Silver ETF | 5% | 5% | **5%** | 5% | No edge in either window |
+| **BTC-USD** | Bitcoin | 17% | 16% | **16%** | 17% | Consistent |
+| **SMH** | Semiconductors ETF | 20% | 11% | **11%** | 20% | 5yr stronger — recent conditions better for this trade |
+| **XLI** | Industrials ETF | 20% | 12% | **12%** | 20% | 5yr stronger — recent conditions better for this trade |
+| **MCD** | McDonald's | 10% | 5% | **5%** | 10% | Consistent |
+| **OXY** | Occidental Petroleum | 5% | 5% | **5%** | 5% | No edge in either window |
+| **XOM** | Exxon Mobil | 17% | 5% | **5%** | 17% | 5yr stronger — recent conditions better for this trade |
+| **CVX** | Chevron | 5% | 5% | **5%** | 5% | No edge in either window |
+| **ASML** | ASML Holding | 8% | 7% | **7%** | 8% | Consistent |
+| **SMCI** | Super Micro Computer | 5% | 5% | **5%** | 5% | No edge in either window |
+| **^TNX** | 10-Year Treasury Yield | 20% | 18% | **18%** | 20% | Consistent |
+| **^VIX** | VIX | 5% | 5% | **5%** | 5% | No edge in either window |
+| **DX-Y.NYB** | US Dollar Index | 11% | 9% | **9%** | 11% | Consistent |
+| **^GDAXI** | DAX | 17% | 5% | **5%** | 17% | 5yr stronger — recent conditions better for this trade |
+| **^FTSE** | FTSE 100 | 5% | 5% | **5%** | 5% | No edge in either window |
+| **^N225** | Nikkei 225 | 16% | 12% | **12%** | 16% | Consistent |
+
+---
+
+## Definitions
+
+| Term | Formula | Meaning |
+|------|---------|---------|
+| Win% | trades > 0 / total | % of D5 exits above entry |
+| Avg Win | mean(winning returns) | Average gain when trade wins |
+| Avg Loss | mean(losing returns) | Average loss when trade loses (negative number) |
+| Net EV | Win% × Avg Win + Loss% × Avg Loss | Expected return per trade |
+| Kelly | (p×b − q) / b | Theoretically optimal bet fraction |
+| ½-Kelly | Kelly ÷ 2 | Practical sizing — reduces drawdown risk |
+| Rec% | max(5%, min(20%, ½-Kelly)) | Guardrail-clamped portfolio allocation |

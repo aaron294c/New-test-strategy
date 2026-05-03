@@ -68,7 +68,13 @@ async def telegram_webhook(
     chat: dict = message.get("chat") or {}
     chat_id: str = str(chat.get("id", "")) if chat else ""
 
-    if text.startswith("/guide") and chat_id:
+    if text.startswith("/sizing") and chat_id:
+        arg = text[len("/sizing"):].strip()
+        from telegram_sizing_reference import handle_sizing_command
+        from telegram_bot import send_messages
+        msgs = handle_sizing_command(arg)
+        background_tasks.add_task(send_messages, msgs, chat_id)
+    elif text.startswith("/guide") and chat_id:
         from telegram_formatters import get_guide_message
         from telegram_bot import send_message
         background_tasks.add_task(send_message, chat_id, get_guide_message())
