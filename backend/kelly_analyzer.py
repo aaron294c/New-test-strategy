@@ -255,80 +255,106 @@ def _kelly_bar(f: float, max_abs: float = 5.0) -> str:
 
 
 def format_historical_kelly(results: list[KellyResult], title: str = "Historical") -> str:
-    lines = [
-        f"<b>📐 KELLY CRITERION — {title.upper()}</b>",
-        f"<i>Optimal leverage ranked highest → lowest</i>",
-        "",
-    ]
-
     longs  = [r for r in results if r.optimal_kelly and r.optimal_kelly > 0]
     shorts = [r for r in results if r.optimal_kelly and r.optimal_kelly < 0]
     errors = [r for r in results if r.error]
 
-    lines.append("<b>── LONG REGIME (Kelly > 0) ──</b>")
+    lines = [
+        f"<b>📐 KELLY — {title.upper()}</b>",
+        "<i>Long-run edge ranked by ½-Kelly</i>",
+        "",
+        "<pre>",
+        f"{'Ticker':<7} {'½-Kelly':>7}  {'Ret%':>6}  {'Vol%':>5}",
+        "─" * 30,
+    ]
+
     if not longs:
-        lines.append("  None")
+        lines.append("  (none in long regime)")
     for r in longs:
-        bar = _kelly_bar(r.optimal_kelly)
-        lines.append(
-            f"  <b>{r.ticker:<8}</b>  f*={r.optimal_kelly:+.2f}x  ½K={r.half_kelly:+.2f}x"
-            f"  μ={r.annualized_return:+.1f}%  σ={r.annualized_vol:.1f}%"
-        )
-        lines.append(f"           {bar}")
+        hk  = r.half_kelly or 0.0
+        ret = r.annualized_return or 0.0
+        vol = r.annualized_vol or 0.0
+        lines.append(f"{r.ticker:<7} {f'+{hk:.1f}x':>7}  {f'{ret:+.0f}%':>6}  {f'{vol:.0f}%':>5}")
 
     if shorts:
-        lines.append("")
-        lines.append("<b>── SHORT REGIME (Kelly < 0) ──</b>")
+        lines.append("─" * 30)
         for r in sorted(shorts, key=lambda x: x.optimal_kelly, reverse=True):
-            lines.append(
-                f"  <b>{r.ticker:<8}</b>  f*={r.optimal_kelly:+.2f}x  ½K={r.half_kelly:+.2f}x"
-                f"  μ={r.annualized_return:+.1f}%  σ={r.annualized_vol:.1f}%"
-            )
+            hk  = r.half_kelly or 0.0
+            ret = r.annualized_return or 0.0
+            vol = r.annualized_vol or 0.0
+            lines.append(f"{r.ticker:<7} {f'{hk:+.1f}x':>7}  {f'{ret:+.0f}%':>6}  {f'{vol:.0f}%':>5}")
+
+    lines.append("</pre>")
 
     if errors:
-        lines.append("")
-        lines.append(f"<i>⚠️ Failed: {', '.join(r.ticker for r in errors)}</i>")
+        lines += ["", f"<i>⚠️ No data: {', '.join(r.ticker for r in errors)}</i>"]
+
+    lines += [
+        "",
+        "<b>KEY</b>",
+        "½-Kelly = recommended position size",
+        "  +2.0x = size 2× your normal allocation",
+        "  +0.5x = half your normal allocation",
+        "Ret% = annualised return · Vol% = annualised vol",
+        "Above divider = LONG edge · Below = short/avoid",
+        "<i>⚠️ Raw Kelly overestimates — apply ¼ to ½ of value if uncertain</i>",
+    ]
 
     return "\n".join(lines)
 
 
 def format_dynamic_kelly(results: list[KellyResult]) -> str:
+    valid = [r for r in results if not r.error and r.optimal_kelly is not None]
+    longs  = [r for r in valid if r.optimal_kelly >= 0]
+    shorts = [r for r in valid if r.optimal_kelly < 0]
+
     lines = [
-        "<b>⚡ KELLY CRITERION — DYNAMIC (252-day)</b>",
-        "<i>Regime-aware: matches RSI-MA percentile window</i>",
+        "<b>⚡ KELLY — DYNAMIC (252-day)</b>",
+        "<i>Ranked by ½-Kelly · use this to size positions</i>",
         "",
+        "<pre>",
+        f"{'Ticker':<7} {'½-Kelly':>7}  {'Ret%':>6}  {'Vol%':>5}",
+        "─" * 30,
     ]
 
-    for r in results:
-        if r.error or r.optimal_kelly is None:
-            continue
-        sign = "+" if r.optimal_kelly >= 0 else ""
-        lines.append(
-            f"<b>{r.ticker:<8}</b>  f*={sign}{r.optimal_kelly:.2f}x  ½K={sign}{r.half_kelly:.2f}x"
-            f"  [{r.regime}]  gmax={r.max_growth:+.1f}%" if r.max_growth else
-            f"<b>{r.ticker:<8}</b>  f*={sign}{r.optimal_kelly:.2f}x  ½K={sign}{r.half_kelly:.2f}x  [{r.regime}]"
-        )
+    for r in longs:
+        hk = r.half_kelly or 0.0
+        ret = r.annualized_return or 0.0
+        vol = r.annualized_vol or 0.0
+        lines.append(f"{r.ticker:<7} {f'+{hk:.1f}x':>7}  {f'{ret:+.0f}%':>6}  {f'{vol:.0f}%':>5}")
+
+    if shorts:
+        lines.append("─" * 30)
+        for r in shorts:
+            hk = r.half_kelly or 0.0
+            ret = r.annualized_return or 0.0
+            vol = r.annualized_vol or 0.0
+            lines.append(f"{r.ticker:<7} {f'{hk:+.1f}x':>7}  {f'{ret:+.0f}%':>6}  {f'{vol:.0f}%':>5}")
+
+    lines += [
+        "</pre>",
+        "",
+        "<b>KEY</b>",
+        "½-Kelly = recommended position size",
+        "  e.g. +2.0x = size 2× your normal allocation",
+        "  e.g. +0.5x = size at half your normal allocation",
+        "Ret% = annualised return over last 252 days",
+        "Vol% = annualised volatility over last 252 days",
+        "Above divider = LONG edge · Below = short/avoid",
+        "",
+        "<i>⚠️ Raw Kelly overestimates — apply ¼ to ½ of the value shown if in doubt</i>",
+    ]
 
     return "\n".join(lines)
 
 
 def format_percentile_kelly(results: list[KellyResult]) -> str:
     """
-    Show how optimal Kelly varies by RSI-MA percentile bucket.
-
-    Answers: 'when RSI-MA is at the 5th percentile, should I lever up or down?'
+    Show universe-average ½-Kelly at each RSI-MA percentile bucket with a
+    plain action label — no per-ticker detail, just the regime sizing guide.
     """
-    lines = [
-        "<b>🎯 KELLY BY RSI-MA PERCENTILE BUCKET</b>",
-        "<i>How leverage changes across momentum regimes</i>",
-        "<i>(Pos = can lever up | Neg = deleverage/short)</i>",
-        "",
-    ]
-
-    # Collect bucket labels in order
     bucket_labels = [label for _, _, label in PERCENTILE_BUCKETS]
 
-    # Build a summary table: for each bucket, show average Kelly across tickers
     bucket_averages: dict[str, list[float]] = {lbl: [] for lbl in bucket_labels}
     for r in results:
         if not r.bucket_kelly:
@@ -338,33 +364,39 @@ def format_percentile_kelly(results: list[KellyResult]) -> str:
             if v is not None:
                 bucket_averages[lbl].append(v)
 
-    lines.append("<b>── Universe Average Kelly per Percentile ──</b>")
+    lines = [
+        "<b>🎯 SIZE BY RSI-MA REGIME (dynamic Kelly)</b>",
+        "<i>Universe avg ½-Kelly when RSI-MA is at each percentile</i>",
+        "<i>Tells you when to size up or down relative to your base</i>",
+        "",
+    ]
+
     for lbl in bucket_labels:
         vals = bucket_averages[lbl]
         if not vals:
-            lines.append(f"  {lbl:<14}  insufficient data")
+            lines.append(f"{lbl}  —  no data")
             continue
-        avg = sum(vals) / len(vals)
-        sign = "+" if avg >= 0 else ""
-        bar = _kelly_bar(max(avg, 0))
-        lines.append(f"  {lbl:<14}  avg f*={sign}{avg:.2f}x  {bar}")
+        avg_f  = sum(vals) / len(vals)   # universe avg full Kelly
+        avg_hk = avg_f / 2               # half-Kelly
+        sign   = "+" if avg_hk >= 0 else ""
 
-    lines.append("")
-    lines.append("<b>── Per-Ticker Bucket Detail (top 10 long tickers) ──</b>")
+        if avg_hk >= 1.5:
+            action = "▲▲ SIZE UP"
+        elif avg_hk >= 0.5:
+            action = "▲  normal+"
+        elif avg_hk >= 0.0:
+            action = "=  base"
+        else:
+            action = "▼▼ REDUCE"
 
-    long_results = [r for r in results if r.optimal_kelly and r.optimal_kelly > 0][:10]
-    for r in long_results:
-        if not r.bucket_kelly:
-            continue
-        lines.append(f"<b>{r.ticker}</b>  (overall f*={r.optimal_kelly:+.2f}x)")
-        for lbl in bucket_labels:
-            v = r.bucket_kelly.get(lbl)
-            if v is None:
-                lines.append(f"  {lbl:<14}  n/a")
-            else:
-                sign = "+" if v >= 0 else ""
-                lines.append(f"  {lbl:<14}  {sign}{v:.2f}x")
-        lines.append("")
+        lines.append(f"{lbl}   ½K={sign}{avg_hk:.1f}x   {action}")
+
+    lines += [
+        "",
+        "<i>Low %ile = oversold RSI-MA = mean-reversion entry zone.</i>",
+        "<i>Use /kelly_strategy for trade-level Kelly at each bucket</i>",
+        "<i>(often higher at low %ile due to mean-reversion edge).</i>",
+    ]
 
     return "\n".join(lines)
 
