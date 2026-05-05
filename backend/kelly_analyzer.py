@@ -514,68 +514,115 @@ def strategy_kelly(
 
 def format_strategy_kelly(results: list[StrategyKellyResult], horizon: int = 5) -> str:
     """
-    Format strategy Kelly results — how leverage should vary per RSI-MA percentile bucket.
-
-    This is the key output: it shows whether low-percentile entries (mean reversion buys)
-    historically warranted MORE or LESS leverage based on the actual D{horizon} trade P&L.
+    Three-section output:
+      1. Universe average ½-Kelly per RSI-MA bucket (regime sizing guide)
+      2. Entry zone focus: all tickers ranked by ½-Kelly at <15th %ile entries
+      3. Overall ½-Kelly per ticker (all entry types combined)
     """
-    bucket_labels = [label for _, _, label in PERCENTILE_BUCKETS]
+    bucket_labels   = [label for _, _, label in PERCENTILE_BUCKETS]
+    low_labels      = ["🔴 <5th", "🟠 5-15th"]
+    # Short text labels for <pre> table (no emoji alignment issues)
+    short_labels    = ["<5th", "5-15th", "15-30th", "30-50th",
+                       "50-70th", "70-85th", "85-95th", ">95th"]
 
+    # ── 1. Universe averages ────────────────────────────────────────────────
     lines = [
-        f"<b>📊 STRATEGY KELLY — D{horizon} TRADE RETURNS BY RSI-MA BUCKET</b>",
-        f"<i>Kelly computed on actual trade P&L (entry→D{horizon}), not raw asset returns.</i>",
-        f"<i>Pos Kelly = lever up at that percentile | Neg = reduce/skip</i>",
+        f"<b>📊 STRATEGY KELLY — D{horizon} ENTRIES</b>",
+        f"<i>Kelly on actual trade P&L from RSI-MA entries (not raw asset returns).</i>",
+        f"<i>Positive ½K = mean-reversion edge at that regime → size up.</i>",
         "",
-        "<b>── Universe Average per Bucket ──</b>",
+        "<b>UNIVERSE AVERAGE — all tickers</b>",
+        "<pre>",
+        f"{'Regime':<8} {'½K':>5}  {'D5Ret':>6}  {'Win%':>5}  Action",
+        "─" * 42,
     ]
 
-    # Universe-level averages per bucket
-    for lbl in bucket_labels:
-        kellys   = [r.bucket_results.get(lbl, {}).get("kelly") for r in results if r.bucket_results.get(lbl, {}).get("kelly") is not None]
-        mus      = [r.bucket_results.get(lbl, {}).get("mu_pct") for r in results if r.bucket_results.get(lbl, {}).get("mu_pct") is not None]
-        wins     = [r.bucket_results.get(lbl, {}).get("win_rate") for r in results if r.bucket_results.get(lbl, {}).get("win_rate") is not None]
+    for lbl, short in zip(bucket_labels, short_labels):
+        kellys = [r.bucket_results.get(lbl, {}).get("kelly")
+                  for r in results if r.bucket_results.get(lbl, {}).get("kelly") is not None]
+        mus    = [r.bucket_results.get(lbl, {}).get("mu_pct")
+                  for r in results if r.bucket_results.get(lbl, {}).get("mu_pct") is not None]
+        wins   = [r.bucket_results.get(lbl, {}).get("win_rate")
+                  for r in results if r.bucket_results.get(lbl, {}).get("win_rate") is not None]
         if not kellys:
-            lines.append(f"  {lbl:<14}  no data")
+            lines.append(f"{short:<8}  n/a")
             continue
         avg_k   = sum(kellys) / len(kellys)
-        avg_mu  = sum(mus) / len(mus) if mus else 0.0
+        avg_hk  = avg_k / 2
+        avg_mu  = sum(mus)  / len(mus)  if mus  else 0.0
         avg_win = sum(wins) / len(wins) if wins else 0.0
-        sign = "+" if avg_k >= 0 else ""
-        direction = "▲ leverage" if avg_k > 0.5 else ("▼ reduce" if avg_k < 0 else "= neutral")
+        sign    = "+" if avg_hk >= 0 else ""
+        action  = "▲▲ SIZE UP" if avg_hk >= 1.0 else ("▲ up" if avg_hk >= 0.3 else ("= base" if avg_hk >= 0 else "▼ reduce"))
+        is_key  = " ★" if short in ("<5th", "5-15th") else ""
         lines.append(
-            f"  {lbl:<14}  f*={sign}{avg_k:.2f}x  μ={avg_mu:+.2f}%  win={avg_win:.0f}%  {direction}"
+            f"{short:<8} {f'{sign}{avg_hk:.1f}x':>5}  {f'{avg_mu:+.2f}%':>6}  {f'{avg_win:.0f}%':>5}  {action}{is_key}"
         )
 
-    lines += ["", "<b>── Per-Ticker Ranking (overall Kelly, strategy entries) ──</b>"]
-    for r in results:
-        if r.error or r.overall_kelly is None:
-            continue
-        sign = "+" if r.overall_kelly >= 0 else ""
-        lines.append(f"  <b>{r.ticker:<8}</b>  f*={sign}{r.overall_kelly:.2f}x (all buckets combined)")
+    lines += [
+        "</pre>",
+        "<i>★ = your RSI-MA mean-reversion entry zone</i>",
+        "<i>½K = half-Kelly · D5Ret = avg 5-day trade return · Win% = % profitable</i>",
+    ]
 
-    lines += ["", "<b>── Low Percentile Focus (<15th) ──</b>",
-              "<i>This is where your RSI-MA mean-reversion entries happen</i>"]
-    low_bucket_labels = ["🔴 <5th", "🟠 5-15th"]
-    low_rows = []
+    # ── 2. Entry zone focus: all tickers at <15th %ile ──────────────────────
+    low_rows: list[tuple] = []
     for r in results:
         if r.error:
             continue
-        vals = []
-        for lbl in low_bucket_labels:
-            v = r.bucket_results.get(lbl, {}).get("kelly")
-            if v is not None:
-                vals.append(v)
-        if vals:
-            avg = sum(vals) / len(vals)
-            mu_vals = [r.bucket_results.get(lbl, {}).get("mu_pct") for lbl in low_bucket_labels
-                       if r.bucket_results.get(lbl, {}).get("mu_pct") is not None]
-            n_trades = sum(r.bucket_results.get(lbl, {}).get("n_trades", 0) for lbl in low_bucket_labels)
-            low_rows.append((r.ticker, avg, sum(mu_vals) / len(mu_vals) if mu_vals else 0, n_trades))
+        f_vals, mu_vals, win_vals, n_total = [], [], [], 0
+        for lbl in low_labels:
+            b = r.bucket_results.get(lbl, {})
+            if b.get("kelly") is not None:
+                f_vals.append(b["kelly"])
+            if b.get("mu_pct") is not None:
+                mu_vals.append(b["mu_pct"])
+            if b.get("win_rate") is not None:
+                win_vals.append(b["win_rate"])
+            n_total += b.get("n_trades", 0)
+        if not f_vals:
+            continue
+        avg_f  = sum(f_vals)  / len(f_vals)
+        avg_mu = sum(mu_vals) / len(mu_vals) if mu_vals else 0.0
+        avg_win= sum(win_vals)/ len(win_vals) if win_vals else 0.0
+        low_rows.append((r.ticker, avg_f / 2, avg_mu, avg_win, n_total))
 
     low_rows.sort(key=lambda x: x[1], reverse=True)
-    for ticker, avg_k, avg_mu, n in low_rows:
-        sign = "+" if avg_k >= 0 else ""
-        lines.append(f"  <b>{ticker:<8}</b>  f*={sign}{avg_k:.2f}x  μ={avg_mu:+.2f}%  n={n} trades")
+
+    lines += [
+        "",
+        "<b>ENTRY ZONE &lt;15th %ile — all tickers ranked</b>",
+        "<i>When THIS ticker's RSI-MA drops below 15th %ile, size as shown.</i>",
+        "<pre>",
+        f"{'Ticker':<9} {'½K':>5}  {'D5Ret':>6}  {'Win%':>5}  {'N':>4}",
+        "─" * 36,
+    ]
+    for ticker, hk, mu, win, n in low_rows:
+        sign = "+" if hk >= 0 else ""
+        lines.append(f"{ticker:<9} {f'{sign}{hk:.1f}x':>5}  {f'{mu:+.2f}%':>6}  {f'{win:.0f}%':>5}  {n:>4}")
+    lines += [
+        "</pre>",
+        "<i>Negative ½K = no mean-reversion edge for this ticker at low %ile</i>",
+    ]
+
+    # ── 3. Overall Kelly per ticker (all entries combined) ───────────────────
+    lines += [
+        "",
+        "<b>OVERALL KELLY — all entry types combined</b>",
+        "<pre>",
+        f"{'Ticker':<9} {'½K':>5}",
+        "─" * 16,
+    ]
+    for r in results:
+        if r.error or r.overall_kelly is None:
+            continue
+        hk   = r.overall_kelly / 2
+        sign = "+" if hk >= 0 else ""
+        lines.append(f"{r.ticker:<9} {f'{sign}{hk:.1f}x':>5}")
+    lines += [
+        "</pre>",
+        "",
+        "<i>⚠️ Raw Kelly overestimates risk — apply ¼ to ½ of ½K shown if uncertain.</i>",
+    ]
 
     return "\n".join(lines)
 
