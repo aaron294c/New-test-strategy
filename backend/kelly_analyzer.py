@@ -350,55 +350,29 @@ def format_dynamic_kelly(results: list[KellyResult]) -> str:
 
 def format_percentile_kelly(results: list[KellyResult]) -> str:
     """
-    Show universe-average ½-Kelly at each RSI-MA percentile bucket with a
-    plain action label — no per-ticker detail, just the regime sizing guide.
+    Explains why the asset-level percentile Kelly is misleading for a
+    mean-reversion strategy, and points to /kelly_strategy instead.
     """
-    bucket_labels = [label for _, _, label in PERCENTILE_BUCKETS]
-
-    bucket_averages: dict[str, list[float]] = {lbl: [] for lbl in bucket_labels}
-    for r in results:
-        if not r.bucket_kelly:
-            continue
-        for lbl in bucket_labels:
-            v = r.bucket_kelly.get(lbl)
-            if v is not None:
-                bucket_averages[lbl].append(v)
-
-    lines = [
-        "<b>🎯 SIZE BY RSI-MA REGIME (dynamic Kelly)</b>",
-        "<i>Universe avg ½-Kelly when RSI-MA is at each percentile</i>",
-        "<i>Tells you when to size up or down relative to your base</i>",
+    return "\n".join([
+        "<b>⚠️ REGIME SIZING — USE /kelly_strategy INSTEAD</b>",
         "",
-    ]
-
-    for lbl in bucket_labels:
-        vals = bucket_averages[lbl]
-        if not vals:
-            lines.append(f"{lbl}  —  no data")
-            continue
-        avg_f  = sum(vals) / len(vals)   # universe avg full Kelly
-        avg_hk = avg_f / 2               # half-Kelly
-        sign   = "+" if avg_hk >= 0 else ""
-
-        if avg_hk >= 1.5:
-            action = "▲▲ SIZE UP"
-        elif avg_hk >= 0.5:
-            action = "▲  normal+"
-        elif avg_hk >= 0.0:
-            action = "=  base"
-        else:
-            action = "▼▼ REDUCE"
-
-        lines.append(f"{lbl}   ½K={sign}{avg_hk:.1f}x   {action}")
-
-    lines += [
+        "The table above shows <b>asset momentum Kelly</b> — how much",
+        "edge the asset itself has over the last 252 days.",
         "",
-        "<i>Low %ile = oversold RSI-MA = mean-reversion entry zone.</i>",
-        "<i>Use /kelly_strategy for trade-level Kelly at each bucket</i>",
-        "<i>(often higher at low %ile due to mean-reversion edge).</i>",
-    ]
-
-    return "\n".join(lines)
+        "For sizing your <b>RSI-MA mean-reversion entries</b>, asset",
+        "momentum Kelly gives the wrong answer at low percentiles:",
+        "",
+        "  🔴 &lt;5th %ile  → asset is falling → asset Kelly says REDUCE",
+        "  💎 &gt;95th %ile → asset is rising  → asset Kelly says SIZE UP",
+        "",
+        "That's <b>backwards</b> for a mean-reversion strategy.",
+        "You buy at low percentiles <i>because</i> they're oversold.",
+        "",
+        "👉 Use <b>/kelly_strategy</b> — it computes Kelly on actual",
+        "D5 trade returns from entries at each percentile bucket.",
+        "That correctly captures the mean-reversion edge and will",
+        "typically show <b>higher</b> Kelly at low percentiles.",
+    ])
 
 
 # ---------------------------------------------------------------------------
