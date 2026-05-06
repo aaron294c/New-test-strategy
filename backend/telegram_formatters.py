@@ -862,7 +862,8 @@ _GAMMA_SYMBOLS = [
     'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'NFLX',
     'WMT',  'UNH',  'AVGO', 'LLY',   'TSM',  'ORCL', 'OXY',  'XOM',
     'CVX',  'JPM',  'BAC',  'MCD',   'ASML', 'SMCI',
-    'SPY',  'QQQ',  'GLD',  'SLV',   'SMH',  'XLI',  'BRK-B',
+    'AMD',  'MU',   'INTC', 'CSCO',  'COST', 'CAT',  'JNJ',
+    'SPY',  'QQQ',  'GLD',  'SLV',   'SMH',  'SOXX', 'XLI',  'BRK-B',
 ]
 
 _GW_HDR = f"{'Sym':<6} {'Price':>8}  {'ST%':>6}  {'LT%':>6}  {'Q%':>6}"

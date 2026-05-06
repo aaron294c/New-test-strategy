@@ -53,26 +53,44 @@ _TOKEN   = os.getenv("TELEGRAM_BOT_TOKEN", "")
 _CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 _COMMANDS = {
-    "/update":   ("all",      "all three snapshots"),
-    "/macro":    ("macro",    "macro dashboard"),
-    "/mr":       ("mr",       "mean reversion table"),
-    "/momentum": ("momentum", "momentum table"),
-    "/rsima4h":  ("rsima4h",  "RSI-MA 4H snapshot (SPY & QQQ)"),
-    "/cov4h":    ("cov4h",    "COV 4H snapshot (SPY & QQQ)"),
+    "/update":      ("all",           "all three snapshots"),
+    "/macro":       ("macro",         "macro dashboard"),
+    "/mr":          ("mr",            "mean reversion table"),
+    "/momentum":    ("momentum",      "momentum table"),
+    "/divergence":  ("divergence",    "divergence signals"),
+    "/cov":         ("cov",           "CoV red-bar scan"),
+    "/covgreen":    ("covgreen",      "CoV green exhaustion scan"),
+    "/200sma":      ("sma200",        "200-day SMA distances"),
+    "/gammawalls":  ("gammawalls",    "gamma put walls"),
+    "/maxpain":     ("maxpain",       "max pain levels"),
+    "/kelly_hist":  ("kelly_hist",    "historical Kelly"),
+    "/kelly_dyn":   ("kelly_dyn",     "dynamic Kelly"),
+    "/kelly_strategy": ("kelly_strategy", "strategy Kelly"),
+    "/rsima4h":     ("rsima4h",       "RSI-MA 4H snapshot (SPY & QQQ)"),
+    "/cov4h":       ("cov4h",         "COV 4H snapshot (SPY & QQQ)"),
 }
 
 _HELP_TEXT = (
     "<b>📊 Market Snapshot Bot</b>\n\n"
     "Available commands:\n"
-    "  /update    — all three snapshots\n"
-    "  /macro     — macro dashboard\n"
-    "  /mr        — mean reversion table\n"
-    "  /momentum  — momentum table\n"
-    "  /guide     — column reference guide\n"
-    "  /rsima4h   — RSI-MA half-day pct for SPY &amp; QQQ\n"
-    "               (&lt;5 / &lt;10 / &lt;15 thresholds + backtest ref returns)\n"
-    "  /cov4h     — COV dir_metric &amp; bar colour for SPY &amp; QQQ\n"
-    "  /help      — this message"
+    "  /update       — all three snapshots\n"
+    "  /macro        — macro dashboard\n"
+    "  /mr           — mean reversion table\n"
+    "  /momentum     — momentum table\n"
+    "  /divergence   — 1st &amp; 2nd order divergence signals\n"
+    "  /cov          — CoV red-bar scan\n"
+    "  /covgreen     — CoV green exhaustion scan\n"
+    "  /200sma       — 200-day SMA distances\n"
+    "  /gammawalls   — gamma put walls\n"
+    "  /maxpain      — max pain levels\n"
+    "  /kelly_hist   — historical Kelly\n"
+    "  /kelly_dyn    — dynamic Kelly\n"
+    "  /kelly_strategy — strategy Kelly\n"
+    "  /sizing a|b   — position sizing reference\n"
+    "  /rsima4h      — RSI-MA half-day pct for SPY &amp; QQQ\n"
+    "  /cov4h        — COV half-day bar colour for SPY &amp; QQQ\n"
+    "  /guide        — column reference guide\n"
+    "  /help         — this message"
 )
 
 
@@ -112,18 +130,30 @@ def _send(chat_id: str, text: str, parse_mode: str = "HTML") -> None:
 
 # ── Command handling ──────────────────────────────────────────────────────────
 
-def _handle(chat_id: str, text: str) -> None:
-    text = text.strip().lower().split()[0] if text.strip() else ""
+def _handle(chat_id: str, raw: str) -> None:
+    cmd = raw.strip().lower().split()[0].split("@")[0] if raw.strip() else ""
 
-    if text == "/help":
+    if cmd == "/help":
         _send(chat_id, _HELP_TEXT)
         return
 
-    if text == "/guide":
+    if cmd == "/guide":
         from telegram_formatters import get_guide_message
         _send(chat_id, get_guide_message())
         return
 
+    if cmd.startswith("/sizing"):
+        arg = raw.strip()[len("/sizing"):].strip().split("@")[0].strip().lower().split()[0] if len(raw.strip()) > len("/sizing") else ""
+        _send(chat_id, "⏳ Fetching <b>sizing</b>…")
+        try:
+            from telegram_sizing_reference import handle_sizing_command
+            for part in handle_sizing_command(arg):
+                _send(chat_id, part)
+        except Exception as exc:
+            _send(chat_id, f"❌ /sizing error: {exc}")
+        return
+
+    text = cmd  # keep rest of handler using 'text' variable
     if text not in _COMMANDS:
         return  # ignore unknown messages / non-commands
 

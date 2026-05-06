@@ -342,7 +342,7 @@ SWING_FRAMEWORK_TICKERS = [
     # Mega-cap tech
     'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'AVGO',
     # Semiconductors / hardware
-    'AMD', 'MU', 'INTC', 'ASML', 'SMH', 'SMCI', 'TSM',
+    'AMD', 'MU', 'INTC', 'ASML', 'SMH', 'SOXX', 'SMCI', 'TSM',
     # Software / cloud
     'ORCL', 'NFLX',
     # Consumer / retail
@@ -353,13 +353,10 @@ SWING_FRAMEWORK_TICKERS = [
     'JPM', 'BAC', 'BRK-B',
     # Industrials / energy
     'CAT', 'XLI', 'XOM', 'CVX', 'OXY',
-    # Telecom / conglomerates
+    # Telecom
     'CSCO',
-    # International (Asia)
-    '005930.KS',    # Samsung Electronics (Korean exchange)
-    '^N225',        # Nikkei 225
-    '^GDAXI',       # DAX
-    '^FTSE',        # FTSE 100
+    # International indices
+    '^N225', '^GDAXI', '^FTSE',
     # Macro / commodities / crypto
     'GLD', 'SLV', 'BTC-USD',
     # Bonds / FX / vol
