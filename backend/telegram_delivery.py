@@ -130,4 +130,12 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
                 chat_id=chat_id,
             )
 
+    if msg_type == "rsima4h":
+        from telegram_formatters import format_4h_rsima
+        split_and_send(format_4h_rsima(), chat_id=chat_id)
+
+    if msg_type == "cov4h":
+        from telegram_formatters import format_4h_cov
+        split_and_send(format_4h_cov(), chat_id=chat_id)
+
     print("[delivery] done.")

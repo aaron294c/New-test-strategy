@@ -57,16 +57,21 @@ _COMMANDS = {
     "/macro":    ("macro",    "macro dashboard"),
     "/mr":       ("mr",       "mean reversion table"),
     "/momentum": ("momentum", "momentum table"),
+    "/rsima4h":  ("rsima4h",  "RSI-MA 4H snapshot (SPY & QQQ)"),
+    "/cov4h":    ("cov4h",    "COV 4H snapshot (SPY & QQQ)"),
 }
 
 _HELP_TEXT = (
     "<b>📊 Market Snapshot Bot</b>\n\n"
     "Available commands:\n"
-    "  /update    — send all three snapshots\n"
+    "  /update    — all three snapshots\n"
     "  /macro     — macro dashboard\n"
     "  /mr        — mean reversion table\n"
     "  /momentum  — momentum table\n"
     "  /guide     — column reference guide\n"
+    "  /rsima4h   — RSI-MA half-day pct for SPY &amp; QQQ\n"
+    "               (&lt;5 / &lt;10 / &lt;15 thresholds + backtest ref returns)\n"
+    "  /cov4h     — COV dir_metric &amp; bar colour for SPY &amp; QQQ\n"
     "  /help      — this message"
 )
 
@@ -145,6 +150,16 @@ def main() -> None:
     print(f"[poll] Starting long-poll loop for chat_id={_CHAT_ID}")
     print(f"[poll] Commands: {', '.join(_COMMANDS)}, /help")
     print("[poll] Ctrl-C to stop.\n")
+
+    # Register command menu with Telegram on every startup
+    try:
+        from telegram_bot import set_bot_commands
+        if set_bot_commands():
+            print("[poll] ✓ Bot command menu registered with Telegram.")
+        else:
+            print("[poll] ⚠ set_bot_commands returned False — check token.")
+    except Exception as _exc:
+        print(f"[poll] ⚠ Could not register bot commands: {_exc}")
 
     offset: int | None = None
 

@@ -160,6 +160,8 @@ def set_bot_commands() -> bool:
         {"command": "kelly_hist",     "description": "Historical Kelly (2000-day): optimal leverage per ticker ranked"},
         {"command": "kelly_dyn",      "description": "Dynamic Kelly (252-day) + leverage by RSI-MA percentile bucket"},
         {"command": "kelly_strategy", "description": "Strategy Kelly: D5 trade returns per RSI-MA bucket — where to lever up"},
+        {"command": "rsima4h",        "description": "RSI-MA half-day pct for SPY & QQQ — <5/<10/<15 thresholds + backtest ref returns"},
+        {"command": "cov4h",          "description": "COV dir_metric & bar colour for SPY & QQQ half-day bars — red = entry condition"},
         {"command": "sizing",         "description": "Position sizing reference — /sizing a · /sizing b · /sizing <ticker>"},
         {"command": "guide",          "description": "Column reference and metric explanations"},
         {"command": "help",           "description": "List all available commands"},

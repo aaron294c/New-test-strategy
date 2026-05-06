@@ -1050,3 +1050,121 @@ def format_max_pain() -> str:
     lines.append("<i>MaxPain = 7DTE expiry  ·  🔴HIGH = within 2%  ·  ⚠ price below max pain</i>")
 
     return "\n".join(lines)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# /rsima4h  &  /cov4h  — half-day (TradingView 4H) live readings
+# ─────────────────────────────────────────────────────────────────────────────
+
+def format_4h_rsima(tickers: list[str] | None = None) -> str:
+    """
+    Live half-day RSI-MA percentile for SPY & QQQ with threshold flags and
+    backtest reference returns (Strategy D: 4H RSI-MA + 4H COV red).
+    """
+    from rsima_cov_4h_live import get_rsima_snapshot
+
+    rows = get_rsima_snapshot(tickers or ["SPY", "QQQ"])
+    lines: list[str] = [
+        "<b>📊 RSI-MA — Half-Day / 4H  (SPY &amp; QQQ)</b>",
+        "<i>Strategy D ref: 4H RSI-MA below pct AND 4H COV red</i>",
+        "",
+    ]
+
+    for r in rows:
+        t = r["ticker"]
+        if "error" in r:
+            lines.append(f"<b>{t}</b>  ❌ {r['error']}")
+            continue
+
+        pct      = r["pct"]
+        session  = r["session"]
+        bar_time = r["bar_time"]
+        breached = r["breached"]   # e.g. [5, 10, 15] or []
+        ref      = r["ref"]        # {5: {...}, 10: {...}, 15: {...}}
+
+        pct_str = f"{pct:.1f}%" if pct is not None else "—"
+
+        if breached:
+            icon = "🔴"
+        elif pct is not None and pct <= 20:
+            icon = "🟡"
+        else:
+            icon = "🟢"
+
+        lines.append(f"{icon} <b>{t}</b>  {pct_str} pct  [{session} bar · {bar_time}]")
+
+        if not breached:
+            lines.append(f"  No threshold breached — watching")
+        else:
+            # Show the tightest breached threshold first with its reference returns
+            for lvl in (5, 10, 15):
+                marker = "✅" if lvl in breached else "  "
+                if lvl in breached and lvl in ref:
+                    rd = ref[lvl]
+                    lines.append(
+                        f"  {marker} &lt;{lvl}th pct  "
+                        f"D5: {rd['D5_wr']:.0f}%WR / +{rd['D5_med']:.2f}%med  "
+                        f"D21: {rd['D21_wr']:.0f}%WR / +{rd['D21_med']:.2f}%med  "
+                        f"[n={rd['n']}]"
+                    )
+                elif lvl not in breached:
+                    lines.append(f"     &lt;{lvl}th pct  not reached")
+
+        lines.append("")
+
+    lines.append("<i>⚠ COV red required to complete Strategy D — use /cov4h to check</i>")
+    return "\n".join(lines)
+
+
+def format_4h_cov(tickers: list[str] | None = None) -> str:
+    """
+    Live half-day COV dir_metric and bar colour for SPY & QQQ.
+    Red (dir_metric ≤ −1.3) = price falling while volatility rising = potential entry.
+    """
+    from rsima_cov_4h_live import get_cov_snapshot
+
+    rows = get_cov_snapshot(tickers or ["SPY", "QQQ"])
+    lines: list[str] = [
+        "<b>📉 COV — Half-Day / 4H  (SPY &amp; QQQ)</b>",
+        "<i>Red bar (dir_metric ≤ −1.3): price↓ + volatility↑ = entry condition</i>",
+        "",
+    ]
+
+    for r in rows:
+        t = r["ticker"]
+        if "error" in r:
+            lines.append(f"<b>{t}</b>  ❌ {r['error']}")
+            continue
+
+        color   = r["bar_color"]   # "red" | "green" | None
+        dm      = r["dir_metric"]
+        cv      = r["cv_plot"]
+        jtr     = r["just_turned_red"]
+        session = r["session"]
+        bar_time = r["bar_time"]
+
+        if color == "red":
+            icon   = "🔴"
+            status = "RED" + (" ← JUST TURNED" if jtr else "")
+        elif color == "green":
+            icon   = "🟢"
+            status = "GREEN"
+        else:
+            icon   = "⚪"
+            status = "Neutral"
+
+        dm_str = f"{dm:+.3f}" if dm is not None else "—"
+        cv_str = f"{cv:.2f}" if cv is not None else "—"
+
+        lines.append(
+            f"{icon} <b>{t}</b>  {status}  "
+            f"[dir={dm_str}  cv={cv_str}]  "
+            f"[{session} · {bar_time}]"
+        )
+
+    lines.append("")
+    lines.append(
+        "<b>Thresholds:</b>  🔴 dir ≤ −1.3 = red  ·  🟢 dir ≥ +1.3 = green  ·  ⚪ neutral"
+    )
+    lines.append("<i>Use /rsima4h to check RSI-MA pct — both needed for Strategy D</i>")
+    return "\n".join(lines)
