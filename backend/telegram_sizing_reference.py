@@ -20,6 +20,7 @@ _here    = Path(__file__).resolve().parent
 _MD_FILE = _here.parent / "docs" / "SIGNAL_METRICS_REFERENCE.md"
 _J9      = _here / "cache" / "position_sizing_results.json"
 _J5      = _here / "cache" / "position_sizing_5yr.json"
+_JNEW    = _here / "cache" / "new_tickers_analysis.json"
 
 GUARDRAIL_MIN = 5.0
 GUARDRAIL_MAX = 20.0
@@ -41,6 +42,16 @@ TICKER_NAMES = {
     'SMCI':'Super Micro','^TNX':'10Y Yield','^VIX':'VIX',
     'DX-Y.NYB':'USD Index','^GDAXI':'DAX','^FTSE':'FTSE 100',
     '^N225':'Nikkei 225',
+    # Extended universe
+    'MU':'Micron Technology','AMD':'AMD','V':'Visa',
+    'JNJ':'Johnson & Johnson','INTC':'Intel','COST':'Costco',
+    'CAT':'Caterpillar','CSCO':'Cisco','PG':'Procter & Gamble',
+    '005930.KS':'Samsung Electronics','CNX1.L':'FTSE China A50',
+}
+
+# New tickers not in main MD tables — looked up from extended JSON
+_EXTENDED_TICKERS = {
+    'MU','AMD','V','JNJ','INTC','COST','CAT','CSCO','PG','005930.KS','CNX1.L'
 }
 
 ALIASES: dict[str, str] = {
@@ -73,6 +84,18 @@ ALIASES: dict[str, str] = {
     'cvx':'CVX','chevron':'CVX',
     'asml':'ASML','smci':'SMCI',
     'tnx':'^TNX','bonds':'^TNX','10y':'^TNX',
+    # Extended universe
+    'mu':'MU','micron':'MU',
+    'amd':'AMD',
+    'v':'V','visa':'V','vesa':'V',
+    'jnj':'JNJ','johnson':'JNJ','jandj':'JNJ',
+    'intc':'INTC','intel':'INTC',
+    'cost':'COST','costco':'COST',
+    'cat':'CAT','caterpillar':'CAT',
+    'csco':'CSCO','cisco':'CSCO',
+    'pg':'PG','proctergamble':'PG','procter':'PG',
+    'samsung':'005930.KS','005930':'005930.KS','samsungkrx':'005930.KS',
+    'cnx1':'CNX1.L','cnx1l':'CNX1.L','china':'CNX1.L','chinaa50':'CNX1.L',
     'vix':'^VIX',
     'dxy':'DX-Y.NYB','dollar':'DX-Y.NYB',
     'dax':'^GDAXI','ftse':'^FTSE',
@@ -151,10 +174,29 @@ def _load_json() -> tuple[dict, dict]:
     return r9, r5
 
 
-def _solo_size(ticker: str, bucket: str) -> str:
-    """Return solo (uncapped, ≤30%) half-Kelly for a ticker from JSON cache."""
+def _load_new_json() -> dict:
+    return json.loads(_JNEW.read_text())['new'] if _JNEW.exists() else {}
+
+
+def _get_m9(ticker: str, bucket: str) -> dict:
+    """Get 9yr cov_confluence metrics for any ticker (core or extended)."""
+    if ticker in _EXTENDED_TICKERS:
+        return _load_new_json().get(ticker, {}).get('9yr', {}).get(bucket, {}).get('cov_confluence', {})
     r9, _ = _load_json()
-    m = r9.get(ticker, {}).get(bucket, {}).get('cov_confluence', {})
+    return r9.get(ticker, {}).get(bucket, {}).get('cov_confluence', {})
+
+
+def _get_m5(ticker: str, bucket: str) -> dict:
+    """Get 5yr cov_confluence metrics for any ticker (core or extended)."""
+    if ticker in _EXTENDED_TICKERS:
+        return _load_new_json().get(ticker, {}).get('5yr', {}).get(bucket, {}).get('cov_confluence', {})
+    _, r5 = _load_json()
+    return r5.get(ticker, {}).get(bucket, {}).get('cov_confluence', {})
+
+
+def _solo_size(ticker: str, bucket: str) -> str:
+    """Return solo (uncapped, ≤30%) half-Kelly from JSON cache."""
+    m = _get_m9(ticker, bucket)
     if not m or m.get('n', 0) < MIN_N:
         return '—'
     k  = m.get('kelly_binary')
@@ -289,15 +331,65 @@ def msg_signal_table(signal: str) -> list[str]:
     return messages
 
 
+def msg_ticker_extended(ticker: str) -> str:
+    """Deep-dive card for extended-universe tickers using new_tickers JSON."""
+    name  = TICKER_NAMES.get(ticker, ticker)
+    lines = [f"<b>🔍 {ticker} — {name}</b>"]
+
+    for bucket, sig_label, pct_label in [
+        ('ultra_low', 'A', '&lt;5th pct + CoV red'),
+        ('low',       'B', '5–15th pct + CoV red'),
+    ]:
+        m9 = _get_m9(ticker, bucket)
+        m5 = _get_m5(ticker, bucket)
+        lines.append(f"\n<b>Signal {sig_label}</b>  <i>({pct_label})</i>")
+        for label, m in [('5yr', m5), ('9yr', m9)]:
+            if not m or m.get('n', 0) < MIN_N:
+                lines.append(f"  {label}: insufficient data (n={m.get('n',0) if m else 0})")
+                continue
+            k   = m.get('kelly_binary')
+            ev  = m.get('ev_pct', 0) or 0
+            k_s = f"{k:.1f}%" if k is not None else '—'
+            lines.append(
+                f"  {label}: n={m['n']} · win={m['win_rate']:.0f}% · "
+                f"+{m['avg_win_pct']:.2f}%/{m['avg_loss_pct']:.2f}% · "
+                f"EV={ev:+.3f}% · K={k_s}"
+            )
+        solo = _solo_size(ticker, bucket)
+        _m9  = _get_m9(ticker, bucket)
+        _k   = _m9.get('kelly_binary') if _m9 else None
+        _ev  = (_m9.get('ev_pct', 0) or 0) if _m9 else 0
+        if _k and _k > 0 and _ev > 0:
+            hk9 = f"{max(GUARDRAIL_MIN, min(GUARDRAIL_MAX, _k / 2)):.0f}%"
+        else:
+            hk9 = '5%'
+        lines.append(f"  → multi-pos: <b>{hk9}</b>  solo: <b>{solo}</b>")
+
+    if ticker == 'SLV':
+        lines.append('\n<i>⚠️ SLV note: D5 EV is negative in ALL windows.</i>')
+        lines.append('<i>If trading SLV, use D21 exit WITHOUT COV filter.</i>')
+        lines.append('<i>Old "3rd best" ranking was median-based &amp; overlapping — misleading.</i>')
+
+    lines.append(
+        "\n<i>multi-pos = max 20% | solo = max 30%</i>"
+    )
+    return "\n".join(lines)
+
+
 def msg_ticker(raw_arg: str) -> str:
     """Deep-dive card for a single ticker, sourced from MD + solo from JSON."""
     ticker = _resolve_ticker(raw_arg)
     if not ticker:
         return (
             f"<b>Unknown ticker:</b> <code>{raw_arg}</code>\n\n"
-            "Try: /sizing tsla  /sizing nq  /sizing avgo  /sizing lly\n"
-            "Or use /sizing a for the full Signal A table."
+            "Try: /sizing tsla  /sizing nq  /sizing avgo  /sizing visa\n"
+            "/sizing mu  /sizing amd  /sizing pg  /sizing samsung\n"
+            "Or: /sizing a  for the full Signal A table."
         )
+
+    # Route extended tickers to JSON-based card
+    if ticker in _EXTENDED_TICKERS:
+        return msg_ticker_extended(ticker)
 
     tables  = _get_tables()
     name    = TICKER_NAMES.get(ticker, ticker)

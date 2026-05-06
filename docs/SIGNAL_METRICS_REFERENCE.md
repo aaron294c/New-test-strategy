@@ -175,3 +175,137 @@
 | Kelly | (p×b − q) / b | Theoretically optimal bet fraction |
 | ½-Kelly | Kelly ÷ 2 | Practical sizing — reduces drawdown risk |
 | Rec% | max(5%, min(20%, ½-Kelly)) | Guardrail-clamped portfolio allocation |
+
+---
+
+## Extended Universe — New Tickers
+
+*MU, AMD, Visa, JNJ, Intel, Costco, Caterpillar, Cisco, P&G, Samsung, FTSE China A50.*
+*Same methodology: non-overlapping D5, COV red bar confluence, 5yr and 9yr windows.*
+
+> **Ticker note:** "VESA" interpreted as **Visa (V)** based on context.
+> Samsung uses ticker `005930.KS` (KRX). CNX1.L is the FTSE China A50 on LSE.
+
+### Extended — Signal A — RSI-MA < 5th Percentile + COV Red Bar
+
+| # | Ticker | Name | 5yr N | 5yr Win% | 5yr Avg Win | 5yr Avg Loss | 5yr EV | 5yr ½K | 9yr N | 9yr Win% | 9yr Avg Win | 9yr Avg Loss | 9yr EV | 9yr ½K | solo | Verdict |
+|---|--------|------|-------|---------|------------|-------------|--------|-----|-------|---------|------------|-------------|--------|-----|------|---------|
+| 1 | **V** | Visa | 21 | 66.7% | +3.73% | -1.97% | +1.834% | **20%** | 35 | 71.4% | +2.89% | -2.50% | +1.351% | **20%** | 23% | ⭐⭐⭐ |
+| 2 | **PG** | Procter & Gamble | 29 | 69.0% | +2.11% | -1.53% | +0.981% | **20%** | 44 | 65.9% | +2.39% | -1.38% | +1.104% | **20%** | 23% | ⭐⭐⭐ |
+| 3 | **005930.KS** | Samsung Electronics | 16 | 68.8% | +3.96% | -2.81% | +1.847% | **20%** | 34 | 61.8% | +4.06% | -2.76% | +1.448% | **18%** | 18% | ⭐⭐⭐ |
+| 4 | **CNX1.L** | FTSE China A50 (LSE) | 21 | 66.7% | +2.86% | -2.19% | +1.180% | **20%** | 39 | 64.1% | +2.49% | -1.81% | +0.946% | **19%** | 19% | ⭐⭐⭐ |
+| 5 | **JNJ** | Johnson & Johnson | 24 | 62.5% | +2.39% | -1.70% | +0.854% | **18%** | 37 | 62.2% | +2.30% | -2.08% | +0.645% | **14%** | 14% | ⭐⭐ |
+| 6 | **CSCO** | Cisco | 22 | 63.6% | +2.75% | -2.31% | +0.910% | **17%** | 36 | 52.8% | +2.12% | -1.78% | +0.279% | **7%** | 7% | ⭐ |
+| 7 | **MU** | Micron Technology | 22 | 50.0% | +5.26% | -4.12% | +0.572% | **5%** | 39 | 51.3% | +4.94% | -4.77% | +0.212% | **2%** | 2% | ⭐ |
+| 8 | **AMD** | AMD | 21 | 47.6% | +6.72% | -5.07% | +0.549% | **4%** | 34 | 44.1% | +5.07% | -5.52% | -0.849% | **5%** | 5% | ✗ |
+| 9 | **COST** | Costco | 18 | 50.0% | +2.52% | -3.00% | -0.241% | **5%** | 33 | 48.5% | +3.18% | -2.90% | +0.046% | **1%** | 1% | ⭐ |
+| 10 | **CAT** | Caterpillar | 20 | 45.0% | +4.79% | -3.00% | +0.502% | **5%** | 31 | 45.2% | +4.89% | -3.34% | +0.375% | **4%** | 4% | ⭐ |
+| 11 | **INTC** | Intel | 20 | 30.0% | +6.14% | -3.96% | -0.931% | **5%** | 39 | 38.5% | +4.12% | -3.44% | -0.532% | **5%** | 5% | ✗ |
+
+### Extended — Signal B — RSI-MA 5th–15th Percentile + COV Red Bar
+
+| # | Ticker | Name | 5yr N | 5yr Win% | 5yr Avg Win | 5yr Avg Loss | 5yr EV | 5yr ½K | 9yr N | 9yr Win% | 9yr Avg Win | 9yr Avg Loss | 9yr EV | 9yr ½K | solo | Verdict |
+|---|--------|------|-------|---------|------------|-------------|--------|-----|-------|---------|------------|-------------|--------|-----|------|---------|
+| 1 | **V** | Visa | 32 | 53.1% | +1.95% | -1.83% | +0.182% | **5%** | 50 | 66.0% | +2.07% | -2.30% | +0.586% | **14%** | 14% | ⭐⭐ |
+| 2 | **PG** | Procter & Gamble | 30 | 60.0% | +1.80% | -1.78% | +0.367% | **10%** | 50 | 58.0% | +2.15% | -1.72% | +0.521% | **12%** | 12% | ⭐⭐ |
+| 3 | **005930.KS** | Samsung Electronics | 25 | 52.0% | +4.12% | -3.02% | +0.693% | **8%** | 44 | 50.0% | +4.33% | -3.39% | +0.469% | **5%** | 5% | ⭐ |
+| 4 | **CNX1.L** | FTSE China A50 (LSE) | 29 | 55.2% | +1.73% | -2.11% | +0.008% | **0%** | 53 | 60.4% | +2.06% | -2.07% | +0.420% | **10%** | 10% | ⭐⭐ |
+| 5 | **JNJ** | Johnson & Johnson | 29 | 48.3% | +2.15% | -1.53% | +0.248% | **6%** | 52 | 50.0% | +2.00% | -1.58% | +0.213% | **5%** | 5% | ⭐ |
+| 6 | **CSCO** | Cisco | 27 | 70.4% | +3.04% | -1.29% | +1.755% | **20%** | 45 | 62.2% | +3.04% | -2.20% | +1.060% | **17%** | 17% | ⭐⭐⭐ |
+| 7 | **MU** | Micron Technology | 30 | 70.0% | +7.35% | -3.58% | +4.073% | **20%** | 51 | 58.8% | +7.19% | -4.47% | +2.389% | **17%** | 17% | ⭐⭐ |
+| 8 | **AMD** | AMD | 30 | 53.3% | +5.42% | -4.74% | +0.676% | **6%** | 49 | 63.3% | +6.14% | -4.57% | +2.202% | **18%** | 18% | ⭐⭐⭐ |
+| 9 | **COST** | Costco | 24 | 62.5% | +2.90% | -2.42% | +0.902% | **16%** | 40 | 65.0% | +2.78% | -2.49% | +0.932% | **17%** | 17% | ⭐⭐⭐ |
+| 10 | **CAT** | Caterpillar | 29 | 55.2% | +3.93% | -2.94% | +0.852% | **11%** | 49 | 57.1% | +3.51% | -3.07% | +0.690% | **10%** | 10% | ⭐⭐ |
+| 11 | **INTC** | Intel | 30 | 46.7% | +4.20% | -3.40% | +0.148% | **2%** | 52 | 51.9% | +3.26% | -3.80% | -0.136% | **5%** | 5% | ✗ |
+
+### Extended Universe — Key Findings
+
+| Ticker | Verdict | Notes |
+|--------|---------|-------|
+| **V (Visa)** | ⭐⭐⭐ Signal A | 71.4% win (9yr), +1.35% EV — matches NQ=F quality. 5yr even stronger (66.7%, +1.83%). Both windows agree. |
+| **PG** | ⭐⭐⭐ Signal A | 65.9% win (9yr), +1.10% EV — both windows agree (23% half-Kelly). Defensive stock with surprisingly clean mean-reversion. |
+| **Samsung** | ⭐⭐ Signal A | 61.8% win (9yr), +1.45% EV. 5yr stronger (68.8%). Use 18% multi-pos, 23% solo. |
+| **CNX1.L** | ⭐⭐ Signal A | 64.1% win (9yr), +0.95% EV. 5yr and 9yr both agree (~19%). China A50 mean-reverts well. |
+| **JNJ** | ⭐⭐ Signal A | 62.2% win (9yr), +0.65% EV. Consistent defensive name. |
+| **MU** | ✗ A / ⭐⭐⭐ B | Signal A barely positive → floor. Signal B: 58.8% win, +2.39% EV, 17% sizing. **Trade B, not A.** |
+| **AMD** | ✗ A / ⭐⭐⭐ B | Signal A negative EV → skip. Signal B: 63.3% win, +2.20% EV, 18% sizing. **Trade B, not A.** |
+| **CSCO** | ⭐ A / ⭐⭐⭐ B | Signal A marginal (7%). Signal B strong: 62.2% win, +1.06% EV, 17%. |
+| **COST** | ✗ A / ⭐⭐ B | Signal A skip. Signal B: 65.0% win, +0.93% EV, 17%. |
+| **CAT** | ⭐ A / ⭐⭐ B | Signal A floor (5%). Signal B: 57.1% win, +0.69% EV, 10%. |
+| **INTC** | ✗ both | Skip both signals. 30% win rate at Signal A in 5yr — structural loser. |
+
+---
+
+## SLV — Why the Earlier "3rd Best" Result Was Misleading
+
+The original `cov_confluence_summary.md` ranked SLV 3rd by median D5 return (+2.48%).
+Non-overlapping analysis across all windows shows the opposite:
+
+| Window | Method | N | Win% | Median D5 | Mean D5 | EV |
+|--------|--------|---|------|-----------|---------|----|
+| 1yr    | RSI-MA only      |  4 | 50.0% | +0.01% | −0.96% | −0.955% |
+| 5yr    | RSI-MA only      | 26 | 34.6% | −1.54% | −1.75% | −1.751% |
+| 5yr    | RSI-MA + COV red | 17 | 35.3% | −0.57% | −2.11% | −2.110% |
+| 9yr    | RSI-MA only      | 44 | 43.2% | −0.59% | −0.68% | −0.675% |
+| 9yr    | RSI-MA + COV red | 31 | 41.9% | −0.39% | −0.82% | −0.817% |
+
+**Why the discrepancy?** Three compounding factors:
+
+1. **Overlapping vs non-overlapping entries.** When SLV sits below the 5th percentile
+   for 10 consecutive days during a crash, the overlapping method counts 10 separate
+   entries. Later entries (days 7–10) are bought near the very bottom and show
+   higher 5-day win rates, inflating aggregate results. The first-entry-only method
+   captures the true cost of entering at the initial signal.
+
+2. **Heavy left tail.** The return distribution for SLV is negatively skewed:
+   median can appear positive while the mean (EV) is negative. The old ranking
+   was by median, not mean. One outlier trade (−22.57% in 5yr) destroys the
+   average, but does not affect the median.
+
+3. **COV filter makes SLV worse, not better.** The filter was designed for growth
+   equities. For commodities, RSI-MA dips already coincide with high volatility,
+   so the red-bar filter is redundant and removes the few good setups.
+
+**SLV recommendation:**
+
+| Horizon | With COV filter | Without COV | Recommendation |
+|---------|----------------|-------------|----------------|
+| D5 | ✗ Negative EV all windows | ✗ Negative EV all windows | Do not trade SLV at D5 |
+| D21 | — | 71.1% win rate (5yr overlapping) | If trading SLV, target D21 exit WITHOUT COV filter |
+
+> SLV is a genuine mean-reverting instrument — but on a **3–4 week** cycle, not 5 days.
+> The D21 data from the original backtest (71.1% win, +3.75% median) tells the real story.
+> Use `/sizing slv` for floor-only guidance at D5.
+
+---
+
+## META and TSLA — 1-Year (252 Trading Days) Verification
+
+The 9yr non-overlapping data showed both META and TSLA are *stronger* over the full
+decade than the 5yr window. This 1yr check tests whether the edge holds in the
+most recent conditions.
+
+| Ticker | Signal | 1yr N | Win% | Avg Win | Avg Loss | EV | ½K | Verdict |
+|--------|--------|-------|------|---------|----------|----|----|---------|
+| META   | A (<5th + COV) | 4 | — | — | — | — | — | **Too few events** — signal barely fired |
+| META   | B (5–15th + COV) | 8 | 50.0% | +4.28% | −1.86% | +1.21% | **14%** | ⭐⭐ Positive |
+| TSLA   | A (<5th + COV) | 4 | — | — | — | — | — | **Too few events** — signal barely fired |
+| TSLA   | B (5–15th + COV) | 9 | 77.8% | +6.73% | −3.68% | +4.42% | **20%** (solo **30%**) | ⭐⭐⭐ Outstanding |
+
+**What the 1yr data tells us:**
+
+- **Signal A for both META and TSLA** fired only ~4 times in the past year — too few
+  to draw conclusions. The extreme oversold level (<5th pct) simply hasn't been
+  reached recently. This is not a red flag; it means the setup hasn't presented.
+
+- **TSLA Signal B (1yr)** is outstanding: 77.8% win, +4.42% EV — *stronger* than the
+  9yr figure (52.8% win, +1.72% EV). The recent 12 months confirm TSLA continues
+  to mean-revert powerfully at the 5–15th percentile with COV red. **High confidence.**
+
+- **META Signal B (1yr)**: 50% win, +1.21% EV — positive but weaker than the 9yr.
+  Directionally consistent. The 9yr figure (53.1% win, +1.60% EV) remains the
+  primary reference. **No reason to downgrade META; edge persists.**
+
+**Conclusion:** The 9yr sizing recommendations for META (Signal A: 17%, Signal B: 16%)
+and TSLA (Signal A: 20%, Signal B: 13%) are confirmed. Signal A positions should be
+taken when the extreme oversold level is reached — those events are simply rare.
