@@ -339,9 +339,31 @@ def get_macdv_chart_data(ticker: str, days: int = 252) -> Dict:
 
 # Swing framework tickers (using valid Yahoo Finance symbols)
 SWING_FRAMEWORK_TICKERS = [
-    'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'QQQ', 'SPY',
-    'GLD', 'SLV', 'TSLA', 'NFLX', 'BRK-B', 'WMT', 'UNH', 'AVGO',
-    'LLY', 'TSM', 'ORCL', 'OXY', 'XOM', 'CVX', 'JPM', 'BAC',
-    'ES=F', 'NQ=F', 'BTC-USD', '^VIX', 'DX-Y.NYB', '^TNX', 'XLI',
-    'MCD', 'SMH', 'ASML', 'SMCI', '^GDAXI', '^FTSE', '^N225',
+    # Mega-cap tech
+    'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'AVGO',
+    # Semiconductors / hardware
+    'AMD', 'MU', 'INTC', 'ASML', 'SMH', 'SMCI', 'TSM',
+    # Software / cloud
+    'ORCL', 'NFLX',
+    # Consumer / retail
+    'WMT', 'COST', 'MCD',
+    # Healthcare / pharma
+    'UNH', 'LLY', 'JNJ',
+    # Financials
+    'JPM', 'BAC', 'BRK-B',
+    # Industrials / energy
+    'CAT', 'XLI', 'XOM', 'CVX', 'OXY',
+    # Telecom / conglomerates
+    'CSCO',
+    # International (Asia)
+    '005930.KS',    # Samsung Electronics (Korean exchange)
+    '^N225',        # Nikkei 225
+    '^GDAXI',       # DAX
+    '^FTSE',        # FTSE 100
+    # Macro / commodities / crypto
+    'GLD', 'SLV', 'BTC-USD',
+    # Bonds / FX / vol
+    '^VIX', 'DX-Y.NYB', '^TNX',
+    # Index ETFs / futures
+    'QQQ', 'SPY', 'ES=F', 'NQ=F',
 ]
