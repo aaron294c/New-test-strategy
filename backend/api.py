@@ -126,6 +126,15 @@ def _telegram_poll_loop() -> None:
         "/kelly_strategy":  "kelly_strategy",  # strategy trade-return Kelly by RSI-MA bucket
     }
 
+    def _run_delivery_simple(cid: str, mt: str) -> None:
+        try:
+            from telegram_delivery import _deliver
+            _deliver(cid, mt)
+        except Exception as exc:
+            import traceback
+            print(f"[poll] delivery error ({mt}): {traceback.format_exc()}")
+            _send(f"❌ Error running {mt}: {exc}")
+
     offset: int | None = None
     print(f"[poll] Telegram poller started for chat_id={chat_id}")
 
@@ -144,7 +153,9 @@ def _telegram_poll_loop() -> None:
                 if str(chat.get("id", "")) != chat_id or not text:
                     continue
 
-                cmd = text.lower().split()[0]
+                # Strip @botname suffix Telegram appends in groups/channels
+                # e.g. "/mr@MyBot" → "/mr"
+                cmd = text.lower().split()[0].split("@")[0]
                 print(f"[poll] received: {cmd!r}")
 
                 if cmd in ("/help", "/guide"):
@@ -154,7 +165,7 @@ def _telegram_poll_loop() -> None:
                     except Exception as exc:
                         _send(f"❌ Error: {exc}")
                 elif cmd.startswith("/sizing"):
-                    arg = text[len("/sizing"):].strip()
+                    arg = text.lower()[len("/sizing"):].strip().split("@")[0].strip()
                     try:
                         from telegram_sizing_reference import handle_sizing_command
                         for part in handle_sizing_command(arg):
@@ -163,6 +174,18 @@ def _telegram_poll_loop() -> None:
                         import traceback
                         print(f"[poll] /sizing error: {traceback.format_exc()}")
                         _send(f"❌ /sizing error: {exc}")
+                elif cmd in ("/rsima4h", "/cov4h"):
+                    try:
+                        from telegram_delivery import _deliver
+                        msg_type = "rsima4h" if cmd == "/rsima4h" else "cov4h"
+                        _send(f"⏳ Fetching <b>{msg_type}</b>…")
+                        threading.Thread(
+                            target=_run_delivery_simple,
+                            args=(chat_id, msg_type),
+                            daemon=True,
+                        ).start()
+                    except Exception as exc:
+                        _send(f"❌ Error: {exc}")
                 elif cmd in COMMANDS:
                     msg_type = COMMANDS[cmd]
                     _send(f"⏳ Fetching <b>{msg_type}</b>…")
