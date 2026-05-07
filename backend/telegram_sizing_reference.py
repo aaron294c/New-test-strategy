@@ -43,15 +43,16 @@ TICKER_NAMES = {
     'DX-Y.NYB':'USD Index','^GDAXI':'DAX','^FTSE':'FTSE 100',
     '^N225':'Nikkei 225',
     # Extended universe
-    'MU':'Micron Technology','AMD':'AMD','V':'Visa',
+    'MU':'Micron Technology','AMD':'Advanced Micro Devices','V':'Visa',
     'JNJ':'Johnson & Johnson','INTC':'Intel','COST':'Costco',
-    'CAT':'Caterpillar','CSCO':'Cisco','PG':'Procter & Gamble',
-    '005930.KS':'Samsung Electronics','CNX1.L':'FTSE China A50',
+    'CAT':'Caterpillar','CSCO':'Cisco Systems','PG':'Procter & Gamble',
+    'SOXX':'iShares Semis ETF','CNX1.L':'FTSE China A50',
 }
 
-# New tickers not in main MD tables — looked up from extended JSON
+# Tickers sourced from new_tickers_analysis.json for individual /sizing <ticker> lookups
+# (also now present in the main MD tables for /sizing a and /sizing b)
 _EXTENDED_TICKERS = {
-    'MU','AMD','V','JNJ','INTC','COST','CAT','CSCO','PG','005930.KS','CNX1.L'
+    'MU','AMD','V','JNJ','INTC','COST','CAT','CSCO','PG','SOXX','CNX1.L'
 }
 
 ALIASES: dict[str, str] = {
@@ -78,7 +79,7 @@ ALIASES: dict[str, str] = {
     'gld':'GLD','gold':'GLD',
     'slv':'SLV','silver':'SLV',
     'btc':'BTC-USD','bitcoin':'BTC-USD',
-    'smh':'SMH','xli':'XLI',
+    'smh':'SMH','soxx':'SOXX','xli':'XLI',
     'mcd':'MCD','mcdonalds':'MCD',
     'oxy':'OXY','xom':'XOM','exxon':'XOM',
     'cvx':'CVX','chevron':'CVX',

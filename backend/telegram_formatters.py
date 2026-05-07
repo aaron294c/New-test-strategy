@@ -675,7 +675,9 @@ def format_divergence(
     lines.append("")
 
     # ── Section 1: First-order (Daily vs 4H) ─────────────────────────────
-    rows_1 = [r for r in swing_data if r.get("divergence_pct") is not None]
+    # Include all tickers with a live daily percentile; new tickers may lack
+    # four_h_percentile (shows as —) until the next full snapshot regeneration.
+    rows_1 = [r for r in swing_data if r.get("current_percentile") is not None]
     rows_1.sort(key=lambda r: abs(r.get("divergence_pct") or 0), reverse=True)
 
     lines.append("<b>1️⃣ FIRST ORDER — Daily vs 4H</b>")
