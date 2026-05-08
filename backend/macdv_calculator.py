@@ -350,7 +350,7 @@ SWING_FRAMEWORK_TICKERS = [
     # Healthcare / pharma
     'UNH', 'LLY', 'JNJ',
     # Financials
-    'JPM', 'BAC', 'BRK-B',
+    'JPM', 'BAC', 'BRK-B', 'V',
     # Industrials / energy
     'CAT', 'XLI', 'XOM', 'CVX', 'OXY',
     # Telecom

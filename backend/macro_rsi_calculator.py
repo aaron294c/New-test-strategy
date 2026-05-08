@@ -409,10 +409,16 @@ def compute_live_full_rows(tickers: list[str]) -> list[dict]:
     ticker_to_yf: dict[str, str] = {t: resolve_yahoo_symbol(t) for t in tickers}
     yf_symbols = list(set(ticker_to_yf.values()))
 
+    # Use 15 months so we reliably get ≥ 252 trading bars even for markets
+    # with fewer trading days (international indices) or near year-end gaps.
+    # "1y" returns exactly 251 bars for US equities, causing compute_percentile
+    # (which needs 252) to silently return None for all those tickers.
+    _PERIOD = "15mo"
+
     batch_ohlcv: dict[str, pd.DataFrame] = {}
     try:
         if len(yf_symbols) == 1:
-            raw = yf.download(yf_symbols[0], period="1y", auto_adjust=True, progress=False)
+            raw = yf.download(yf_symbols[0], period=_PERIOD, auto_adjust=True, progress=False)
             if not raw.empty:
                 df = raw.copy()
                 df.columns = [str(c).lower() for c in df.columns]
@@ -422,7 +428,7 @@ def compute_live_full_rows(tickers: list[str]) -> list[dict]:
                     batch_ohlcv[yf_symbols[0]] = df.dropna(subset=["close"])
         else:
             raw = yf.download(
-                yf_symbols, period="1y", auto_adjust=True,
+                yf_symbols, period=_PERIOD, auto_adjust=True,
                 group_by="ticker", progress=False, threads=True,
             )
             for sym in yf_symbols:
@@ -448,7 +454,7 @@ def compute_live_full_rows(tickers: list[str]) -> list[dict]:
         ohlcv = batch_ohlcv.get(yf_sym)
         if ohlcv is None:
             try:
-                df = yf.download(yf_sym, period="1y", auto_adjust=True, progress=False)
+                df = yf.download(yf_sym, period=_PERIOD, auto_adjust=True, progress=False)
                 if not df.empty:
                     df.columns = [str(c).lower() for c in df.columns]
                     if df.index.duplicated().any():
