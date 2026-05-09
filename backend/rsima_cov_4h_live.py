@@ -172,3 +172,115 @@ def get_cov_snapshot(tickers: list[str] | None = None) -> list[Dict]:
         except Exception as exc:
             rows.append({"ticker": t, "error": str(exc)})
     return rows
+
+
+# ── International indices that don't trade US market hours ──────────────────
+_NON_US_SESSION = {'^N225', '^GDAXI', '^FTSE', 'CNX1.L', 'IGLS', 'CSP1'}
+
+
+def _h1_to_half_day(h1: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert a 1H DataFrame (already filtered to ET) into half-day bars.
+    Reusable helper so we can call it per-ticker from a batch download.
+    """
+    idx = pd.DatetimeIndex(h1.index)
+    if idx.tz is None:
+        idx = idx.tz_localize("UTC").tz_convert("America/New_York")
+    else:
+        idx = idx.tz_convert("America/New_York")
+    h1 = h1.copy()
+    h1.index = idx
+
+    hh, mm = idx.hour, idx.minute
+    in_session = ((hh > 9) | ((hh == 9) & (mm >= 30))) & (hh < 16)
+    h1 = h1[in_session]
+    if h1.empty:
+        return pd.DataFrame()
+
+    idx2 = h1.index
+    is_am = (idx2.hour < 13) | ((idx2.hour == 13) & (idx2.minute < 30))
+    h1 = h1.copy()
+    h1["_date"]    = idx2.date
+    h1["_session"] = np.where(is_am, "AM", "PM")
+
+    bars = (
+        h1.groupby(["_date", "_session"], sort=True)
+        .agg(Open=(h1.columns[0], "first"),
+             High=(h1.columns[1], "max"),
+             Low=(h1.columns[2],  "min"),
+             Close=(h1.columns[3], "last"))
+        .reset_index()
+    )
+    ts = (pd.to_datetime(bars["_date"].astype(str))
+          + bars["_session"].map({"AM": pd.Timedelta("9h30m"),
+                                  "PM": pd.Timedelta("13h30m")}))
+    bars.index = ts.dt.tz_localize("America/New_York")
+    return bars.drop(columns=["_date", "_session"]).sort_index()
+
+
+def compute_live_4h_percentiles(tickers: list[str]) -> dict[str, float | None]:
+    """
+    Batch-compute the live half-day RSI-MA percentile for a list of tickers.
+
+    Used by the divergence delivery path to fill in four_h_percentile for
+    tickers that are absent from (or stale in) the static snapshot.
+
+    Non-US-session tickers (^N225, ^GDAXI, ^FTSE, …) are skipped and
+    returned as None because the ET session-split logic doesn't apply.
+
+    Returns {ticker: percentile_float | None}
+    """
+    results: dict[str, float | None] = {t: None for t in tickers}
+
+    us_tickers = [t for t in tickers if t not in _NON_US_SESSION]
+    if not us_tickers:
+        return results
+
+    end   = datetime.now()
+    start = end - timedelta(days=720)
+
+    # Batch 1H download — much faster than per-ticker calls
+    try:
+        if len(us_tickers) == 1:
+            raw = yf.Ticker(us_tickers[0]).history(start=start, end=end, interval="1h")
+            raw_map = {us_tickers[0]: raw}
+        else:
+            raw = yf.download(
+                us_tickers, start=start, end=end, interval="1h",
+                group_by="ticker", progress=False, threads=True,
+            )
+            raw_map = {}
+            for t in us_tickers:
+                try:
+                    df = raw[t].dropna(how="all")
+                    if not df.empty:
+                        raw_map[t] = df
+                except Exception:
+                    pass
+    except Exception as exc:
+        print(f"[4h_pct] batch 1H download error: {exc}")
+        return results
+
+    for ticker in us_tickers:
+        try:
+            h1 = raw_map.get(ticker)
+            if h1 is None or h1.empty:
+                continue
+
+            # Normalise column names (batch download uses title-case)
+            h1 = h1.copy()
+            h1.columns = [str(c) for c in h1.columns]
+
+            bars = _h1_to_half_day(h1)
+            if bars.empty or len(bars) < _LOOKBACK:
+                continue
+
+            close = bars["Close"].dropna()
+            rsi   = _calc_rsi_ma(close)
+            pct   = _current_pct(rsi, _LOOKBACK)
+            if not np.isnan(pct):
+                results[ticker] = float(pct)
+        except Exception as exc:
+            print(f"[4h_pct] {ticker}: {exc}")
+
+    return results

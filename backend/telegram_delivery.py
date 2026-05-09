@@ -78,6 +78,52 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
         # Re-enrich second-order after live percentile update
         _enrich_second_order(swing_data)
 
+    # ── For divergence: fill in four_h_percentile live for any ticker missing it
+    if msg_type in ("divergence", "all"):
+        missing_4h = [
+            r["ticker"] for r in swing_data
+            if r.get("current_percentile") is not None
+            and r.get("four_h_percentile") is None
+            and r.get("ticker")
+        ]
+        if missing_4h:
+            print(f"[delivery] computing live 4H pct for {len(missing_4h)} tickers: {missing_4h}")
+            try:
+                from rsima_cov_4h_live import compute_live_4h_percentiles
+                h4_pcts = compute_live_4h_percentiles(missing_4h)
+                ticker_map = {r["ticker"]: r for r in swing_data}
+                # Default first-order divergence thresholds for tickers not in snapshot
+                _DEFAULT_P85 = 20.0
+                _DEFAULT_P95 = 30.0
+                for ticker, h4_pct in h4_pcts.items():
+                    if h4_pct is None:
+                        continue
+                    row = ticker_map.get(ticker)
+                    if row is None:
+                        continue
+                    daily_pct = row.get("current_percentile")
+                    row["four_h_percentile"]  = h4_pct
+                    if daily_pct is not None:
+                        div = float(daily_pct) - float(h4_pct)
+                        row["divergence_pct"]     = div
+                        row["abs_divergence_pct"] = abs(div)
+                        ad = abs(div)
+                        p85 = row.get("p85_threshold") or _DEFAULT_P85
+                        p95 = row.get("p95_threshold") or _DEFAULT_P95
+                        row.setdefault("p85_threshold", p85)
+                        row.setdefault("p95_threshold", p95)
+                        if ad <= p85:
+                            row["dislocation_level"] = "Normal"
+                            row["dislocation_color"] = "⚪"
+                        elif ad <= p95:
+                            row["dislocation_level"] = "Significant (P85)"
+                            row["dislocation_color"] = "⚠️"
+                        else:
+                            row["dislocation_level"] = "Extreme (P95)"
+                            row["dislocation_color"] = "⚡"
+            except Exception as exc:
+                print(f"[delivery] live 4H pct error: {exc}")
+
     if msg_type in ("all", "macro"):
         split_and_send(format_macro_dashboard(macro_data), chat_id=chat_id)
 
