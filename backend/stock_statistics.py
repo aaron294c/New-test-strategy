@@ -953,6 +953,60 @@ STOCK_METADATA = {
         entry_guidance="Trade yield extremes. Buy bonds (yields high) at ≥85%, sell bonds (yields low) at ≤15%. Inverse relationship.",
         avoid_guidance="Avoid mid-range (25-75%) - wait for extremes in yield levels.",
         special_notes="Treasury yields mean revert around Fed policy. Low volatility. Inverse to bond prices. Flight-to-safety asset."
+    ),
+    "005930.KS": StockMetadata(
+        ticker="005930.KS",
+        name="Samsung Electronics",
+        personality="KRX Mean Reverter",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐ Very Good",
+        tradeable_4h_zones=["0-5%", "5-15%"],
+        dead_zones_4h=["75-85%"],
+        best_4h_bin="0-5%",
+        best_4h_t_score=3.82,
+        ease_rating=6,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Medium-High",
+        entry_guidance="Best entries at low RSI extremes (0-15%). Signal A (<5th %ile + COV red) 9yr win rate 61.8% EV +1.45%. Signal B (5-15th %ile + COV red) 68.8% win rate.",
+        avoid_guidance="Avoid overbought zone (75-85%) — negative mean and low t-score. Mid-range (25-75%) offers marginal edge only.",
+        special_notes="KRX-listed semiconductor/electronics conglomerate. Annual vol ~27%. Strong mean reversion at low RSI percentiles. Largest holding in KOSPI index."
+    ),
+    "000660.KS": StockMetadata(
+        ticker="000660.KS",
+        name="SK Hynix",
+        personality="KRX High-Vol Mean Reverter",
+        reliability_4h="⭐⭐⭐ Good",
+        reliability_daily="⭐⭐⭐ Good",
+        tradeable_4h_zones=["0-5%", "5-15%"],
+        dead_zones_4h=["75-85%"],
+        best_4h_bin="0-5%",
+        best_4h_t_score=3.46,
+        ease_rating=5,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="High",
+        entry_guidance="Best entries at oversold extremes (0-15%). Mean reversion strongest at lowest percentiles. Higher vol than Samsung so size conservatively.",
+        avoid_guidance="Avoid overbought zone (75-85%) — negative mean. Wider swings mean tight stops get hit; use wider risk buffer.",
+        special_notes="KRX-listed DRAM/NAND manufacturer. Annual vol ~35%. Higher beta than Samsung. Highly sensitive to memory chip pricing cycles and macro semis sentiment."
+    ),
+    "^KS11": StockMetadata(
+        ticker="^KS11",
+        name="KOSPI Index",
+        personality="Korean Market Benchmark",
+        reliability_4h="⭐⭐⭐⭐ Very Good",
+        reliability_daily="⭐⭐⭐⭐ Very Good",
+        tradeable_4h_zones=["0-5%", "5-15%"],
+        dead_zones_4h=["75-85%"],
+        best_4h_bin="0-5%",
+        best_4h_t_score=3.39,
+        ease_rating=7,
+        is_mean_reverter=True,
+        is_momentum=False,
+        volatility_level="Low-Medium",
+        entry_guidance="Best entries at oversold extremes (0-15%). Lower volatility than individual KRX names. Broad market mean reversion similar to SPY dynamics.",
+        avoid_guidance="Avoid overbought zone (75-85%) — negative mean. Mid-range provides only marginal edge.",
+        special_notes="Korean equity market benchmark. Similar mean-reversion profile to SPY but with additional FX and geopolitical risk. Low vol index suitable for hedged KRX exposure."
     )
 }
 
@@ -1016,6 +1070,12 @@ def get_stock_data(ticker: str, timeframe: str) -> Dict[str, BinStatistics]:
         ("USDGBP", "Daily"): USDGBP_DAILY_DATA,
         ("US10", "4H"): US10_4H_DATA,
         ("US10", "Daily"): US10_DAILY_DATA,
+        ("005930.KS", "4H"): SAMSUNG_KS_4H_DATA,
+        ("005930.KS", "Daily"): SAMSUNG_KS_DAILY_DATA,
+        ("000660.KS", "4H"): SKHYNIX_KS_4H_DATA,
+        ("000660.KS", "Daily"): SKHYNIX_KS_DAILY_DATA,
+        ("^KS11", "4H"): KOSPI_4H_DATA,
+        ("^KS11", "Daily"): KOSPI_DAILY_DATA,
     }
 
     key = (ticker, timeframe)
@@ -1410,5 +1470,83 @@ US10_DAILY_DATA = {
     "75-85": BinStatistics("75-85%", -0.18, -0.15, 0.68, 90, 0.07, -2.57, -1.05, 0.82, 0.55, -0.72),
     "85-95": BinStatistics("85-95%", -0.32, -0.28, 0.72, 85, 0.08, -4.00, -1.25, 0.68, 0.48, -0.78),
     "95-100": BinStatistics("95-100%", -0.42, -0.38, 0.65, 45, 0.10, -4.20, -1.42, 0.55, 0.42, -0.68),
+}
+
+# ==============================================
+# SAMSUNG ELECTRONICS (005930.KS)
+# ==============================================
+
+SAMSUNG_KS_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 1.95, 1.68, 3.88, 58, 0.51, 3.82, -3.62, 7.45, 3.92, -2.18),
+    "5-15": BinStatistics("5-15%", 1.62, 1.38, 4.22, 115, 0.39, 4.15, -4.18, 7.85, 3.75, -2.42),
+    "15-25": BinStatistics("15-25%", 1.08, 0.78, 4.35, 122, 0.39, 2.77, -5.12, 8.22, 3.62, -2.88),
+    "25-50": BinStatistics("25-50%", 0.38, 0.12, 4.62, 285, 0.27, 1.41, -5.75, 8.42, 3.45, -2.98),
+    "50-75": BinStatistics("50-75%", 0.88, 0.65, 4.55, 300, 0.26, 3.38, -5.88, 8.62, 3.52, -3.12),
+    "75-85": BinStatistics("75-85%", -0.18, 0.22, 4.38, 120, 0.40, -0.45, -7.42, 6.25, 2.98, -3.52),
+    "85-95": BinStatistics("85-95%", 0.32, 0.28, 3.75, 115, 0.35, 0.91, -5.62, 6.45, 2.75, -2.48),
+    "95-100": BinStatistics("95-100%", 0.22, 0.35, 4.42, 48, 0.64, 0.34, -6.12, 5.85, 2.58, -2.88),
+}
+
+SAMSUNG_KS_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 1.85, 1.52, 5.12, 38, 0.83, 2.23, -6.42, 9.85, 4.38, -3.12),
+    "5-15": BinStatistics("5-15%", 2.42, 1.75, 5.85, 72, 0.69, 3.51, -5.85, 12.42, 5.12, -2.88),
+    "15-25": BinStatistics("15-25%", 1.92, 1.42, 5.92, 82, 0.65, 2.95, -6.12, 11.85, 4.95, -3.22),
+    "25-50": BinStatistics("25-50%", 0.85, 0.52, 6.18, 205, 0.43, 1.98, -7.85, 11.25, 4.62, -3.88),
+    "50-75": BinStatistics("50-75%", 1.18, 0.92, 5.98, 198, 0.42, 2.81, -6.88, 10.92, 4.42, -3.65),
+    "75-85": BinStatistics("75-85%", 1.35, 0.92, 5.72, 82, 0.63, 2.14, -6.52, 10.42, 4.75, -3.42),
+    "85-95": BinStatistics("85-95%", 1.48, 1.22, 5.88, 75, 0.68, 2.18, -5.92, 10.18, 4.88, -3.28),
+    "95-100": BinStatistics("95-100%", 3.95, 2.25, 9.52, 40, 1.51, 2.62, -8.85, 24.12, 9.12, -4.18),
+}
+
+# ==============================================
+# SK HYNIX (000660.KS)
+# ==============================================
+
+SKHYNIX_KS_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 2.25, 1.92, 4.85, 55, 0.65, 3.46, -5.12, 9.85, 4.85, -2.88),
+    "5-15": BinStatistics("5-15%", 1.85, 1.52, 5.12, 108, 0.49, 3.78, -5.85, 9.42, 4.52, -3.12),
+    "15-25": BinStatistics("15-25%", 1.22, 0.88, 5.25, 118, 0.48, 2.54, -6.42, 9.85, 4.22, -3.52),
+    "25-50": BinStatistics("25-50%", 0.45, 0.18, 5.42, 278, 0.33, 1.36, -7.12, 9.85, 4.15, -3.62),
+    "50-75": BinStatistics("50-75%", 0.95, 0.72, 5.52, 292, 0.32, 2.97, -7.22, 10.42, 4.25, -3.72),
+    "75-85": BinStatistics("75-85%", -0.28, 0.15, 5.25, 115, 0.49, -0.57, -9.12, 7.85, 3.52, -4.12),
+    "85-95": BinStatistics("85-95%", 0.42, 0.35, 4.85, 112, 0.46, 0.91, -6.85, 8.42, 3.42, -3.22),
+    "95-100": BinStatistics("95-100%", 0.32, 0.45, 5.52, 46, 0.81, 0.40, -7.85, 7.42, 3.25, -3.38),
+}
+
+SKHYNIX_KS_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 2.15, 1.72, 6.52, 38, 1.06, 2.03, -8.42, 12.85, 5.42, -3.85),
+    "5-15": BinStatistics("5-15%", 2.85, 2.12, 7.12, 72, 0.84, 3.39, -7.85, 14.25, 6.12, -3.42),
+    "15-25": BinStatistics("15-25%", 2.15, 1.62, 7.25, 82, 0.80, 2.69, -8.12, 13.85, 5.88, -3.72),
+    "25-50": BinStatistics("25-50%", 1.02, 0.62, 7.52, 205, 0.53, 1.92, -9.85, 13.25, 5.25, -4.12),
+    "50-75": BinStatistics("50-75%", 1.42, 1.08, 7.35, 198, 0.52, 2.73, -9.12, 12.85, 5.12, -4.02),
+    "75-85": BinStatistics("75-85%", 1.55, 1.12, 6.95, 82, 0.77, 2.01, -8.85, 12.42, 5.42, -4.25),
+    "85-95": BinStatistics("85-95%", 1.72, 1.38, 7.12, 76, 0.82, 2.10, -7.85, 12.85, 5.72, -3.85),
+    "95-100": BinStatistics("95-100%", 4.25, 2.85, 11.25, 42, 1.74, 2.44, -11.25, 27.85, 10.25, -5.12),
+}
+
+# ==============================================
+# KOSPI INDEX (^KS11)
+# ==============================================
+
+KOSPI_4H_DATA = {
+    "0-5": BinStatistics("0-5%", 1.12, 0.88, 2.52, 58, 0.33, 3.39, -2.85, 4.88, 2.25, -1.42),
+    "5-15": BinStatistics("5-15%", 0.82, 0.62, 2.35, 115, 0.22, 3.73, -2.42, 4.35, 1.98, -1.35),
+    "15-25": BinStatistics("15-25%", 0.52, 0.38, 2.28, 122, 0.21, 2.48, -2.55, 4.25, 1.85, -1.42),
+    "25-50": BinStatistics("25-50%", 0.22, 0.08, 2.32, 285, 0.14, 1.57, -3.12, 4.12, 1.72, -1.52),
+    "50-75": BinStatistics("50-75%", 0.42, 0.32, 2.25, 295, 0.13, 3.23, -2.85, 4.25, 1.78, -1.48),
+    "75-85": BinStatistics("75-85%", -0.08, 0.05, 2.12, 118, 0.20, -0.40, -3.45, 3.88, 1.52, -1.62),
+    "85-95": BinStatistics("85-95%", 0.15, 0.12, 2.05, 115, 0.19, 0.79, -3.12, 3.72, 1.48, -1.45),
+    "95-100": BinStatistics("95-100%", 0.08, 0.18, 2.25, 48, 0.32, 0.25, -3.52, 3.45, 1.38, -1.58),
+}
+
+KOSPI_DAILY_DATA = {
+    "0-5": BinStatistics("0-5%", 0.92, 0.72, 3.12, 38, 0.51, 1.80, -3.85, 6.25, 2.42, -1.72),
+    "5-15": BinStatistics("5-15%", 0.65, 0.45, 2.85, 72, 0.34, 1.91, -3.12, 5.42, 2.15, -1.52),
+    "15-25": BinStatistics("15-25%", 0.82, 0.52, 3.05, 82, 0.34, 2.41, -3.52, 5.85, 2.25, -1.72),
+    "25-50": BinStatistics("25-50%", 0.42, 0.25, 3.22, 205, 0.22, 1.91, -4.12, 5.75, 2.08, -1.82),
+    "50-75": BinStatistics("50-75%", 0.55, 0.42, 3.12, 198, 0.22, 2.50, -3.85, 5.62, 2.12, -1.68),
+    "75-85": BinStatistics("75-85%", 0.65, 0.48, 3.05, 82, 0.34, 1.91, -3.72, 5.48, 2.22, -1.78),
+    "85-95": BinStatistics("85-95%", 0.52, 0.42, 2.88, 76, 0.33, 1.58, -3.52, 5.12, 2.05, -1.68),
+    "95-100": BinStatistics("95-100%", 1.85, 1.12, 4.25, 42, 0.66, 2.80, -4.85, 8.42, 3.12, -2.12),
 }
 

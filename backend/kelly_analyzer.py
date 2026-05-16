@@ -19,6 +19,13 @@ Three modes:
       the underlying asset Kelly says "deleverage" at low percentile
       entries (negative momentum), but the strategy Kelly accounts for
       the actual trade edge at those entries.
+
+  return_variance_matrix(tickers, lookback=252)
+    → Annualized return covariance and correlation matrix with Ledoit-Wolf
+      shrinkage across a universe of tickers.
+
+  portfolio_kelly(tickers, lookback=252, fraction=0.5, max_total_leverage=3.0, long_only=True)
+    → Multi-asset Kelly weights using w* = Σ^{-1} μ covariance formula.
 """
 
 from __future__ import annotations
@@ -628,6 +635,299 @@ def format_strategy_kelly(results: list[StrategyKellyResult], horizon: int = 5) 
 
 
 # ---------------------------------------------------------------------------
+# Return variance matrix and portfolio Kelly
+# ---------------------------------------------------------------------------
+
+def return_variance_matrix(tickers, lookback=252):
+    """
+    Compute annualized return covariance and correlation matrix across tickers.
+
+    Uses Ledoit-Wolf shrinkage if sklearn is available; falls back to manual
+    diagonal shrinkage: (1-alpha)*Sigma + alpha*diag(Sigma) where
+    alpha = min(0.5, p/n), p = num tickers, n = num observations.
+
+    Filters to tickers with at least lookback//2 observations.
+
+    Returns a dict with keys:
+      cov_matrix      – pd.DataFrame, annualized shrunk covariance
+      corr_matrix     – pd.DataFrame, correlation derived from cov_matrix
+      mean_vector     – pd.Series, annualized mean log return per ticker
+      vol_vector      – pd.Series, annualized vol in % per ticker
+      tickers_valid   – list of tickers that passed the data filter
+      n_obs           – int, number of common date observations used
+      lookback        – int, lookback parameter passed in
+      shrinkage_coeff – float, shrinkage coefficient applied
+    """
+    min_obs = lookback // 2
+    price_data = _download(tickers, lookback + 100)
+
+    # Build log-return DataFrame aligned on common dates
+    ret_dict = {}
+    for t in tickers:
+        if t not in price_data:
+            continue
+        close = price_data[t]
+        log_ret = np.log(close / close.shift(1)).dropna()
+        if len(log_ret) >= min_obs:
+            ret_dict[t] = log_ret
+
+    if not ret_dict:
+        return {"error": "No tickers with sufficient data"}
+
+    returns_df = pd.DataFrame(ret_dict).dropna()
+
+    # Use last lookback observations after alignment
+    if len(returns_df) > lookback:
+        returns_df = returns_df.iloc[-lookback:]
+
+    n, p = returns_df.shape
+    tickers_valid = list(returns_df.columns)
+
+    # Attempt Ledoit-Wolf shrinkage via sklearn
+    shrinkage_coeff = None
+    try:
+        from sklearn.covariance import LedoitWolf
+        lw = LedoitWolf()
+        lw.fit(returns_df.values)
+        cov_raw = pd.DataFrame(
+            lw.covariance_ * ANNUAL_DAYS,
+            index=tickers_valid,
+            columns=tickers_valid,
+        )
+        shrinkage_coeff = float(lw.shrinkage_)
+    except Exception:
+        # Manual diagonal shrinkage fallback
+        sample_cov = returns_df.cov() * ANNUAL_DAYS
+        alpha = min(0.5, p / n)
+        diag_cov = np.diag(np.diag(sample_cov.values))
+        cov_raw_values = (1 - alpha) * sample_cov.values + alpha * diag_cov
+        cov_raw = pd.DataFrame(cov_raw_values, index=tickers_valid, columns=tickers_valid)
+        shrinkage_coeff = alpha
+
+    # Derive correlation matrix from shrunk covariance
+    vols = np.sqrt(np.diag(cov_raw.values))
+    outer_vols = np.outer(vols, vols)
+    with np.errstate(invalid="ignore"):
+        corr_values = np.where(outer_vols > 0, cov_raw.values / outer_vols, 0.0)
+    corr_matrix = pd.DataFrame(corr_values, index=tickers_valid, columns=tickers_valid)
+
+    # Mean vector (annualized) and vol vector (annualized, in %)
+    mean_vector = returns_df.mean() * ANNUAL_DAYS
+    vol_vector = vols * 100  # already annualized (sqrt of annual cov diagonal)
+    vol_series = pd.Series(vol_vector, index=tickers_valid)
+
+    return {
+        "cov_matrix": cov_raw,
+        "corr_matrix": corr_matrix,
+        "mean_vector": mean_vector,
+        "vol_vector": vol_series,
+        "tickers_valid": tickers_valid,
+        "n_obs": n,
+        "lookback": lookback,
+        "shrinkage_coeff": round(shrinkage_coeff, 4),
+    }
+
+
+def portfolio_kelly(tickers, lookback=252, fraction=0.5, max_total_leverage=3.0, long_only=True):
+    """
+    Compute multi-asset Kelly weights using the covariance matrix formula:
+      w* = Σ^{-1} μ
+
+    where μ is the annualized mean log-return vector and Σ is the annualized
+    covariance matrix (Ledoit-Wolf shrunk).
+
+    Parameters
+    ----------
+    tickers          : list of ticker symbols
+    lookback         : int, lookback window for variance matrix (default 252)
+    fraction         : float, fractional Kelly scaling (default 0.5 = half-Kelly)
+    max_total_leverage : float, cap on sum(|weights|) (default 3.0)
+    long_only        : bool, zero out negative weights (default True)
+
+    Returns a dict with keys:
+      weights         – pd.Series, final position weights (fraction-scaled, capped)
+      kelly_raw       – pd.Series, unconstrained full-Kelly weights
+      total_leverage  – float, sum of |final weights|
+      n_positions     – int, number of non-zero positions
+      tickers_valid   – list
+      variance_matrix – dict returned by return_variance_matrix()
+      params          – dict of parameters used
+
+    On matrix inversion failure returns {"error": "Covariance matrix not invertible"}.
+    """
+    vm = return_variance_matrix(tickers, lookback=lookback)
+    if "error" in vm:
+        return {"error": vm["error"]}
+
+    cov = vm["cov_matrix"].values
+    mu = vm["mean_vector"].values
+    tickers_valid = vm["tickers_valid"]
+    p = len(tickers_valid)
+
+    # Regularize covariance matrix
+    eps = 1e-6 * np.trace(cov) / p
+    cov_reg = cov + eps * np.eye(p)
+
+    try:
+        cov_inv = np.linalg.inv(cov_reg)
+    except np.linalg.LinAlgError:
+        return {"error": "Covariance matrix not invertible"}
+
+    weights_raw = cov_inv @ mu
+    kelly_raw = pd.Series(weights_raw, index=tickers_valid)
+
+    # Apply fractional Kelly
+    weights = weights_raw * fraction
+
+    # Long-only constraint
+    if long_only:
+        weights = np.maximum(weights, 0.0)
+
+    # Cap total leverage
+    total_lev = float(np.sum(np.abs(weights)))
+    if total_lev > max_total_leverage and total_lev > 0:
+        weights = weights * (max_total_leverage / total_lev)
+
+    weights_series = pd.Series(weights, index=tickers_valid)
+    final_leverage = float(np.sum(np.abs(weights_series)))
+    n_positions = int((weights_series != 0).sum())
+
+    return {
+        "weights": weights_series,
+        "kelly_raw": kelly_raw,
+        "total_leverage": round(final_leverage, 3),
+        "n_positions": n_positions,
+        "tickers_valid": tickers_valid,
+        "variance_matrix": vm,
+        "params": {
+            "lookback": lookback,
+            "fraction": fraction,
+            "max_total_leverage": max_total_leverage,
+            "long_only": long_only,
+        },
+    }
+
+
+def format_variance_matrix(vm_result, top_n=20):
+    """
+    Format the return variance matrix for Telegram HTML output.
+
+    Shows top top_n tickers by volatility, their annualized vol and mean return,
+    and a high-correlation table (ρ > 0.60, top 3 peers per ticker).
+    """
+    if "error" in vm_result:
+        return f"<b>Variance Matrix Error</b>\n{vm_result['error']}"
+
+    lookback = vm_result["lookback"]
+    n_obs = vm_result["n_obs"]
+    shrinkage = vm_result["shrinkage_coeff"]
+    shrinkage_pct = round(shrinkage * 100, 1)
+    vol_vec = vm_result["vol_vector"]
+    mean_vec = vm_result["mean_vector"]
+    corr_matrix = vm_result["corr_matrix"]
+    tickers_valid = vm_result["tickers_valid"]
+    n_tickers = len(tickers_valid)
+
+    # Select top_n tickers by descending volatility
+    sorted_by_vol = vol_vec.sort_values(ascending=False)
+    display_tickers = list(sorted_by_vol.index[:top_n])
+
+    lines = [
+        f"<b>📊 RETURN VARIANCE MATRIX — {lookback}-DAY</b>",
+        f"<i>Shrinkage: {shrinkage_pct}% | n_obs: {n_obs} | tickers: {n_tickers}</i>",
+        "",
+        "<b>ANNUALIZED VOL &amp; RETURN</b>",
+        "<pre>",
+        f"{'Ticker':<7}  {'Vol%':>5}  {'Ret%':>6}",
+        "─" * 22,
+    ]
+
+    for t in display_tickers:
+        v = vol_vec.get(t, float("nan"))
+        m = mean_vec.get(t, float("nan")) * 100  # convert to %
+        v_str = f"{v:.0f}%" if not math.isnan(v) else "n/a"
+        m_str = f"{m:+.0f}%" if not math.isnan(m) else "n/a"
+        lines.append(f"{t:<7}  {v_str:>5}  {m_str:>6}")
+
+    lines.append("</pre>")
+
+    # High-correlation section
+    corr_lines = []
+    corr_sub = corr_matrix.loc[display_tickers, display_tickers]
+    for t in display_tickers:
+        row = corr_sub.loc[t].drop(labels=[t], errors="ignore")
+        high_corr = row[row > 0.60].sort_values(ascending=False).head(3)
+        if high_corr.empty:
+            continue
+        peers = " | ".join(f"ρ={rho:.2f} {peer}" for peer, rho in high_corr.items())
+        corr_lines.append(f"{t:<7}  {peers}")
+
+    if corr_lines:
+        lines += [
+            "",
+            "<b>HIGH CORRELATIONS (ρ > 0.60)</b>",
+            "<pre>",
+        ]
+        lines.extend(corr_lines)
+        lines.append("</pre>")
+
+    return "\n".join(lines)
+
+
+def format_portfolio_kelly(pk_result):
+    """
+    Format multi-asset Kelly weights for Telegram HTML output.
+
+    Shows positions sorted by weight descending, total leverage, and a
+    stability warning.
+    """
+    if "error" in pk_result:
+        return f"<b>Portfolio Kelly Error</b>\n{pk_result['error']}"
+
+    weights = pk_result["weights"].sort_values(ascending=False)
+    total_lev = pk_result["total_leverage"]
+    n_pos = pk_result["n_positions"]
+    params = pk_result["params"]
+    fraction = params["fraction"]
+    long_only = params["long_only"]
+
+    lines = [
+        "<b>🎯 PORTFOLIO KELLY — MULTI-ASSET</b>",
+        "<i>Uses Σ⁻¹μ covariance matrix formula. Half-Kelly applied.</i>",
+        "",
+        "<pre>",
+        f"{'Ticker':<7}  {'Weight':>7}  Action",
+        "─" * 26,
+    ]
+
+    for ticker, w in weights.items():
+        if w == 0.0:
+            continue
+        sign = "+" if w >= 0 else ""
+        w_str = f"{sign}{w:.2f}x"
+        if w >= 2.0:
+            action = "▲▲ SIZE"
+        elif w >= 0.5:
+            action = "▲ up"
+        elif w > 0:
+            action = "= base"
+        else:
+            action = "▼ short"
+        lines.append(f"{ticker:<7}  {w_str:>7}  {action}")
+
+    lines += [
+        "─" * 26,
+        f"Total:   {total_lev:.1f}x leverage",
+        f"{'Long' if long_only else 'Net'} positions: {n_pos}",
+        "</pre>",
+        "<i>⚠️ Matrix Kelly can be unstable — apply ¼ to ½ of shown values.</i>",
+        "<i>Correlations reduce redundant positions vs single-asset Kelly.</i>",
+    ]
+
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
 # Convenience runner
 # ---------------------------------------------------------------------------
 
@@ -636,6 +936,7 @@ def run_full_analysis(
     hist_lookback: int = 2000,
     dyn_lookback: int = 252,
     strategy_horizon: int = 5,
+    portfolio: bool = False,
 ) -> dict:
     """Run historical, dynamic, and strategy Kelly. Return all results."""
     print(f"[kelly] Historical Kelly ({hist_lookback}-day)...")
@@ -647,7 +948,15 @@ def run_full_analysis(
     print(f"[kelly] Strategy Kelly — D{strategy_horizon} trade returns per percentile bucket...")
     strat = strategy_kelly(tickers, horizon=strategy_horizon)
 
-    return {"historical": hist, "dynamic": dyn, "strategy": strat}
+    result = {"historical": hist, "dynamic": dyn, "strategy": strat}
+
+    if portfolio:
+        print("[kelly] Portfolio Kelly (variance matrix)...")
+        pk = portfolio_kelly(tickers, lookback=dyn_lookback)
+        result["portfolio"] = pk
+        result["variance_matrix"] = pk.get("variance_matrix", {})
+
+    return result
 
 
 if __name__ == "__main__":
@@ -656,7 +965,7 @@ if __name__ == "__main__":
     from telegram_bot import split_and_send, is_configured
 
     parser = argparse.ArgumentParser(description="Kelly Criterion Analyzer")
-    parser.add_argument("--mode", choices=["all", "historical", "dynamic", "strategy"],
+    parser.add_argument("--mode", choices=["all", "historical", "dynamic", "strategy", "portfolio"],
                         default="all", help="Which analysis to run")
     parser.add_argument("--horizon", type=int, default=5, help="D-horizon for strategy Kelly (default 5)")
     parser.add_argument("--hist-lookback", type=int, default=2000)
@@ -664,11 +973,14 @@ if __name__ == "__main__":
     parser.add_argument("--no-telegram", action="store_true", help="Print only, don't send")
     args = parser.parse_args()
 
+    run_portfolio = args.mode in ("all", "portfolio")
+
     res = run_full_analysis(
         SWING_FRAMEWORK_TICKERS,
         hist_lookback=args.hist_lookback,
         dyn_lookback=args.dyn_lookback,
         strategy_horizon=args.horizon,
+        portfolio=run_portfolio,
     )
 
     msgs = []
@@ -682,6 +994,11 @@ if __name__ == "__main__":
 
     if args.mode in ("all", "strategy"):
         msgs.append(format_strategy_kelly(res["strategy"], horizon=args.horizon))
+
+    if args.mode in ("all", "portfolio") and "variance_matrix" in res:
+        msgs.append(format_variance_matrix(res["variance_matrix"]))
+    if args.mode in ("all", "portfolio") and "portfolio" in res:
+        msgs.append(format_portfolio_kelly(res["portfolio"]))
 
     for msg in msgs:
         print("\n" + "=" * 60)

@@ -355,6 +355,8 @@ SWING_FRAMEWORK_TICKERS = [
     'CAT', 'XLI', 'XOM', 'CVX', 'OXY',
     # Telecom
     'CSCO',
+    # South Korean equities
+    '005930.KS', '000660.KS', '^KS11',
     # International indices
     '^N225', '^GDAXI', '^FTSE',
     # Macro / commodities / crypto
