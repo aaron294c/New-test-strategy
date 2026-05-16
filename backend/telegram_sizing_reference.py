@@ -47,12 +47,14 @@ TICKER_NAMES = {
     'JNJ':'Johnson & Johnson','INTC':'Intel','COST':'Costco',
     'CAT':'Caterpillar','CSCO':'Cisco Systems','PG':'Procter & Gamble',
     'SOXX':'iShares Semis ETF','CNX1.L':'FTSE China A50',
+    '005930.KS':'Samsung Electronics','000660.KS':'SK Hynix',
 }
 
 # Tickers sourced from new_tickers_analysis.json for individual /sizing <ticker> lookups
 # (also now present in the main MD tables for /sizing a and /sizing b)
 _EXTENDED_TICKERS = {
-    'MU','AMD','V','JNJ','INTC','COST','CAT','CSCO','PG','SOXX','CNX1.L'
+    'MU','AMD','V','JNJ','INTC','COST','CAT','CSCO','PG','SOXX','CNX1.L',
+    '005930.KS','000660.KS'
 }
 
 ALIASES: dict[str, str] = {
@@ -96,6 +98,7 @@ ALIASES: dict[str, str] = {
     'csco':'CSCO','cisco':'CSCO',
     'pg':'PG','proctergamble':'PG','procter':'PG',
     'samsung':'005930.KS','005930':'005930.KS','samsungkrx':'005930.KS',
+    'skhynix':'000660.KS','hynix':'000660.KS','000660':'000660.KS','skhynixkrx':'000660.KS',
     'cnx1':'CNX1.L','cnx1l':'CNX1.L','china':'CNX1.L','chinaa50':'CNX1.L',
     'vix':'^VIX',
     'dxy':'DX-Y.NYB','dollar':'DX-Y.NYB',

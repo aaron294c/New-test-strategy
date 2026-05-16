@@ -26,10 +26,11 @@ TICKER_NAMES = {
     'CSCO':      'Cisco',
     'PG':        'Procter & Gamble',
     '005930.KS': 'Samsung Electronics',
+    '000660.KS': 'SK Hynix',
     'CNX1.L':    'FTSE China A50 (LSE)',
 }
 
-ORDER = ['V','PG','005930.KS','CNX1.L','JNJ','CSCO','MU','AMD','COST','CAT','INTC']
+ORDER = ['V','PG','005930.KS','000660.KS','CNX1.L','JNJ','CSCO','MU','AMD','COST','CAT','INTC']
 
 
 def hk(m: dict, ceiling: float) -> str:
@@ -73,11 +74,11 @@ def build_section() -> str:
     a('')
     a('## Extended Universe — New Tickers')
     a('')
-    a('*MU, AMD, Visa, JNJ, Intel, Costco, Caterpillar, Cisco, P&G, Samsung, FTSE China A50.*')
+    a('*MU, AMD, Visa, JNJ, Intel, Costco, Caterpillar, Cisco, P&G, Samsung, SK Hynix, FTSE China A50.*')
     a('*Same methodology: non-overlapping D5, COV red bar confluence, 5yr and 9yr windows.*')
     a('')
     a('> **Ticker note:** "VESA" interpreted as **Visa (V)** based on context.')
-    a('> Samsung uses ticker `005930.KS` (KRX). CNX1.L is the FTSE China A50 on LSE.')
+    a('> Samsung: `005930.KS` (KRX). SK Hynix: `000660.KS` (KRX). CNX1.L is the FTSE China A50 on LSE.')
     a('')
 
     for sig_bucket, sig_label, pct_desc in [
@@ -128,7 +129,8 @@ def build_section() -> str:
     a('|--------|---------|-------|')
     a('| **V (Visa)** | ⭐⭐⭐ Signal A | 71.4% win (9yr), +1.35% EV — matches NQ=F quality. 5yr even stronger (66.7%, +1.83%). Both windows agree. |')
     a('| **PG** | ⭐⭐⭐ Signal A | 65.9% win (9yr), +1.10% EV — both windows agree (23% half-Kelly). Defensive stock with surprisingly clean mean-reversion. |')
-    a('| **Samsung** | ⭐⭐ Signal A | 61.8% win (9yr), +1.45% EV. 5yr stronger (68.8%). Use 18% multi-pos, 23% solo. |')
+    a('| **Samsung** | ⭐⭐ Signal A | 61.8% win (9yr), +1.45% EV. 5yr stronger (68.8%). Use 18% multi-pos, 18% solo. |')
+    a('| **SK Hynix** | ⭐⭐⭐ Signal B | 68.2% win (9yr), +2.47% EV at Signal B. 72.7% win (5yr), +3.04% EV. Use 20% multi-pos, 22% solo. Signal A marginal — prefer B. |')
     a('| **CNX1.L** | ⭐⭐ Signal A | 64.1% win (9yr), +0.95% EV. 5yr and 9yr both agree (~19%). China A50 mean-reverts well. |')
     a('| **JNJ** | ⭐⭐ Signal A | 62.2% win (9yr), +0.65% EV. Consistent defensive name. |')
     a('| **MU** | ✗ A / ⭐⭐⭐ B | Signal A barely positive → floor. Signal B: 58.8% win, +2.39% EV, 17% sizing. **Trade B, not A.** |')

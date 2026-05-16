@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; width: 340px; padding: 12px; margin: 0; }
+    h3 { margin: 0 0 6px; font-size: 14px; }
+    .muted { color: #777; font-size: 11px; margin-bottom: 8px; }
+    .row { display: flex; gap: 6px; margin-top: 6px; }
+    button { flex: 1; padding: 8px 6px; cursor: pointer; border-radius: 4px; border: 1px solid #bbb; background: #f7f7f7; font-size: 12px; }
+    button:hover { background: #ececec; }
+    button:active { background: #ddd; }
+    #status { margin-top: 8px; font-size: 11px; color: #444; min-height: 14px; }
+    #status.err { color: #b00020; }
+    #status.ok { color: #0b7a0b; }
+    textarea { width: 100%; height: 160px; font-family: ui-monospace, Menlo, monospace; font-size: 10px; margin-top: 8px; box-sizing: border-box; }
+    code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h3>TradingView Cookie Extractor</h3>
+  <div class="muted">Reads cookies for <code>*.tradingview.com</code> and emits Puppeteer/Playwright JSON.</div>
+  <div class="row">
+    <button id="copy">Copy JSON</button>
+    <button id="download">Download .json</button>
+  </div>
+  <div class="row">
+    <button id="show">Show / hide</button>
+    <button id="clear">Clear</button>
+  </div>
+  <div id="status"></div>
+  <textarea id="out" readonly placeholder="JSON will appear here…" style="display:none"></textarea>
+  <script src="popup.js"></script>
+</body>
+</html>

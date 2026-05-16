@@ -178,6 +178,83 @@
 
 ---
 
+## Variance Analysis — Best EV with Lowest Downside Tail
+
+Standard Kelly sizing captures EV and win rate but not the *shape* of losing trades. Two additional metrics expose downside distribution and fat-tail risk:
+
+| Metric | Formula | Meaning |
+|--------|---------|---------|
+| **Downside Weight** | `(1 − Win%) × \|Avg Loss\|` | Expected loss per trade — the left-tail cost you pay on average |
+| **Win/Loss Ratio** | `Avg Win ÷ \|Avg Loss\|` | Asymmetry of outcomes; >1.5 = winners materially outsize losers |
+| **EV/Downside** | `EV ÷ Downside Weight` | EV earned per unit of downside exposure; higher = better risk-adjusted quality |
+
+*All figures use the **9yr window** (more regime-robust). 5yr exceptions noted where they differ materially.*
+
+**Tail key:** ✅ Low (Avg Loss ≤ 2.5%) · 🟡 Moderate (2.5%–3.9%) · 🔴 Fat (≥ 4.0%)
+
+---
+
+### Signal A — Variance-Ranked (9yr)
+
+| Rank | Ticker | 9yr EV | Avg Loss | Downside Wt | W/L Ratio | EV/Downside | Tail |
+|------|--------|--------|---------|------------|-----------|------------|------|
+| 1 | **TSLA** | +4.31% | −3.5% | 1.00% | 2.11 | 4.30 | 🟡 |
+| 2 | **PG** | +1.10% | −1.38% | 0.47% | 1.73 | 2.35 | ✅ |
+| 3 | **NQ=F** | +1.32% | −2.3% | 0.60% | 1.13 | 2.21 | ✅ |
+| 4 | **MSFT** | +1.68% | −3.1% | 0.84% | 1.13 | 2.00 | 🟡 |
+| 5 | **V** | +1.35% | −2.5% | 0.72% | 1.16 | 1.88 | ✅ |
+| 6 | **ES=F** | +0.85% | −1.9% | 0.57% | 1.05 | 1.49 | ✅ |
+| 7 | **CNX1.L** | +0.95% | −1.81% | 0.65% | 1.38 | 1.46 | ✅ |
+| 8 | **Samsung** | +1.45% | −2.76% | 1.05% | 1.47 | 1.38 | 🟡 |
+| 9 | **^TNX** | +1.93% | −4.8% | 1.60% | 1.10 | 1.20 | 🔴 |
+| 10 | **META** | +1.72% | −5.1% | 1.65% | 0.98 | 1.04 | 🔴 |
+| 11 | **BTC** | +1.69% | −5.5% | 1.83% | 0.96 | 0.92 | 🔴 |
+| 12 | **AVGO** | +0.89% | −3.2% | 1.55% | 1.50 | 0.57 | 🟡 |
+
+> **ES=F 5yr exception:** In the recent 5yr window, ES=F Signal A Avg Loss = −0.8% with Win% = 76.5%, giving Downside Weight = 0.19%, W/L = 2.88, EV/Downside = 8.11 — the **lowest-variance profile in the full universe**. The 9yr window reverts to historical norms (Avg Loss −1.9%); the 5yr reading reflects the current regime. SPY shows similar 5yr compression (Avg Loss −1.2%, W/L = 1.75) but diverges sharply in the 9yr.
+
+---
+
+### Signal B — Variance-Ranked (9yr)
+
+| Rank | Ticker | 9yr EV | Avg Loss | Downside Wt | W/L Ratio | EV/Downside | Tail |
+|------|--------|--------|---------|------------|-----------|------------|------|
+| 1 | **LLY** | +2.07% | −3.8% | 1.21% | 1.26 | 1.71 | 🟡 |
+| 2 | **META** | +1.60% | −2.1% | 0.99% | 2.33 | 1.63 | ✅ |
+| 3 | **AVGO** | +1.74% | −2.9% | 1.10% | 1.55 | 1.58 | 🟡 |
+| 4 | **AMD** | +2.20% | −4.57% | 1.68% | 1.34 | 1.31 | 🔴 |
+| 5 | **MU** | +2.39% | −4.47% | 1.84% | 1.61 | 1.30 | 🔴 |
+| 6 | **CSCO** | +1.06% | −2.2% | 0.83% | 1.38 | 1.27 | ✅ |
+| 7 | **COST** | +0.93% | −2.49% | 0.87% | 1.12 | 1.07 | ✅ |
+| 8 | **TSLA** | +1.72% | −3.8% | 1.79% | 1.76 | 0.96 | 🟡 |
+
+> **META Signal B** is notably the *only* name in Signal B with a ✅ Low tail and a W/L ratio above 2.0 (2.33). Losses average −2.1% while wins average +4.9% — a genuinely asymmetric payoff profile at the 5th–15th percentile signal.
+
+---
+
+### Composite Tier Summary
+
+| Tier | Signal A | Signal B | Why |
+|------|---------|---------|-----|
+| **Tier 1 — Best EV + Low Tail** ✅ | PG, NQ=F, V, ES=F, CNX1.L | META, CSCO, COST | Avg Loss ≤ 2.5%; EV/Downside ≥ 1.3; both metrics pointing the right way |
+| **Tier 1† — Exceptional EV offsets moderate tail** | TSLA, MSFT | LLY, AVGO | EV/Downside ≥ 1.5; losses 2.5–3.9%; run full ½-Kelly — EV is doing the heavy lifting |
+| **Tier 2 — Accept the tail at ½-Kelly** 🟡 | Samsung | — | Positive EV/Downside; losses moderate; discipline on sizing |
+| **Tier 3 — Fat tail; reduce size** 🔴 | META, ^TNX, BTC, AVGO | AMD, MU, TSLA | Avg Loss ≥ 3.5%; outlier trades can be 2–3× the average |
+
+---
+
+### Sizing Rules by Tier
+
+| Tier | Sizing Rule | Rationale |
+|------|------------|-----------|
+| **Tier 1 / 1†** | Full ½-Kelly as calculated | EV/Downside ≥ 1.5 justifies the allocation |
+| **Tier 2** | ½-Kelly; flag any single trade > 2× Avg Loss | Losses moderate but can cluster |
+| **Tier 3** | Cap at **10%** regardless of ½-Kelly; or apply ¼-Kelly | D5 adverse-move observations for BTC (−5.5% avg) and META Sig A (−5.1% avg) can reach −10% to −15% in volatile conditions |
+
+> **The key discriminator is not EV alone — it is EV combined with Avg Loss magnitude.** PG, NQ=F, and V (Signal A) produce EV of 1.1%–1.4% with losses contained below 2.5%; a losing trade in those names is a manageable −1.4% to −2.5% move on the position. A losing trade in BTC Signal A averages −5.5% and in TSLA Signal B averages −3.8%; in adverse conditions individual trades can easily exceed those averages by 50–100%. ½-Kelly already prices in some of that risk, but a hard position cap is the final guardrail on Tier 3 names.
+
+---
+
 ## Definitions
 
 | Term | Formula | Meaning |
@@ -192,13 +269,15 @@
 
 ---
 
+---
+
 ## Extended Universe — New Tickers
 
-*MU, AMD, Visa, JNJ, Intel, Costco, Caterpillar, Cisco, P&G, Samsung, FTSE China A50.*
+*MU, AMD, Visa, JNJ, Intel, Costco, Caterpillar, Cisco, P&G, Samsung, SK Hynix, FTSE China A50.*
 *Same methodology: non-overlapping D5, COV red bar confluence, 5yr and 9yr windows.*
 
 > **Ticker note:** "VESA" interpreted as **Visa (V)** based on context.
-> Samsung uses ticker `005930.KS` (KRX). CNX1.L is the FTSE China A50 on LSE.
+> Samsung: `005930.KS` (KRX). SK Hynix: `000660.KS` (KRX). CNX1.L is the FTSE China A50 on LSE.
 
 ### Extended — Signal A — RSI-MA < 5th Percentile + COV Red Bar
 
@@ -207,14 +286,15 @@
 | 1 | **V** | Visa | 21 | 66.7% | +3.73% | -1.97% | +1.834% | **20%** | 35 | 71.4% | +2.89% | -2.50% | +1.351% | **20%** | 23% | ⭐⭐⭐ |
 | 2 | **PG** | Procter & Gamble | 29 | 69.0% | +2.11% | -1.53% | +0.981% | **20%** | 44 | 65.9% | +2.39% | -1.38% | +1.104% | **20%** | 23% | ⭐⭐⭐ |
 | 3 | **005930.KS** | Samsung Electronics | 16 | 68.8% | +3.96% | -2.81% | +1.847% | **20%** | 34 | 61.8% | +4.06% | -2.76% | +1.448% | **18%** | 18% | ⭐⭐⭐ |
-| 4 | **CNX1.L** | FTSE China A50 (LSE) | 21 | 66.7% | +2.86% | -2.19% | +1.180% | **20%** | 39 | 64.1% | +2.49% | -1.81% | +0.946% | **19%** | 19% | ⭐⭐⭐ |
-| 5 | **JNJ** | Johnson & Johnson | 24 | 62.5% | +2.39% | -1.70% | +0.854% | **18%** | 37 | 62.2% | +2.30% | -2.08% | +0.645% | **14%** | 14% | ⭐⭐ |
-| 6 | **CSCO** | Cisco | 22 | 63.6% | +2.75% | -2.31% | +0.910% | **17%** | 36 | 52.8% | +2.12% | -1.78% | +0.279% | **7%** | 7% | ⭐ |
-| 7 | **MU** | Micron Technology | 22 | 50.0% | +5.26% | -4.12% | +0.572% | **5%** | 39 | 51.3% | +4.94% | -4.77% | +0.212% | **2%** | 2% | ⭐ |
-| 8 | **AMD** | AMD | 21 | 47.6% | +6.72% | -5.07% | +0.549% | **4%** | 34 | 44.1% | +5.07% | -5.52% | -0.849% | **5%** | 5% | ✗ |
-| 9 | **COST** | Costco | 18 | 50.0% | +2.52% | -3.00% | -0.241% | **5%** | 33 | 48.5% | +3.18% | -2.90% | +0.046% | **1%** | 1% | ⭐ |
-| 10 | **CAT** | Caterpillar | 20 | 45.0% | +4.79% | -3.00% | +0.502% | **5%** | 31 | 45.2% | +4.89% | -3.34% | +0.375% | **4%** | 4% | ⭐ |
-| 11 | **INTC** | Intel | 20 | 30.0% | +6.14% | -3.96% | -0.931% | **5%** | 39 | 38.5% | +4.12% | -3.44% | -0.532% | **5%** | 5% | ✗ |
+| 4 | **000660.KS** | SK Hynix | 13 | 69.2% | +4.88% | -5.39% | +1.719% | **18%** | 26 | 61.5% | +4.39% | -5.58% | +0.557% | **6%** | 6% | ⭐ |
+| 5 | **CNX1.L** | FTSE China A50 (LSE) | 21 | 66.7% | +2.86% | -2.19% | +1.180% | **20%** | 39 | 64.1% | +2.49% | -1.81% | +0.946% | **19%** | 19% | ⭐⭐⭐ |
+| 6 | **JNJ** | Johnson & Johnson | 24 | 62.5% | +2.39% | -1.70% | +0.854% | **18%** | 37 | 62.2% | +2.30% | -2.08% | +0.645% | **14%** | 14% | ⭐⭐ |
+| 7 | **CSCO** | Cisco | 22 | 63.6% | +2.75% | -2.31% | +0.910% | **17%** | 36 | 52.8% | +2.12% | -1.78% | +0.279% | **7%** | 7% | ⭐ |
+| 8 | **MU** | Micron Technology | 22 | 50.0% | +5.26% | -4.12% | +0.572% | **5%** | 39 | 51.3% | +4.94% | -4.77% | +0.212% | **2%** | 2% | ⭐ |
+| 9 | **AMD** | AMD | 21 | 47.6% | +6.72% | -5.07% | +0.549% | **4%** | 34 | 44.1% | +5.07% | -5.52% | -0.849% | **5%** | 5% | ✗ |
+| 10 | **COST** | Costco | 18 | 50.0% | +2.52% | -3.00% | -0.241% | **5%** | 33 | 48.5% | +3.18% | -2.90% | +0.046% | **1%** | 1% | ⭐ |
+| 11 | **CAT** | Caterpillar | 20 | 45.0% | +4.79% | -3.00% | +0.502% | **5%** | 31 | 45.2% | +4.89% | -3.34% | +0.375% | **4%** | 4% | ⭐ |
+| 12 | **INTC** | Intel | 20 | 30.0% | +6.14% | -3.96% | -0.931% | **5%** | 39 | 38.5% | +4.12% | -3.44% | -0.532% | **5%** | 5% | ✗ |
 
 ### Extended — Signal B — RSI-MA 5th–15th Percentile + COV Red Bar
 
@@ -223,14 +303,15 @@
 | 1 | **V** | Visa | 32 | 53.1% | +1.95% | -1.83% | +0.182% | **5%** | 50 | 66.0% | +2.07% | -2.30% | +0.586% | **14%** | 14% | ⭐⭐ |
 | 2 | **PG** | Procter & Gamble | 30 | 60.0% | +1.80% | -1.78% | +0.367% | **10%** | 50 | 58.0% | +2.15% | -1.72% | +0.521% | **12%** | 12% | ⭐⭐ |
 | 3 | **005930.KS** | Samsung Electronics | 25 | 52.0% | +4.12% | -3.02% | +0.693% | **8%** | 44 | 50.0% | +4.33% | -3.39% | +0.469% | **5%** | 5% | ⭐ |
-| 4 | **CNX1.L** | FTSE China A50 (LSE) | 29 | 55.2% | +1.73% | -2.11% | +0.008% | **0%** | 53 | 60.4% | +2.06% | -2.07% | +0.420% | **10%** | 10% | ⭐⭐ |
-| 5 | **JNJ** | Johnson & Johnson | 29 | 48.3% | +2.15% | -1.53% | +0.248% | **6%** | 52 | 50.0% | +2.00% | -1.58% | +0.213% | **5%** | 5% | ⭐ |
-| 6 | **CSCO** | Cisco | 27 | 70.4% | +3.04% | -1.29% | +1.755% | **20%** | 45 | 62.2% | +3.04% | -2.20% | +1.060% | **17%** | 17% | ⭐⭐⭐ |
-| 7 | **MU** | Micron Technology | 30 | 70.0% | +7.35% | -3.58% | +4.073% | **20%** | 51 | 58.8% | +7.19% | -4.47% | +2.389% | **17%** | 17% | ⭐⭐ |
-| 8 | **AMD** | AMD | 30 | 53.3% | +5.42% | -4.74% | +0.676% | **6%** | 49 | 63.3% | +6.14% | -4.57% | +2.202% | **18%** | 18% | ⭐⭐⭐ |
-| 9 | **COST** | Costco | 24 | 62.5% | +2.90% | -2.42% | +0.902% | **16%** | 40 | 65.0% | +2.78% | -2.49% | +0.932% | **17%** | 17% | ⭐⭐⭐ |
-| 10 | **CAT** | Caterpillar | 29 | 55.2% | +3.93% | -2.94% | +0.852% | **11%** | 49 | 57.1% | +3.51% | -3.07% | +0.690% | **10%** | 10% | ⭐⭐ |
-| 11 | **INTC** | Intel | 30 | 46.7% | +4.20% | -3.40% | +0.148% | **2%** | 52 | 51.9% | +3.26% | -3.80% | -0.136% | **5%** | 5% | ✗ |
+| 4 | **000660.KS** | SK Hynix | 22 | 72.7% | +6.38% | -5.88% | +3.036% | **20%** | 44 | 68.2% | +5.57% | -4.17% | +2.473% | **20%** | 22% | ⭐⭐⭐ |
+| 5 | **CNX1.L** | FTSE China A50 (LSE) | 29 | 55.2% | +1.73% | -2.11% | +0.008% | **0%** | 53 | 60.4% | +2.06% | -2.07% | +0.420% | **10%** | 10% | ⭐⭐ |
+| 6 | **JNJ** | Johnson & Johnson | 29 | 48.3% | +2.15% | -1.53% | +0.248% | **6%** | 52 | 50.0% | +2.00% | -1.58% | +0.213% | **5%** | 5% | ⭐ |
+| 7 | **CSCO** | Cisco | 27 | 70.4% | +3.04% | -1.29% | +1.755% | **20%** | 45 | 62.2% | +3.04% | -2.20% | +1.060% | **17%** | 17% | ⭐⭐⭐ |
+| 8 | **MU** | Micron Technology | 30 | 70.0% | +7.35% | -3.58% | +4.073% | **20%** | 51 | 58.8% | +7.19% | -4.47% | +2.389% | **17%** | 17% | ⭐⭐ |
+| 9 | **AMD** | AMD | 30 | 53.3% | +5.42% | -4.74% | +0.676% | **6%** | 49 | 63.3% | +6.14% | -4.57% | +2.202% | **18%** | 18% | ⭐⭐⭐ |
+| 10 | **COST** | Costco | 24 | 62.5% | +2.90% | -2.42% | +0.902% | **16%** | 40 | 65.0% | +2.78% | -2.49% | +0.932% | **17%** | 17% | ⭐⭐⭐ |
+| 11 | **CAT** | Caterpillar | 29 | 55.2% | +3.93% | -2.94% | +0.852% | **11%** | 49 | 57.1% | +3.51% | -3.07% | +0.690% | **10%** | 10% | ⭐⭐ |
+| 12 | **INTC** | Intel | 30 | 46.7% | +4.20% | -3.40% | +0.148% | **2%** | 52 | 51.9% | +3.26% | -3.80% | -0.136% | **5%** | 5% | ✗ |
 
 ### Extended Universe — Key Findings
 
@@ -238,7 +319,8 @@
 |--------|---------|-------|
 | **V (Visa)** | ⭐⭐⭐ Signal A | 71.4% win (9yr), +1.35% EV — matches NQ=F quality. 5yr even stronger (66.7%, +1.83%). Both windows agree. |
 | **PG** | ⭐⭐⭐ Signal A | 65.9% win (9yr), +1.10% EV — both windows agree (23% half-Kelly). Defensive stock with surprisingly clean mean-reversion. |
-| **Samsung** | ⭐⭐ Signal A | 61.8% win (9yr), +1.45% EV. 5yr stronger (68.8%). Use 18% multi-pos, 23% solo. |
+| **Samsung** | ⭐⭐ Signal A | 61.8% win (9yr), +1.45% EV. 5yr stronger (68.8%). Use 18% multi-pos, 18% solo. |
+| **SK Hynix** | ⭐⭐⭐ Signal B | 68.2% win (9yr), +2.47% EV at Signal B. 72.7% win (5yr), +3.04% EV. Use 20% multi-pos, 22% solo. Signal A marginal — prefer B. |
 | **CNX1.L** | ⭐⭐ Signal A | 64.1% win (9yr), +0.95% EV. 5yr and 9yr both agree (~19%). China A50 mean-reverts well. |
 | **JNJ** | ⭐⭐ Signal A | 62.2% win (9yr), +0.65% EV. Consistent defensive name. |
 | **MU** | ✗ A / ⭐⭐⭐ B | Signal A barely positive → floor. Signal B: 58.8% win, +2.39% EV, 17% sizing. **Trade B, not A.** |
