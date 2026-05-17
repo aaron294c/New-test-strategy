@@ -174,6 +174,16 @@ def _telegram_poll_loop() -> None:
                         import traceback
                         print(f"[poll] /sizing error: {traceback.format_exc()}")
                         _send(f"❌ /sizing error: {exc}")
+                elif cmd.startswith("/variants"):
+                    arg = text.lower()[len("/variants"):].strip().split("@")[0].strip()
+                    try:
+                        from telegram_variance_reference import handle_variants_command
+                        for part in handle_variants_command(arg):
+                            _send(part)
+                    except Exception as exc:
+                        import traceback
+                        print(f"[poll] /variants error: {traceback.format_exc()}")
+                        _send(f"❌ /variants error: {exc}")
                 elif cmd in ("/rsima4h", "/cov4h"):
                     try:
                         from telegram_delivery import _deliver
