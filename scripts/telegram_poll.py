@@ -146,7 +146,8 @@ def _handle(chat_id: str, raw: str) -> None:
         return
 
     if cmd.startswith("/sizing"):
-        arg = raw.strip()[len("/sizing"):].strip().split("@")[0].strip().lower().split()[0] if len(raw.strip()) > len("/sizing") else ""
+        remainder = raw.strip()[len("/sizing"):].split("@")[0].strip().lower()
+        arg = remainder.split()[0] if remainder.split() else ""
         _send(chat_id, "⏳ Fetching <b>sizing</b>…")
         try:
             from telegram_sizing_reference import handle_sizing_command
@@ -157,7 +158,8 @@ def _handle(chat_id: str, raw: str) -> None:
         return
 
     if cmd.startswith("/variants"):
-        arg = raw.strip()[len("/variants"):].strip().split("@")[0].strip().lower().split()[0] if len(raw.strip()) > len("/variants") else ""
+        remainder = raw.strip()[len("/variants"):].split("@")[0].strip().lower()
+        arg = remainder.split()[0] if remainder.split() else ""
         _send(chat_id, "⏳ Fetching <b>variants</b>…")
         try:
             from telegram_variance_reference import handle_variants_command
