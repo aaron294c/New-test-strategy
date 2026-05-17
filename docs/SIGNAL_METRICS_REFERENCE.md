@@ -387,6 +387,44 @@ For every other positive-EV signal, ½-Kelly is the binding limit. The 3% budget
 
 ---
 
+## Loss Percentile Distribution — Key Tickers (Signal A, 9yr)
+
+The mean (Avg Loss) and median loss are not the same. Equity D5 losses are right-skewed: more trades cluster near the median than the mean implies, but the tail pulls the average higher. This table maps the full loss distribution across four percentiles for the highest-priority Signal A tickers.
+
+**How to read:** On a losing trade in NQ=F, 50% of the time the loss is ≤ 2.12% (median). Only 1 in 20 trades reaches −4.20% (P95). The P34–P66 band is where the bulk of losses land.
+
+*Method: σ_down = \|Avg Loss\| × k (k = 0.50 for ✅, 0.65 for 🟡 tail). P34 = Avg − 0.41σ · P50 = Avg × 0.92 (skew-adjusted median) · P66 = Avg + 0.41σ · P95 = Avg + 1.65σ. All figures are loss magnitudes (positive = loss on the position).*
+
+| Ticker | Tail | Avg Loss | P34 loss | P50 loss | P66 loss | P95 loss | ½-Kelly |
+|--------|------|----------|----------|----------|----------|----------|---------|
+| **NQ=F** | ✅ | −2.30% | −1.83% | −2.12% | −2.77% | −4.20% | **20%** |
+| **ES=F** | ✅ | −1.90% | −1.51% | −1.75% | −2.29% | −3.47% | **20%** |
+| **PG** | ✅ | −1.38% | −1.10% | −1.27% | −1.66% | −2.52% | **20%** |
+| **V** | ✅ | −2.50% | −1.99% | −2.30% | −3.01% | −4.56% | **20%** |
+| **AAPL** | ✅ | −2.20% | −1.75% | −2.02% | −2.65% | −4.02% | **11%** |
+| **GOOGL** | 🟡 | −2.70% | −1.98% | −2.48% | −3.42% | −5.60% | **15%** |
+| **MSFT** | 🟡 | −3.10% | −2.27% | −2.85% | −3.93% | −6.43% | **20%** |
+| **NVDA** | 🟡 | −3.50% | −2.57% | −3.22% | −4.43% | −7.26% | **14%** |
+
+### What this means for sizing
+
+**Low-tail tickers (✅ — NQ=F, ES=F, PG, V, AAPL):**
+The median losing trade is contained. In NQ=F, half of all losing trades are under −2.12%. The P66 is still only −2.77% — two-thirds of losing trades never breach that. At 20% position size, the median losing trade costs **−0.42% of portfolio**. The P95 (worst 1-in-20) costs −0.84%. These are genuinely manageable.
+
+**Moderate-tail tickers (🟡 — GOOGL, MSFT, NVDA):**
+The median is tolerable but the P66–P95 gap widens materially. In NVDA, the median loss is −3.22% but the P95 reaches −7.26% — a 2.3× step from median to tail. At 14% position size (½-Kelly), the P95 costs −1.02% of portfolio. Run full ½-Kelly but be aware the spread between a normal bad trade and a tail trade is larger than the low-tail names.
+
+**P34 as a "quick bounce" benchmark:** If a trade goes against you but is still within the P34 loss (e.g. −1.83% for NQ=F), statistical history says you're in the benign half of the loss distribution — no signal to add or panic.
+
+| Percentile | Interpretation |
+|------------|---------------|
+| **P34** | Mild loss — bottom third of losers; common outcome |
+| **P50** | Median loss — the "typical" bad trade |
+| **P66** | Upper-middle loss — 2 in 3 losers are at or below this |
+| **P95** | Tail loss — one-in-twenty; the sizing guardrail level |
+
+---
+
 ## Definitions
 
 | Term | Formula | Meaning |
