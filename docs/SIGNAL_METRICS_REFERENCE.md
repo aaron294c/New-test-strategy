@@ -209,7 +209,8 @@ Standard Kelly sizing captures EV and win rate but not the *shape* of losing tra
 | 9 | **^TNX** | +1.93% | −4.8% | 1.60% | 1.10 | 1.20 | 🔴 |
 | 10 | **META** | +1.72% | −5.1% | 1.65% | 0.98 | 1.04 | 🔴 |
 | 11 | **BTC** | +1.69% | −5.5% | 1.83% | 0.96 | 0.92 | 🔴 |
-| 12 | **AVGO** | +0.89% | −3.2% | 1.55% | 1.50 | 0.57 | 🟡 |
+| 12 | **NVDA** | +1.33% | −3.5% | 1.48% | 1.40 | 0.89 | 🟡 |
+| 13 | **AVGO** | +0.89% | −3.2% | 1.55% | 1.50 | 0.57 | 🟡 |
 
 > **ES=F 5yr exception:** In the recent 5yr window, ES=F Signal A Avg Loss = −0.8% with Win% = 76.5%, giving Downside Weight = 0.19%, W/L = 2.88, EV/Downside = 8.11 — the **lowest-variance profile in the full universe**. The 9yr window reverts to historical norms (Avg Loss −1.9%); the 5yr reading reflects the current regime. SPY shows similar 5yr compression (Avg Loss −1.2%, W/L = 1.75) but diverges sharply in the 9yr.
 
@@ -219,16 +220,17 @@ Standard Kelly sizing captures EV and win rate but not the *shape* of losing tra
 
 | Rank | Ticker | 9yr EV | Avg Loss | Downside Wt | W/L Ratio | EV/Downside | Tail |
 |------|--------|--------|---------|------------|-----------|------------|------|
-| 1 | **LLY** | +2.07% | −3.8% | 1.21% | 1.26 | 1.71 | 🟡 |
-| 2 | **META** | +1.60% | −2.1% | 0.99% | 2.33 | 1.63 | ✅ |
-| 3 | **AVGO** | +1.74% | −2.9% | 1.10% | 1.55 | 1.58 | 🟡 |
-| 4 | **AMD** | +2.20% | −4.57% | 1.68% | 1.34 | 1.31 | 🔴 |
-| 5 | **MU** | +2.39% | −4.47% | 1.84% | 1.61 | 1.30 | 🔴 |
-| 6 | **CSCO** | +1.06% | −2.2% | 0.83% | 1.38 | 1.27 | ✅ |
-| 7 | **COST** | +0.93% | −2.49% | 0.87% | 1.12 | 1.07 | ✅ |
-| 8 | **TSLA** | +1.72% | −3.8% | 1.79% | 1.76 | 0.96 | 🟡 |
+| 1 | **SK Hynix** | +2.47% | −4.17% | 1.33% | 1.34 | 1.87 | 🔴 |
+| 2 | **LLY** | +2.07% | −3.8% | 1.21% | 1.26 | 1.71 | 🟡 |
+| 3 | **META** | +1.60% | −2.1% | 0.99% | 2.33 | 1.63 | ✅ |
+| 4 | **AVGO** | +1.74% | −2.9% | 1.10% | 1.55 | 1.58 | 🟡 |
+| 5 | **AMD** | +2.20% | −4.57% | 1.68% | 1.34 | 1.31 | 🔴 |
+| 6 | **MU** | +2.39% | −4.47% | 1.84% | 1.61 | 1.30 | 🔴 |
+| 7 | **CSCO** | +1.06% | −2.2% | 0.83% | 1.38 | 1.27 | ✅ |
+| 8 | **COST** | +0.93% | −2.49% | 0.87% | 1.12 | 1.07 | ✅ |
+| 9 | **TSLA** | +1.72% | −3.8% | 1.79% | 1.76 | 0.96 | 🟡 |
 
-> **META Signal B** is notably the *only* name in Signal B with a ✅ Low tail and a W/L ratio above 2.0 (2.33). Losses average −2.1% while wins average +4.9% — a genuinely asymmetric payoff profile at the 5th–15th percentile signal.
+> **SK Hynix Signal B** ranks first by EV/Downside (1.87) despite a fat tail (Avg Loss −4.17%). EV of +2.47% more than compensates; treat as Tier 1† but do not exceed the 20% ½-Kelly cap — the 2% budget is exactly at the boundary. **META Signal B** remains the *only* name with a ✅ Low tail and W/L above 2.0 (2.33) — losses average −2.1%, wins +4.9% — a genuinely asymmetric payoff profile.
 
 ---
 
@@ -237,9 +239,11 @@ Standard Kelly sizing captures EV and win rate but not the *shape* of losing tra
 | Tier | Signal A | Signal B | Why |
 |------|---------|---------|-----|
 | **Tier 1 — Best EV + Low Tail** ✅ | PG, NQ=F, V, ES=F, CNX1.L | META, CSCO, COST | Avg Loss ≤ 2.5%; EV/Downside ≥ 1.3; both metrics pointing the right way |
-| **Tier 1† — Exceptional EV offsets moderate tail** | TSLA, MSFT | LLY, AVGO | EV/Downside ≥ 1.5; losses 2.5–3.9%; run full ½-Kelly — EV is doing the heavy lifting |
-| **Tier 2 — Accept the tail at ½-Kelly** 🟡 | Samsung | — | Positive EV/Downside; losses moderate; discipline on sizing |
+| **Tier 1† — Exceptional EV offsets moderate/fat tail** | TSLA, MSFT | LLY, AVGO, SK Hynix† | EV/Downside ≥ 1.5; losses 2.5–3.9% (or fat for SK Hynix); run full ½-Kelly |
+| **Tier 2 — Accept the tail at ½-Kelly** 🟡 | Samsung, NVDA | — | Positive EV/Downside (0.5–1.3); losses moderate; maintain discipline on sizing |
 | **Tier 3 — Fat tail; reduce size** 🔴 | META, ^TNX, BTC, AVGO | AMD, MU, TSLA | Avg Loss ≥ 3.5%; outlier trades can be 2–3× the average |
+
+> †SK Hynix Signal B: Avg Loss = −4.17% (fat tail, 🔴) but EV/Downside = 1.87 — highest in Signal B. Placed in Tier 1† because EV fully compensates the tail risk. Do not exceed 20%; the 2% loss budget is exactly at the boundary.
 
 ---
 
@@ -252,6 +256,134 @@ Standard Kelly sizing captures EV and win rate but not the *shape* of losing tra
 | **Tier 3** | Cap at **10%** regardless of ½-Kelly; or apply ¼-Kelly | D5 adverse-move observations for BTC (−5.5% avg) and META Sig A (−5.1% avg) can reach −10% to −15% in volatile conditions |
 
 > **The key discriminator is not EV alone — it is EV combined with Avg Loss magnitude.** PG, NQ=F, and V (Signal A) produce EV of 1.1%–1.4% with losses contained below 2.5%; a losing trade in those names is a manageable −1.4% to −2.5% move on the position. A losing trade in BTC Signal A averages −5.5% and in TSLA Signal B averages −3.8%; in adverse conditions individual trades can easily exceed those averages by 50–100%. ½-Kelly already prices in some of that risk, but a hard position cap is the final guardrail on Tier 3 names.
+
+---
+
+## Downside Deviation Batches — EV-Ranked Sizing
+
+Kelly and ½-Kelly price in the **average** loss. They do not capture the *spread* of losing outcomes. Two signals can share the same average loss yet have very different tail widths. Downside semi-deviation fills this gap: it estimates the standard deviation of losing trades only, producing a realistic per-trade worst-case to size against.
+
+### Method
+
+| Input | Formula | Note |
+|-------|---------|------|
+| **σ_down** (semi-deviation est.) | \|Avg Loss\| × k | k = 0.50 ✅ · 0.65 🟡 · 0.85 🔴 |
+| **95th-pct adverse move** | \|Avg Loss\| + 1.65 × σ_down | One-in-20 losing trade |
+| **Max size — 2% budget** | 2% ÷ 95th-pct adverse move | For 1–3 concurrent positions |
+| **Max size — 3% budget** | 3% ÷ 95th-pct adverse move | Max-3-position book, low correlation |
+
+*k multipliers reflect empirical equity return distributions: low-tail losses cluster tightly around their average; fat-tail losses show 80–100% dispersion relative to the mean. Cap = 20% in all cases. All figures use the 9yr window unless noted.*
+
+---
+
+### Batch 1 — EV ≥ 3.0%
+
+| Ticker | Sig | 9yr EV | Avg Loss | Tail | σ_down | 95th-pct | Max (2%) | Max (3%) | ½-Kelly | Action |
+|--------|-----|--------|----------|------|--------|----------|---------|---------|---------|--------|
+| **TSLA** | A | +4.31% | −3.5% | 🟡 | 2.28% | 7.26% | 27.6% → **20%** | 41.3% → **20%** | **20%** | Full ½-Kelly |
+
+TSLA Signal A has the highest EV/Downside ratio in the universe (4.30). At a 20% position, a 95th-pct adverse trade costs −1.45% of portfolio — well inside the 2% budget. Run full ½-Kelly. Note: the 1yr verification shows TSLA Signal B approaching similar territory (77.8% win, +4.42% EV), confirming ongoing mean-reversion strength.
+
+---
+
+### Batch 2 — EV 2.0%–2.99%
+
+| Ticker | Sig | 9yr EV | Avg Loss | Tail | σ_down | 95th-pct | Max (2%) | Max (3%) | ½-Kelly | Action |
+|--------|-----|--------|----------|------|--------|----------|---------|---------|---------|--------|
+| **SK Hynix** | B | +2.47% | −4.17% | 🔴 | 3.54% | 10.01% | **20.0%** | 30.0% → **20%** | **20%** | At limit — do not exceed |
+| **MU** | B | +2.39% | −4.47% | 🔴 | 3.80% | 10.74% | **18.6%** | 27.9% → **20%** | **17%** | ½-Kelly (17%) is binding |
+| **AMD** | B | +2.20% | −4.57% | 🔴 | 3.88% | 10.98% | **18.2%** | 27.3% → **20%** | **18%** | Use 18% — both methods agree |
+| **LLY** | B | +2.07% | −3.8% | 🟡 | 2.47% | 7.88% | 25.4% → **20%** | 38.1% → **20%** | **20%** | Full ½-Kelly |
+
+Three of the four highest-EV signals (excluding TSLA A) carry fat tails. SK Hynix B sits exactly at the 2% budget limit (20%); do not treat the ½-Kelly cap as licence to add. MU: ½-Kelly (17%) is already more conservative than the 2% budget (18.6%) — the 17% limit holds without variance adjustment. AMD's two methods agree at 18%. LLY's moderate tail leaves full ½-Kelly justified.
+
+---
+
+### Batch 3 — EV 1.5%–1.99%
+
+| Ticker | Sig | 9yr EV | Avg Loss | Tail | σ_down | 95th-pct | Max (2%) | Max (3%) | ½-Kelly | Action |
+|--------|-----|--------|----------|------|--------|----------|---------|---------|---------|--------|
+| **^TNX** | A | +1.93% | −4.8% | 🔴 | 4.08% | 11.53% | **17.3%** | 26.0% → **20%** | **18%** | Use **17%** — variance binding |
+| **AVGO** | B | +1.74% | −2.9% | 🟡 | 1.89% | 6.02% | 33.2% → **20%** | 49.8% → **20%** | **19%** | Full ½-Kelly |
+| **TSLA** | B | +1.72% | −3.8% | 🟡 | 2.47% | 7.88% | 25.4% → **20%** | 38.1% → **20%** | **13%** | Full ½-Kelly |
+| **META** | A | +1.72% | −5.1% | 🔴 | 4.34% | 12.26% | **16.3%** | 24.5% → **20%** | **17%** | Use **16%** — variance binding |
+| **BTC** | A | +1.69% | −5.5% | 🔴 | 4.68% | 13.22% | **15.1%** | 22.7% → **20%** | **16%** | Use **15%** — variance binding |
+| **MSFT** | A | +1.68% | −3.1% | 🟡 | 2.02% | 6.43% | 31.1% → **20%** | 46.7% → **20%** | **20%** | Full ½-Kelly |
+
+This batch contains the three signals where the 2% budget is **strictly tighter** than ½-Kelly: ^TNX A (17% not 18%), META A (16% not 17%), BTC A (15% not 16%). All three have Avg Loss ≥ 4.8% and 95th-pct adverse moves of 11–13%. A single bad trade at 17–18% size could breach the 2% portfolio loss threshold. Shave by 1% in each case.
+
+AVGO B and MSFT A: moderate tails, 95th-pct adverse well below 7%, variance non-binding — full ½-Kelly.
+
+---
+
+### Batch 4 — EV 1.0%–1.49%
+
+| Ticker | Sig | 9yr EV | Avg Loss | Tail | σ_down | 95th-pct | Max (2%) | Max (3%) | ½-Kelly | Action |
+|--------|-----|--------|----------|------|--------|----------|---------|---------|---------|--------|
+| **Samsung** | A | +1.45% | −2.76% | 🟡 | 1.79% | 5.72% | 35.0% → **20%** | 52.5% → **20%** | **18%** | Full ½-Kelly |
+| **V** | A | +1.35% | −2.5% | ✅ | 1.25% | 4.56% | 43.9% → **20%** | 65.8% → **20%** | **20%** | Full ½-Kelly |
+| **NVDA** | A | +1.33% | −3.5% | 🟡 | 2.28% | 7.26% | 27.5% → **20%** | 41.3% → **20%** | **14%** | Full ½-Kelly |
+| **NQ=F** | A | +1.32% | −2.3% | ✅ | 1.15% | 4.20% | 47.6% → **20%** | 71.4% → **20%** | **20%** | Full ½-Kelly |
+| **TSM** | A | +1.13% | −3.5% | 🟡 | 2.28% | 7.26% | 27.5% → **20%** | 41.3% → **20%** | **14%** | Full ½-Kelly |
+| **PG** | A | +1.10% | −1.38% | ✅ | 0.69% | 2.52% | 79.4% → **20%** | ≥100% → **20%** | **20%** | Full ½-Kelly |
+| **GOOGL** | A | +1.08% | −2.7% | 🟡 | 1.76% | 5.60% | 35.7% → **20%** | 53.6% → **20%** | **15%** | Full ½-Kelly |
+| **SMH** | A | +1.06% | −3.2% | 🟡 | 2.08% | 6.63% | 30.2% → **20%** | 45.3% → **20%** | **11%** | Full ½-Kelly |
+| **CSCO** | B | +1.06% | −2.2% | ✅ | 1.10% | 4.02% | 49.8% → **20%** | 74.7% → **20%** | **17%** | Full ½-Kelly |
+| **NFLX** | B | +1.01% | −4.0% | 🔴 | 3.40% | 9.61% | 20.8% → **20%** | 31.2% → **20%** | **12%** | Full ½-Kelly |
+
+Variance is **not** the binding constraint for any Batch 4 signal. Even NFLX B (🔴, 9.61% 95th-pct) sees Max (2%) = 20.8% — just over the cap — so ½-Kelly (12%) is the operative limit regardless.
+
+NVDA: same Avg Loss as TSM (−3.50%) giving identical σ_down and 95th-pct (7.26%); ½-Kelly = 14%. PG stands out: 95th-pct of only 2.52% — a 20% position risks −0.50% of portfolio at the 95th percentile. It is the tightest downside profile in the entire universe.
+
+---
+
+### Batch 5 — EV 0.5%–0.99% (21 signals)
+
+½-Kelly is the operative limit for all names in this band. Variance budget is non-binding throughout.
+
+| Ticker | Sig | 9yr EV | Avg Loss | Tail | σ_down | 95th-pct | Max (2%) | ½-Kelly |
+|--------|-----|--------|----------|------|--------|----------|---------|---------|
+| **WMT** | A | +0.95% | −1.80% | ✅ | 0.90% | 3.29% | 60.8% → **20%** | **15%** |
+| **CNX1.L** | A | +0.95% | −1.81% | ✅ | 0.91% | 3.31% | 60.4% → **20%** | **19%** |
+| **COST** | B | +0.93% | −2.49% | ✅ | 1.25% | 4.55% | 44.0% → **20%** | **17%** |
+| **MSFT** | B | +0.93% | −2.20% | ✅ | 1.10% | 4.02% | 49.8% → **20%** | **14%** |
+| **AVGO** | A | +0.89% | −3.20% | 🟡 | 2.08% | 6.63% | 30.2% → **20%** | **9%** |
+| **ES=F** | A | +0.85% | −1.90% | ✅ | 0.95% | 3.47% | 57.7% → **20%** | **20%** |
+| **^N225** | A | +0.79% | −3.00% | 🟡 | 1.95% | 6.22% | 32.2% → **20%** | **12%** |
+| **AAPL** | A | +0.75% | −2.20% | ✅ | 1.10% | 4.02% | 49.8% → **20%** | **11%** |
+| **UNH** | A | +0.70% | −2.80% | 🟡 | 1.82% | 5.79% | 34.5% → **20%** | **11%** |
+| **CAT** | B | +0.69% | −3.07% | 🟡 | 2.00% | 6.37% | 31.4% → **20%** | **10%** |
+| **MCD** | B | +0.68% | −2.40% | ✅ | 1.20% | 4.38% | 45.7% → **20%** | **14%** |
+| **QQQ** | A | +0.66% | −2.40% | ✅ | 1.20% | 4.38% | 45.7% → **20%** | **16%** |
+| **SMCI** | A | +0.65% | −6.50% | 🔴 | 5.53% | 15.62% | **12.8%** | **5%** |
+| **JNJ** | A | +0.65% | −2.08% | ✅ | 1.04% | 3.80% | 52.6% → **20%** | **14%** |
+| **ASML** | A | +0.62% | −3.60% | 🟡 | 2.34% | 7.46% | 26.8% → **20%** | **7%** |
+| **V** | B | +0.59% | −2.30% | ✅ | 1.15% | 4.20% | 47.6% → **20%** | **14%** |
+| **XLI** | A | +0.58% | −3.20% | 🟡 | 2.08% | 6.63% | 30.2% → **20%** | **12%** |
+| **TSM** | B | +0.58% | −3.60% | 🟡 | 2.34% | 7.46% | 26.8% → **20%** | **9%** |
+| **AAPL** | B | +0.56% | −3.70% | 🟡 | 2.41% | 7.67% | 26.1% → **20%** | **7%** |
+| **ORCL** | A | +0.56% | −2.60% | 🟡 | 1.69% | 5.39% | 37.1% → **20%** | **8%** |
+| **PG** | B | +0.52% | −1.72% | ✅ | 0.86% | 3.14% | 63.7% → **20%** | **12%** |
+
+> **SMCI exception:** Avg Loss −6.50% (🔴 fat tail) gives a 95th-pct adverse move of 15.62%. Max (2%) = 12.8% — but ½-Kelly = 5% (floor) is already the most conservative limit. No additional shaving required; the floor holds.
+
+> **ES=F 5yr exception:** In the 5yr window, ES=F Signal A Avg Loss compresses to −0.8% (76.5% win). σ_down ≈ 0.40%, 95th-pct ≈ 1.46%, Max (2%) ≈ 137%. Effectively zero sizing constraint in the current regime. WMT, CNX1.L, PG B, V B share the same characteristic of very tight loss distributions.
+
+---
+
+### Variance-Binding Summary
+
+Across the full universe, the 2% per-trade loss budget is strictly tighter than ½-Kelly in only **three signals**:
+
+| Signal | ½-Kelly | 2% Budget Cap | **Use** | Difference |
+|--------|---------|--------------|---------|------------|
+| **^TNX Signal A** | 18% | 17.3% | **17%** | −1% |
+| **META Signal A** | 17% | 16.3% | **16%** | −1% |
+| **BTC Signal A** | 16% | 15.1% | **15%** | −1% |
+
+For every other positive-EV signal, ½-Kelly is the binding limit. The 3% budget (lower-concentration book) is non-binding for all signals including the three above.
+
+> **Key takeaway for sizing:** The existing ½-Kelly framework is well-calibrated for the full universe except these three fat-tail signals. Reduce each by 1 percentage point. Nothing else changes.
 
 ---
 

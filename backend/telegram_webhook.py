@@ -74,6 +74,12 @@ async def telegram_webhook(
         from telegram_bot import send_messages
         msgs = handle_sizing_command(arg)
         background_tasks.add_task(send_messages, msgs, chat_id)
+    elif text.startswith("/variants") and chat_id:
+        arg = text[len("/variants"):].strip()
+        from telegram_variance_reference import handle_variants_command
+        from telegram_bot import send_messages
+        msgs = handle_variants_command(arg)
+        background_tasks.add_task(send_messages, msgs, chat_id)
     elif text.startswith("/guide") and chat_id:
         from telegram_formatters import get_guide_message
         from telegram_bot import send_message

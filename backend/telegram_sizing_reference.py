@@ -222,10 +222,18 @@ def msg_index() -> str:
         "  /sizing a        — Signal A table (all tickers)\n"
         "  /sizing b        — Signal B table (all tickers)\n"
         "  /sizing rules    — Sizing rules &amp; cap logic\n"
+        "  /sizing var      — EV/Downside variance tables (A + B)\n"
+        "  /sizing vara     — Signal A variance table only\n"
+        "  /sizing varb     — Signal B variance table only\n"
         "  /sizing &lt;ticker&gt; — Single ticker deep-dive\n"
+        "\n"
+        "<b>Also see:</b>\n"
+        "  /variants        — Downside deviation batches (EV-ranked)\n"
+        "  /variants 1–4    — Jump to specific batch\n"
         "\n"
         "<b>Examples:</b>\n"
         "  /sizing tsla  /sizing nq  /sizing avgo  /sizing lly\n"
+        "  /sizing var   /sizing vara\n"
         "\n"
         "<b>Signal definitions:</b>\n"
         "  <b>A</b> = RSI-MA &lt; 5th pct + CoV red bar  (ultra-low)\n"
@@ -236,6 +244,8 @@ def msg_index() -> str:
         "  EV           = net expected value per trade\n"
         "  ½K           = half-Kelly capped 20% (2–3 positions)\n"
         "  solo         = half-Kelly capped 30% (1 position only)\n"
+        "  EV/Dn        = EV per unit of downside exposure\n"
+        "  DwnWt        = (1−Win%) × |Avg Loss|\n"
         "  ★★★ ✗        = signal quality rating\n"
     )
 
@@ -464,4 +474,17 @@ def handle_sizing_command(arg: str) -> list[str]:
         return msg_signal_table('b')
     if arg in ('rules', 'rule', 'caps', 'cap', 'logic', 'sizing'):
         return [msg_rules()]
+    # Variance / downside deviation tables
+    if arg == 'var':
+        from telegram_variance_reference import handle_sizing_var
+        return handle_sizing_var('')
+    if arg in ('vara', 'var a', 'var_a'):
+        from telegram_variance_reference import handle_sizing_var
+        return handle_sizing_var('a')
+    if arg in ('varb', 'var b', 'var_b'):
+        from telegram_variance_reference import handle_sizing_var
+        return handle_sizing_var('b')
+    if arg.startswith('var') and len(arg) > 3:
+        from telegram_variance_reference import handle_sizing_var
+        return handle_sizing_var(arg[3:])
     return [msg_ticker(arg)]

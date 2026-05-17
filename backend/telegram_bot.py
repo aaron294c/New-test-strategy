@@ -162,7 +162,8 @@ def set_bot_commands() -> bool:
         {"command": "kelly_strategy", "description": "Strategy Kelly: D5 trade returns per RSI-MA bucket — where to lever up"},
         {"command": "rsima4h",        "description": "RSI-MA half-day pct for SPY & QQQ — <5/<10/<15 thresholds + backtest ref returns"},
         {"command": "cov4h",          "description": "COV dir_metric & bar colour for SPY & QQQ half-day bars — red = entry condition"},
-        {"command": "sizing",         "description": "Position sizing reference — /sizing a · /sizing b · /sizing <ticker>"},
+        {"command": "sizing",         "description": "Position sizing — /sizing a · /sizing b · /sizing var · /sizing <ticker>"},
+        {"command": "variants",       "description": "Downside deviation batches EV-ranked — /variants 1·2·3·4 for specific batch"},
         {"command": "guide",          "description": "Column reference and metric explanations"},
         {"command": "help",           "description": "List all available commands"},
     ]
