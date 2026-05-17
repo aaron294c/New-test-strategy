@@ -87,6 +87,9 @@ _HELP_TEXT = (
     "  /kelly_dyn    — dynamic Kelly\n"
     "  /kelly_strategy — strategy Kelly\n"
     "  /sizing a|b   — position sizing reference\n"
+    "  /sizing var   — EV/downside variance tables (A + B)\n"
+    "  /variants     — downside deviation batches EV-ranked\n"
+    "  /variants 1–4 — jump to specific batch\n"
     "  /rsima4h      — RSI-MA half-day pct for SPY &amp; QQQ\n"
     "  /cov4h        — COV half-day bar colour for SPY &amp; QQQ\n"
     "  /guide        — column reference guide\n"
@@ -151,6 +154,17 @@ def _handle(chat_id: str, raw: str) -> None:
                 _send(chat_id, part)
         except Exception as exc:
             _send(chat_id, f"❌ /sizing error: {exc}")
+        return
+
+    if cmd.startswith("/variants"):
+        arg = raw.strip()[len("/variants"):].strip().split("@")[0].strip().lower().split()[0] if len(raw.strip()) > len("/variants") else ""
+        _send(chat_id, "⏳ Fetching <b>variants</b>…")
+        try:
+            from telegram_variance_reference import handle_variants_command
+            for part in handle_variants_command(arg):
+                _send(chat_id, part)
+        except Exception as exc:
+            _send(chat_id, f"❌ /variants error: {exc}")
         return
 
     text = cmd  # keep rest of handler using 'text' variable
