@@ -106,6 +106,13 @@ def _telegram_poll_loop() -> None:
         try:
             with urllib.request.urlopen(req, timeout=15) as r:
                 json.loads(r.read())
+        except urllib.error.HTTPError as exc:
+            # Log the full Telegram error body so we can debug HTML issues
+            try:
+                body = exc.read().decode("utf-8", errors="replace")
+            except Exception:
+                body = str(exc)
+            print(f"[poll] send HTTP {exc.code}: {body[:400]}")
         except Exception as exc:
             print(f"[poll] send error: {exc}")
 
@@ -200,14 +207,14 @@ def _telegram_poll_loop() -> None:
                     threading.Thread(target=_run_options, daemon=True, name="options-scan").start()
                 elif cmd.startswith("/iv"):
                     _send("⏳ Fetching <b>IV dashboard</b> (VIX / VXN / VIX9D)…")
-                    def _run_iv():
-                        try:
-                            from telegram_options_handler import handle_iv_command
-                            for part in handle_iv_command():
-                                _send(part)
-                        except Exception as exc:
-                            _send(f"❌ /iv error: {exc}")
-                    threading.Thread(target=_run_iv, daemon=True, name="iv-dashboard").start()
+                    try:
+                        from telegram_options_handler import handle_iv_command
+                        for part in handle_iv_command():
+                            _send(part)
+                    except Exception as exc:
+                        import traceback
+                        print(f"[poll] /iv error: {traceback.format_exc()}")
+                        _send(f"❌ /iv error: {exc}")
                 elif cmd.startswith("/optwatch"):
                     _send("⏳ Checking <b>RSI-MA percentiles</b> (QQQ &amp; SPY)…")
                     def _run_optwatch():

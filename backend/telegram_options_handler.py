@@ -499,88 +499,90 @@ def handle_options_command(arg: str = "") -> list[str]:
 
 
 def handle_iv_command() -> list[str]:
-    """/iv — VIX / VXN / VIX9D dashboard."""
-    data  = _download(["QQQ", "SPY", "^VIX", "^VXN", "^VIX9D"], period="18mo")
-    vix   = _iv_level(data.get("^VIX"))
-    vxn   = _iv_level(data.get("^VXN"))
-    vix9d = _iv_level(data.get("^VIX9D"))
+    """/iv — VIX / VXN / VIX9D dashboard. Returns plain-text-safe HTML parts."""
+    # Download separately to avoid yfinance aligning on shortest series
+    iv_data  = _download(["^VIX", "^VXN", "^VIX9D"], period="2y")
+    eq_data  = _download(["QQQ", "SPY"], period="18mo")
 
-    spy_close = data.get("SPY")
-    qqq_close = data.get("QQQ")
-    spy_pct   = _rsi_ma_pct(spy_close) if spy_close is not None else None
-    qqq_pct   = _rsi_ma_pct(qqq_close) if qqq_close is not None else None
+    vix   = _iv_level(iv_data.get("^VIX"))
+    vxn   = _iv_level(iv_data.get("^VXN"))
+    vix9d = _iv_level(iv_data.get("^VIX9D"))
 
-    vix_ser = data.get("^VIX")
-    if vix_ser is not None and len(vix_ser) >= 30:
-        v30 = vix_ser.iloc[-30:]
-        vix_ctx = (f"{vix:.1f}%  (30d: avg {v30.mean():.1f} / "
-                   f"lo {v30.min():.1f} / hi {v30.max():.1f})")
-    else:
-        vix_ctx = f"{vix:.1f}%" if vix else "N/A"
+    # 30-day stats for each
+    def _ctx(ser, val):
+        if ser is not None and len(ser) >= 30:
+            s = ser.iloc[-30:]
+            return f"{val:.1f}%  (30d avg {s.mean():.1f} / lo {s.min():.1f} / hi {s.max():.1f})"
+        return f"{val:.1f}%" if val else "N/A"
 
-    vxn_ser = data.get("^VXN")
-    if vxn_ser is not None and len(vxn_ser) >= 30:
-        vn30 = vxn_ser.iloc[-30:]
-        vxn_ctx = (f"{vxn:.1f}%  (30d: avg {vn30.mean():.1f} / "
-                   f"lo {vn30.min():.1f} / hi {vn30.max():.1f})")
-    else:
-        vxn_ctx = f"{vxn:.1f}%" if vxn else "N/A"
+    vix_ctx  = _ctx(iv_data.get("^VIX"),  vix  or 0)
+    vxn_ctx  = _ctx(iv_data.get("^VXN"),  vxn  or 0)
+    v9d_str  = f"{vix9d:.1f}%" if vix9d else "N/A"
 
-    vix_rl, vix_adv   = _iv_regime(vix   or 20)
-    vxn_rl, vxn_adv   = _iv_regime(vxn   or 20)
-    v9d_rl, _         = _iv_regime(vix9d or 20)
+    # Regime labels — plain text, no HTML entities in these strings
+    def _regime_plain(iv_pct: float) -> str:
+        if iv_pct < 15:   return "LOW (below 15%) — Long Call preferred"
+        elif iv_pct < 20: return "MID-LOW (15-20%) — Either spread works"
+        elif iv_pct < 25: return "MID (20-25%) — Bull Put Spread good"
+        else:             return "HIGH (above 25%) — Bull Put Spread best"
 
-    term_note = ""
+    # Term structure note — plain text only
+    term = ""
     if vix9d and vix:
         diff = vix9d - vix
-        if   diff > 2:  term_note = f"⚡ VIX9D &gt; VIX by {diff:.1f}pp — front-month fear elevated, extra premium to sell on 10 DTE spreads"
-        elif diff < -2: term_note = f"VIX9D &lt; VIX by {abs(diff):.1f}pp — short-dated cheap (normal contango)"
-        else:           term_note = f"VIX9D ≈ VIX ({vix9d:.1f}%) — normal term structure"
+        if   diff > 2:  term = f"VIX9D above VIX by {diff:.1f}pp — front-month fear elevated"
+        elif diff < -2: term = f"VIX9D below VIX by {abs(diff):.1f}pp — normal contango"
+        else:           term = f"VIX9D approx VIX ({vix9d:.1f}%) — normal term structure"
 
-    def _pct_line(t, p):
-        if p is None: return f"{t} RSI-MA: —"
-        icon = "🔴 SIGNAL ACTIVE — run /options" if p < 5 else "🟠 CLOSE — watch carefully" if p < 8 else "🟡 watching" if p < 15 else "⚪ normal"
-        return f"{t} RSI-MA: <b>{p:.1f}th pct</b>  {icon}"
+    # RSI-MA percentiles
+    spy_pct = _rsi_ma_pct(eq_data.get("SPY")) if "SPY" in eq_data else None
+    qqq_pct = _rsi_ma_pct(eq_data.get("QQQ")) if "QQQ" in eq_data else None
 
-    # Historical context: median VIX/VXN at signal entry
-    msg = (
-        f"📊 <b>IV DASHBOARD</b>  —  {datetime.datetime.now().strftime('%d %b %Y  %H:%M')} UTC\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"\n"
-        f"<b>S&amp;P 500  (SPY options — uses VIX)</b>\n"
+    def _pct_txt(t, p):
+        if p is None: return f"{t} RSI-MA: n/a"
+        icon = "SIGNAL ACTIVE" if p < 5 else "CLOSE" if p < 8 else "watching" if p < 15 else "normal"
+        return f"{t}: {p:.1f}th pct ({icon})"
+
+    # Build as separate small messages to avoid any single-message HTML rejection
+    msg1 = (
+        "<b>IV DASHBOARD</b>  "
+        + datetime.datetime.now().strftime("%d %b %Y %H:%M") + " UTC\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "\n"
+        "<b>S&amp;P 500 (SPY options)</b>\n"
         f"  VIX  30d:  <b>{vix_ctx}</b>\n"
-        f"  VIX9D 9d:  <b>{vix9d:.1f}%</b>  {v9d_rl}\n"
-        f"  Regime:    {vix_rl}\n"
-        f"  Advice:    {vix_adv}\n"
-        f"\n"
-        f"<b>NASDAQ 100  (QQQ options — uses VXN)</b>\n"
+        f"  VIX9D 9d:  <b>{v9d_str}</b>\n"
+        f"  Regime:    {_regime_plain(vix or 20)}\n"
+        "\n"
+        "<b>NASDAQ 100 (QQQ options)</b>\n"
         f"  VXN  30d:  <b>{vxn_ctx}</b>\n"
-        f"  Regime:    {vxn_rl}\n"
-        f"  Advice:    {vxn_adv}\n"
-        f"\n"
-        f"<b>Term structure</b>\n"
-        f"  {term_note}\n"
-        f"  VIX9D is used for 10 DTE puts (matched expiry)\n"
-        f"\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"<b>Strategy by IV regime</b>\n"
-        f"  &gt;25%:   🐂 Bull Put Spread ★★★  (sell expensive IV)\n"
-        f"  20-25%:  🐂 Bull Put Spread ★★\n"
-        f"  15-20%:  Either spread works\n"
-        f"  &lt;15%:  📞 Long ATM Call preferred\n"
-        f"\n"
-        f"<b>Historical context</b>\n"
-        f"  Median VXN at QQQ signal entry: 24.2%  → {_iv_regime(24.2)[0]}\n"
-        f"  Median VIX at SPY signal entry: 21.7%  → {_iv_regime(21.7)[0]}\n"
-        f"  Median IV crush over 5-day hold: 3.2–3.4pp\n"
-        f"\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"<b>RSI-MA signal watch</b>\n"
-        f"  {_pct_line('QQQ', qqq_pct)}\n"
-        f"  {_pct_line('SPY', spy_pct)}\n"
-        f"  Signal threshold: &lt;5th pct  |  /options for full setup"
+        f"  Regime:    {_regime_plain(vxn or 20)}\n"
+        "\n"
+        "<b>Term structure</b>\n"
+        f"  {term}\n"
+        "  VIX9D matched to 10 DTE puts"
     )
-    return [msg]
+
+    msg2 = (
+        "<b>Strategy guide by IV level</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "  Above 25%:  Bull Put Spread best (sell expensive IV)\n"
+        "  20 to 25%:  Bull Put Spread good\n"
+        "  15 to 20%:  Either spread works\n"
+        "  Below 15%:  Long ATM Call preferred (low crush risk)\n"
+        "\n"
+        "<b>Historical context at signal entry</b>\n"
+        "  Median VXN at QQQ signal: 24.2%  (MID 20-25%)\n"
+        "  Median VIX at SPY signal: 21.7%  (MID 20-25%)\n"
+        "  Median IV crush over 5-day hold: 3.2 to 3.4pp\n"
+        "\n"
+        "<b>RSI-MA signal watch</b>\n"
+        f"  {_pct_txt('QQQ', qqq_pct)}\n"
+        f"  {_pct_txt('SPY', spy_pct)}\n"
+        "  Signal at below 5th pct  |  /options for full setup"
+    )
+
+    return [msg1, msg2]
 
 
 def handle_optwatch_command() -> list[str]:
@@ -649,20 +651,46 @@ def handle_optwatch_command() -> list[str]:
 
 def handle_optwatch_brief() -> str:
     """
-    Single-line options watch summary for inclusion in /update.
-    Downloads only what's needed; returns one HTML string.
+    Multi-line options + IV summary for /update daily snapshot.
+    Shows VIX, VXN, VIX9D, and RSI-MA signal status.
     """
     try:
-        data  = _download(["QQQ", "SPY", "^VXN", "^VIX"], period="18mo")
-        lines = []
+        iv_data = _download(["^VIX", "^VXN", "^VIX9D"], period="2y")
+        eq_data = _download(["QQQ", "SPY"], period="18mo")
+
+        vix   = _iv_level(iv_data.get("^VIX"))
+        vxn   = _iv_level(iv_data.get("^VXN"))
+        vix9d = _iv_level(iv_data.get("^VIX9D"))
+
+        # 30d context
+        def _30d(ser, val):
+            if ser is not None and len(ser) >= 30:
+                s = ser.iloc[-30:]
+                return f"{val:.1f}%  (avg {s.mean():.1f} / hi {s.max():.1f})"
+            return f"{val:.1f}%" if val else "n/a"
+
+        vix_str  = _30d(iv_data.get("^VIX"),  vix  or 0)
+        vxn_str  = _30d(iv_data.get("^VXN"),  vxn  or 0)
+        v9d_str  = f"{vix9d:.1f}%" if vix9d else "n/a"
+
+        # Regime
+        def _regime_icon(iv_pct):
+            if iv_pct < 15:   return "🟢 Low"
+            elif iv_pct < 20: return "🟡 Mid-Low"
+            elif iv_pct < 25: return "🟠 Mid"
+            else:             return "🔴 High"
+
+        # RSI-MA percentiles
+        active = False
+        pct_lines = []
         for ticker in ["QQQ", "SPY"]:
-            close  = data.get(ticker)
-            if close is None: continue
-            pct = _rsi_ma_pct(close)
-            if pct is None: continue
-            iv_ser = data.get("^VXN") if ticker == "QQQ" else data.get("^VIX")
-            iv = _iv_level(iv_ser) or 20.0
+            close = eq_data.get(ticker)
+            pct   = _rsi_ma_pct(close) if close is not None else None
+            if pct is None:
+                pct_lines.append(f"{ticker}: n/a")
+                continue
             if pct < SIGNAL_THRESH:
+                active = True
                 icon = "🔴"
             elif pct < 8:
                 icon = "🟠"
@@ -670,17 +698,25 @@ def handle_optwatch_brief() -> str:
                 icon = "🟡"
             else:
                 icon = "⚪"
-            lines.append(f"{icon} {ticker}: {pct:.1f}th pct  IV={iv:.1f}%")
-        if not lines:
-            return "⚪ Options watch: data unavailable"
-        summary = "  |  ".join(lines)
-        active = False
-        for _t in ["QQQ", "SPY"]:
-            _p = _rsi_ma_pct(data.get(_t))
-            if _p is not None and _p < SIGNAL_THRESH:
-                active = True; break
-        header = "🔴 <b>OPTIONS SIGNAL ACTIVE</b>" if active else "👁 Options watch"
-        return f"{header}: {summary}"
+            pct_lines.append(f"{icon} {ticker} {pct:.1f}th pct")
+
+        signal_line = "🔴 <b>OPTIONS SIGNAL ACTIVE — /options</b>" if active else "👁 <b>Options watch</b>"
+
+        msg = (
+            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"📊 <b>Volatility  /  Options Watch</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"VIX  (S&amp;P 30d):   <b>{vix_str}</b>  {_regime_icon(vix or 20)}\n"
+            f"VXN  (QQQ 30d):   <b>{vxn_str}</b>  {_regime_icon(vxn or 20)}\n"
+            f"VIX9D (9-day):    <b>{v9d_str}</b>\n"
+            f"\n"
+            f"{signal_line}\n"
+            f"  {pct_lines[0] if pct_lines else ''}"
+            + (f"  |  {pct_lines[1]}" if len(pct_lines) > 1 else "") +
+            f"\n"
+            f"  Signal at below 5th pct  |  /iv for regime detail"
+        )
+        return msg
     except Exception as exc:
         return f"👁 Options watch: error ({exc})"
 
