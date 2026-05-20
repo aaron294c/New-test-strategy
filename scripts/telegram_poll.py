@@ -68,6 +68,11 @@ _COMMANDS = {
     "/kelly_strategy": ("kelly_strategy", "strategy Kelly"),
     "/rsima4h":     ("rsima4h",       "RSI-MA 4H snapshot (SPY & QQQ)"),
     "/cov4h":       ("cov4h",         "COV 4H snapshot (SPY & QQQ)"),
+    # ── Options commands ──────────────────────────────────────────────────────
+    "/options":     ("options",       "options signal: bull put spread setup"),
+    "/iv":          ("iv",            "VIX / VXN / VIX9D dashboard"),
+    "/optwatch":    ("optwatch",      "RSI-MA watch: distance to signal"),
+    "/optlog":      ("optlog",        "last 10 logged option signals"),
 }
 
 _HELP_TEXT = (
@@ -93,6 +98,15 @@ _HELP_TEXT = (
     "  /rsima4h      — RSI-MA half-day pct for SPY &amp; QQQ\n"
     "  /cov4h        — COV half-day bar colour for SPY &amp; QQQ\n"
     "  /guide        — column reference guide\n"
+    "\n"
+    "<b>Options commands:</b>\n"
+    "  /options      — live scan: bull put spread signal?\n"
+    "  /options qqq  — QQQ only\n"
+    "  /options spy  — SPY only\n"
+    "  /iv           — VIX / VXN / VIX9D dashboard\n"
+    "  /optwatch     — RSI-MA pct + distance to signal\n"
+    "  /optlog       — last logged option signals\n"
+    "\n"
     "  /help         — this message"
 )
 
@@ -167,6 +181,57 @@ def _handle(chat_id: str, raw: str) -> None:
                 _send(chat_id, part)
         except Exception as exc:
             _send(chat_id, f"❌ /variants error: {exc}")
+        return
+
+    # ── Options commands ──────────────────────────────────────────────────────
+
+    if cmd.startswith("/options"):
+        remainder = raw.strip()[len("/options"):].split("@")[0].strip().lower()
+        arg = remainder.split()[0] if remainder.split() else ""
+        _send(chat_id, "⏳ Scanning <b>options signals</b> (QQQ &amp; SPY) — downloading live data…")
+        try:
+            from telegram_options_handler import handle_options_command
+            for part in handle_options_command(arg):
+                _send(chat_id, part)
+        except Exception as exc:
+            _send(chat_id, f"❌ /options error: {exc}")
+            import traceback; print(traceback.format_exc())
+        return
+
+    if cmd.startswith("/iv"):
+        _send(chat_id, "⏳ Fetching <b>IV dashboard</b> (VIX / VXN / VIX9D)…")
+        try:
+            from telegram_options_handler import handle_iv_command
+            for part in handle_iv_command():
+                _send(chat_id, part)
+        except Exception as exc:
+            _send(chat_id, f"❌ /iv error: {exc}")
+            import traceback; print(traceback.format_exc())
+        return
+
+    if cmd.startswith("/optwatch"):
+        _send(chat_id, "⏳ Checking <b>RSI-MA percentiles</b> (QQQ &amp; SPY)…")
+        try:
+            from telegram_options_handler import handle_optwatch_command
+            for part in handle_optwatch_command():
+                _send(chat_id, part)
+        except Exception as exc:
+            _send(chat_id, f"❌ /optwatch error: {exc}")
+            import traceback; print(traceback.format_exc())
+        return
+
+    if cmd.startswith("/optlog"):
+        remainder = raw.strip()[len("/optlog"):].split("@")[0].strip()
+        try:
+            n = int(remainder.split()[0]) if remainder.split() else 10
+        except ValueError:
+            n = 10
+        try:
+            from telegram_options_handler import handle_optlog_command
+            for part in handle_optlog_command(n):
+                _send(chat_id, part)
+        except Exception as exc:
+            _send(chat_id, f"❌ /optlog error: {exc}")
         return
 
     text = cmd  # keep rest of handler using 'text' variable
