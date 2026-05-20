@@ -184,6 +184,52 @@ def _telegram_poll_loop() -> None:
                         import traceback
                         print(f"[poll] /variants error: {traceback.format_exc()}")
                         _send(f"❌ /variants error: {exc}")
+                elif cmd.startswith("/options"):
+                    arg = text.lower()[len("/options"):].strip().split("@")[0].strip()
+                    arg = arg.split()[0] if arg.split() else ""
+                    _send("⏳ Scanning <b>options signals</b> (QQQ &amp; SPY)…")
+                    def _run_options(a=arg):
+                        try:
+                            from telegram_options_handler import handle_options_command
+                            for part in handle_options_command(a):
+                                _send(part)
+                        except Exception as exc:
+                            import traceback
+                            print(f"[poll] /options error: {traceback.format_exc()}")
+                            _send(f"❌ /options error: {exc}")
+                    threading.Thread(target=_run_options, daemon=True, name="options-scan").start()
+                elif cmd.startswith("/iv"):
+                    _send("⏳ Fetching <b>IV dashboard</b> (VIX / VXN / VIX9D)…")
+                    def _run_iv():
+                        try:
+                            from telegram_options_handler import handle_iv_command
+                            for part in handle_iv_command():
+                                _send(part)
+                        except Exception as exc:
+                            _send(f"❌ /iv error: {exc}")
+                    threading.Thread(target=_run_iv, daemon=True, name="iv-dashboard").start()
+                elif cmd.startswith("/optwatch"):
+                    _send("⏳ Checking <b>RSI-MA percentiles</b> (QQQ &amp; SPY)…")
+                    def _run_optwatch():
+                        try:
+                            from telegram_options_handler import handle_optwatch_command
+                            for part in handle_optwatch_command():
+                                _send(part)
+                        except Exception as exc:
+                            _send(f"❌ /optwatch error: {exc}")
+                    threading.Thread(target=_run_optwatch, daemon=True, name="optwatch").start()
+                elif cmd.startswith("/optlog"):
+                    remainder = text[len("/optlog"):].strip().split("@")[0].strip()
+                    try:
+                        n = int(remainder.split()[0]) if remainder.split() else 10
+                    except ValueError:
+                        n = 10
+                    try:
+                        from telegram_options_handler import handle_optlog_command
+                        for part in handle_optlog_command(n):
+                            _send(part)
+                    except Exception as exc:
+                        _send(f"❌ /optlog error: {exc}")
                 elif cmd in ("/rsima4h", "/cov4h"):
                     try:
                         from telegram_delivery import _deliver

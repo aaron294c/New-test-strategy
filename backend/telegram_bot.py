@@ -165,6 +165,10 @@ def set_bot_commands() -> bool:
         {"command": "sizing",         "description": "Position sizing — /sizing a · /sizing b · /sizing var · /sizing <ticker>"},
         {"command": "variants",       "description": "Downside deviation batches EV-ranked — /variants 1·2·3·4 for specific batch"},
         {"command": "guide",          "description": "Column reference and metric explanations"},
+        {"command": "options",        "description": "Options signal — bull put spread setup for QQQ & SPY (RSI-MA <5th pct)"},
+        {"command": "iv",             "description": "IV dashboard — VIX / VXN / VIX9D with regime guide & strategy advice"},
+        {"command": "optwatch",       "description": "Options watch — RSI-MA percentile progress toward signal threshold"},
+        {"command": "optlog",         "description": "Last 10 logged option signals (date, strikes, credit, max loss)"},
         {"command": "help",           "description": "List all available commands"},
     ]
 
