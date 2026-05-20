@@ -230,6 +230,13 @@ def _telegram_poll_loop() -> None:
                             _send(part)
                     except Exception as exc:
                         _send(f"❌ /optlog error: {exc}")
+                elif cmd.startswith("/optbacktest"):
+                    try:
+                        from telegram_options_handler import handle_optbacktest_command
+                        for part in handle_optbacktest_command():
+                            _send(part)
+                    except Exception as exc:
+                        _send(f"❌ /optbacktest error: {exc}")
                 elif cmd in ("/rsima4h", "/cov4h"):
                     try:
                         from telegram_delivery import _deliver

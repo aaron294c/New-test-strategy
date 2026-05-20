@@ -234,6 +234,15 @@ def _handle(chat_id: str, raw: str) -> None:
             _send(chat_id, f"❌ /optlog error: {exc}")
         return
 
+    if cmd.startswith("/optbacktest"):
+        try:
+            from telegram_options_handler import handle_optbacktest_command
+            for part in handle_optbacktest_command():
+                _send(chat_id, part)
+        except Exception as exc:
+            _send(chat_id, f"❌ /optbacktest error: {exc}")
+        return
+
     text = cmd  # keep rest of handler using 'text' variable
     if text not in _COMMANDS:
         return  # ignore unknown messages / non-commands

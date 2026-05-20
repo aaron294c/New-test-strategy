@@ -136,6 +136,13 @@ def _deliver(chat_id: str, msg_type: str = "all") -> None:
     if msg_type in ("all", "cov"):
         split_and_send(format_cov_snapshot(swing_data), chat_id=chat_id)
 
+    if msg_type == "all":
+        try:
+            from telegram_options_handler import handle_optwatch_brief
+            split_and_send(handle_optwatch_brief(), chat_id=chat_id)
+        except Exception as exc:
+            print(f"[delivery] optwatch brief error: {exc}")
+
     if msg_type == "divergence":
         split_and_send(format_divergence(swing_data, macro_data), chat_id=chat_id)
 

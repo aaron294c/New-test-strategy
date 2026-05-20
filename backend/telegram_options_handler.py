@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Options signal handler for Telegram — RSI-MA <5th pct (no COV required for QQQ/SPY).
+Options signal handler for Telegram — RSI-MA &lt;5th pct (no COV required for QQQ/SPY).
 
 Commands:
   /options        — live scan: is there a bull-put-spread entry right now?
   /iv             — current VIX / VXN / VIX9D dashboard
   /optwatch       — current RSI-MA percentile levels + distance to signal
+  /optbacktest    — full historical stats table (backtested 9yr)
+  /optlog [n]     — last n logged option signals
 
-Pattern: follows the exact /sizing / /variants pattern.
-  - Returns a list[str] (each element sent as a separate Telegram message)
-  - Caller sends "⏳ …" first, then sends each returned string
-  - NO webhooks, NO async, NO frameworks — pure stdlib + yfinance
+All returned strings use Telegram HTML parse_mode. Use &lt; and &gt; for
+literal angle-bracket characters — never bare < or > outside HTML tags.
 """
 from __future__ import annotations
 
@@ -31,30 +31,42 @@ sys.path.insert(0, str(_ROOT / "backend"))
 
 from macro_instruments import calculate_rsi_ma  # noqa: E402
 
-# ── Verified backtest reference values (from OPTIONS_RSIMA_ANALYSIS.md) ───────
-# 42 QQQ signals / 47 SPY signals over 9 years, bull put spread -2%/-5% 10 DTE
+# ── Verified backtest reference values ────────────────────────────────────────
+# Source: scripts/options_rsima_only.py  42 QQQ / 47 SPY signals, 9yr, RSI-MA only
 
 REF = {
     "QQQ": {
         "name": "NASDAQ 100 ETF", "iv_sym": "^VXN",
-        "n_signals": 42, "hk": 0.20, "eq_avg_loss_pct": 2.86,
-        "bps_win_rate": 78.6, "bps_ev": 11.3, "bps_avg_win": 20.5,
-        "bps_avg_loss": -22.2, "bps_p5": -36.8, "bps_median": 16.9, "bps_p95": 31.8,
-        "eq_win_rate": 69.0, "eq_ev": 1.21,
-        # IV regime win rates
-        "bps_wr_mid": 72, "bps_wr_high": 88,
+        "n_signals": 42, "signals_per_year": 4.7, "hk": 0.20,
+        "eq_avg_loss_pct": 2.86, "eq_win_rate": 69.0, "eq_ev": 1.21,
+        # Bull Put Spread -2%/-5% 10 DTE
+        "bps_win_rate": 78.6, "bps_ev": 11.3,
+        "bps_avg_win": 20.5, "bps_avg_loss": -22.2,
+        "bps_p5": -36.8, "bps_p25": -5.2, "bps_median": 16.9,
+        "bps_p75": 25.1, "bps_p95": 31.8, "bps_max_win": 33.0,
+        # By IV regime
+        "bps_wr_low": 50, "bps_wr_mid": 72, "bps_wr_high": 88,
+        "bps_ev_mid": 6.6, "bps_ev_high": 18.2,
+        # Bull Call Spread ATM/+3% 35 DTE
         "bcs_win_rate": 64.3, "bcs_ev": 14.6,
+        "bcs_avg_win": 34.6, "bcs_avg_loss": -21.4,
+        # Long ATM Call 35 DTE
         "lc_win_rate": 52.4, "lc_ev": 7.6,
     },
     "SPY": {
         "name": "S&P 500 ETF", "iv_sym": "^VIX",
-        "n_signals": 47, "hk": 0.20, "eq_avg_loss_pct": 2.43,
-        "bps_win_rate": 89.4, "bps_ev": 12.4, "bps_avg_win": 17.8,
-        "bps_avg_loss": -32.7, "bps_p5": -31.4, "bps_median": 15.9, "bps_p95": 33.1,
-        "eq_win_rate": 70.2, "eq_ev": 0.88,
-        "bps_wr_mid": 93, "bps_wr_high": 88,
+        "n_signals": 47, "signals_per_year": 5.2, "hk": 0.20,
+        "eq_avg_loss_pct": 2.43, "eq_win_rate": 70.2, "eq_ev": 0.88,
+        # Bull Put Spread -2%/-5% 10 DTE
+        "bps_win_rate": 89.4, "bps_ev": 12.4,
+        "bps_avg_win": 17.8, "bps_avg_loss": -32.7,
+        "bps_p5": -31.4, "bps_p25": 3.3, "bps_median": 15.9,
+        "bps_p75": 26.8, "bps_p95": 33.1, "bps_max_win": 35.0,
+        "bps_wr_low": 50, "bps_wr_mid": 93, "bps_wr_high": 88,
+        "bps_ev_mid": 11.5, "bps_ev_high": 18.1,
         "bcs_win_rate": 66.0, "bcs_ev": 13.3,
-        "lc_win_rate": 51.1, "lc_ev": -0.55,   # NEGATIVE — do not use
+        "bcs_avg_win": 29.8, "bcs_avg_loss": -18.8,
+        "lc_win_rate": 51.1, "lc_ev": -0.55,    # NEGATIVE — avoid
     },
 }
 
@@ -65,129 +77,102 @@ LOG_PATH       = _ROOT / "docs" / "options_signal_log.json"
 LOG_MD_PATH    = _ROOT / "docs" / "OPTIONS_SIGNAL_LOG.md"
 
 
-# ── Black-Scholes helpers ──────────────────────────────────────────────────────
+# ── Black-Scholes ──────────────────────────────────────────────────────────────
 
 def _bs_put(S, K, T, r, sigma):
     if T <= 0 or sigma <= 0: return max(K - S, 0)
     d1 = (math.log(S/K) + (r + .5*sigma**2)*T) / (sigma*math.sqrt(T))
     d2 = d1 - sigma*math.sqrt(T)
-    from scipy.stats import norm
-    return K*math.exp(-r*T)*norm.cdf(-d2) - S*norm.cdf(-d1)
+    return K*math.exp(-r*T)*st.norm.cdf(-d2) - S*st.norm.cdf(-d1)
 
 def _bs_call(S, K, T, r, sigma):
     if T <= 0 or sigma <= 0: return max(S - K, 0)
     d1 = (math.log(S/K) + (r + .5*sigma**2)*T) / (sigma*math.sqrt(T))
     d2 = d1 - sigma*math.sqrt(T)
-    from scipy.stats import norm
-    return S*norm.cdf(d1) - K*math.exp(-r*T)*norm.cdf(d2)
+    return S*st.norm.cdf(d1) - K*math.exp(-r*T)*st.norm.cdf(d2)
 
 def _bs_put_delta(S, K, T, r, sigma):
     if T <= 0: return -1.0 if S < K else 0.0
     d1 = (math.log(S/K) + (r + .5*sigma**2)*T) / (sigma*math.sqrt(T))
-    from scipy.stats import norm
-    return norm.cdf(d1) - 1.0
+    return st.norm.cdf(d1) - 1.0
 
 
 # ── Data helpers ───────────────────────────────────────────────────────────────
 
 def _download(tickers: list[str], period: str = "18mo") -> dict[str, pd.Series]:
-    """Download close prices, returns {ticker: Series}."""
     raw = yf.download(tickers, period=period, interval="1d",
                       progress=False, auto_adjust=True, threads=True)
     if isinstance(raw.columns, pd.MultiIndex):
         close = raw["Close"]
     else:
         close = raw[["Close"]]
-        if tickers:
-            close.columns = [tickers[0]]
+        if tickers: close.columns = [tickers[0]]
     out = {}
     for t in tickers:
         if t in close.columns:
             s = close[t].dropna()
-            if len(s) > 10:
-                out[t] = s
+            if len(s) > 10: out[t] = s
     return out
 
-
 def _rsi_ma_pct(close: pd.Series) -> Optional[float]:
-    """Current RSI-MA percentile (0-100). None if not enough data."""
-    if len(close) < RSI_LOOKBACK + 30:
-        return None
+    if len(close) < RSI_LOOKBACK + 30: return None
     rma = calculate_rsi_ma(close)
-    window = rma.dropna().iloc[-(RSI_LOOKBACK):]
-    if len(window) < RSI_LOOKBACK:
-        return None
+    window = rma.dropna().iloc[-RSI_LOOKBACK:]
+    if len(window) < RSI_LOOKBACK: return None
     current = window.iloc[-1]
     below   = (window.iloc[:-1] < current).sum()
     return float(below / (len(window) - 1) * 100)
 
-
 def _iv_level(ser: pd.Series) -> Optional[float]:
-    """Latest value from a VIX-type series, as percentage (e.g. 21.3)."""
-    if ser is None or ser.empty:
-        return None
+    if ser is None or ser.empty: return None
     return float(ser.dropna().iloc[-1])
 
-
 def _nearest_friday(target_days: int = 10) -> datetime.date:
-    """Return the Friday closest to `target_days` calendar days from today."""
     today = datetime.date.today()
-    best  = None
-    best_diff = 9999
+    best, best_diff = None, 9999
     for offset in range(5, 18):
         d = today + datetime.timedelta(days=offset)
-        if d.weekday() == 4:  # Friday
+        if d.weekday() == 4:
             diff = abs(offset - target_days)
             if diff < best_diff:
-                best_diff = diff
-                best = d
+                best_diff = diff; best = d
     return best or (today + datetime.timedelta(days=10))
 
-
 def _iv_regime(iv_pct: float) -> tuple[str, str]:
-    """Returns (label, strategy_advice)."""
     if iv_pct < 15:
-        return ("🟢 LOW (<15%)", "Long ATM Call preferred (low crush risk). Put spread credit thin.")
+        return ("🟢 LOW (&lt;15%)", "Long ATM Call preferred — IV crush risk minimal")
     elif iv_pct < 20:
-        return ("🟡 MID-LOW (15-20%)", "Bull Put Spread or Bull Call Spread. Either works.")
+        return ("🟡 MID-LOW (15-20%)", "Bull Put Spread or Bull Call Spread — either works")
     elif iv_pct < 25:
-        return ("🟠 MID (20-25%)", "Bull Put Spread ★★ — good premium, decent crush incoming.")
+        return ("🟠 MID (20-25%)", "Bull Put Spread ★★ — good premium, crush incoming")
     else:
-        return ("🔴 HIGH (>25%)", "Bull Put Spread ★★★ — sell expensive IV. Best regime for spread.")
+        return ("🔴 HIGH (&gt;25%)", "Bull Put Spread ★★★ — sell expensive IV, best regime")
 
 
-# ── Options pricing for a spread ──────────────────────────────────────────────
+# ── Options pricing ────────────────────────────────────────────────────────────
 
 def _price_bull_put_spread(S: float, iv: float, dte: int) -> dict:
-    """Price a -2%/-5% bull put spread. Returns dict with credit, width, etc."""
-    K_sell = round(S * 0.98)     # short put at -2%, rounded to $1
-    K_buy  = round(S * 0.95)     # long put at -5%, rounded to $1
+    K_sell = round(S * 0.98); K_buy = round(S * 0.95)
     T      = dte / 252
     p_sell = _bs_put(S, K_sell, T, RFREE, iv)
     p_buy  = _bs_put(S, K_buy,  T, RFREE, iv)
-    credit = p_sell - p_buy
-    width  = K_sell - K_buy
-    d_sell = _bs_put_delta(S, K_sell, T, RFREE, iv)
+    credit = p_sell - p_buy; width = K_sell - K_buy
     return {
-        "K_sell": K_sell, "K_buy": K_buy, "T": T,
+        "K_sell": K_sell, "K_buy": K_buy,
         "credit": credit, "width": width,
         "max_loss": width - credit,
         "credit_pct_width": credit / width * 100 if width > 0 else 0,
         "breakeven": K_sell - credit,
         "breakeven_pct_from_spot": (K_sell - credit - S) / S * 100,
-        "delta_short": d_sell,
+        "delta_short": _bs_put_delta(S, K_sell, T, RFREE, iv),
     }
 
-
-def _price_bull_call_spread(S: float, iv: float, dte: int) -> dict:
-    """Price an ATM/+3% bull call spread."""
-    K_buy  = round(S)
-    K_sell = round(S * 1.03)
-    T      = dte / 252
-    c_buy  = _bs_call(S, K_buy,  T, RFREE, iv)
-    c_sell = _bs_call(S, K_sell, T, RFREE, iv)
-    debit  = c_buy - c_sell
-    width  = K_sell - K_buy
+def _price_bull_call_spread(S: float, iv: float, dte: int = 35) -> dict:
+    K_buy = round(S); K_sell = round(S * 1.03)
+    T     = dte / 252
+    c_buy = _bs_call(S, K_buy,  T, RFREE, iv)
+    c_sell= _bs_call(S, K_sell, T, RFREE, iv)
+    debit = c_buy - c_sell; width = K_sell - K_buy
     return {
         "K_buy": K_buy, "K_sell": K_sell,
         "debit": debit, "width": width,
@@ -198,215 +183,247 @@ def _price_bull_call_spread(S: float, iv: float, dte: int) -> dict:
     }
 
 
-# ── Signal log ────────────────────────────────────────────────────────────────
+# ── Signal log ─────────────────────────────────────────────────────────────────
 
 def _log_signal(entry: dict) -> None:
-    """Append a signal entry to the JSON log and regenerate the MD file."""
     LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
     log: list = []
     if LOG_PATH.exists():
-        try:
-            log = json.loads(LOG_PATH.read_text())
-        except Exception:
-            log = []
+        try: log = json.loads(LOG_PATH.read_text())
+        except Exception: log = []
     log.append(entry)
     LOG_PATH.write_text(json.dumps(log, indent=2, default=str))
     _rebuild_log_md(log)
 
-
 def _rebuild_log_md(log: list) -> None:
     lines = [
-        "# Options Signal Log — RSI-MA <5th Pct (QQQ/SPY)",
-        "",
-        f"*Last updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} UTC*",
-        "",
-        "| Date | Ticker | Pct | VIX/VXN | Spot | Setup | Credit | Width | Max Loss | Regime | Status |",
-        "|------|--------|-----|---------|------|-------|--------|-------|----------|--------|--------|",
+        "# Options Signal Log — RSI-MA &lt;5th Pct (QQQ/SPY)",
+        "", f"*Last updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} UTC*", "",
+        "| Date | Ticker | Pct | VIX/VXN | Spot | Sell | Buy | DTE | Credit | Width | MaxLoss | Regime |",
+        "|------|--------|-----|---------|------|------|-----|-----|--------|-------|---------|--------|",
     ]
-    for e in reversed(log[-50:]):   # show last 50, newest first
-        setup = f"Sell ${e.get('K_sell','?')} / Buy ${e.get('K_buy','?')} {e.get('dte','?')} DTE"
+    for e in reversed(log[-50:]):
         lines.append(
             f"| {e.get('date','?')} | {e.get('ticker','?')} | {e.get('pct','?'):.1f}th | "
-            f"{e.get('iv','?'):.1f}% | ${e.get('spot','?'):.2f} | {setup} | "
-            f"${e.get('credit','?'):.2f} | ${e.get('width','?')} | "
-            f"${e.get('max_loss','?'):.2f} | {e.get('regime','?')} | {e.get('status','logged')} |"
+            f"{e.get('iv','?'):.1f}% | ${e.get('spot','?'):.2f} | ${e.get('K_sell','?')} | "
+            f"${e.get('K_buy','?')} | {e.get('dte','?')} | ${e.get('credit','?'):.2f} | "
+            f"${e.get('width','?')} | ${e.get('max_loss','?'):.2f} | {e.get('regime','?')} |"
         )
     LOG_MD_PATH.write_text("\n".join(lines) + "\n")
 
 
-# ── Formatters ────────────────────────────────────────────────────────────────
+# ── Message formatters ─────────────────────────────────────────────────────────
 
 def _fmt_options_result(ticker: str, pct: float, spot: float,
                         iv: float, iv_sym: str, spread: dict,
                         bcs: dict, dte: int, expiry: datetime.date,
                         ref: dict, portfolio: int = 100_000) -> list[str]:
-    """Format the full options recommendation into Telegram message parts."""
+    """Full 6-message options signal output."""
     regime_label, regime_advice = _iv_regime(iv)
 
-    # Determine primary strategy
-    if iv < 15:
-        primary  = "⚠️ LOW IV — Consider Long ATM Call instead"
-        strategy = "long_call"
-    elif iv < 20:
-        primary  = "Bull Put Spread OR Bull Call Spread (either works)"
-        strategy = "either"
-    else:
-        primary  = "Bull Put Spread ★★★"
-        strategy = "bull_put_spread"
+    if iv < 15:   primary = "⚠️ LOW IV — Consider Long ATM Call instead"; strategy = "long_call"
+    elif iv < 20: primary = "Bull Put Spread OR Bull Call Spread"; strategy = "either"
+    else:         primary = "Bull Put Spread ★★★"; strategy = "bull_put_spread"
 
-    # Signal strength
-    if pct < 1.0:
-        strength = "🔥 EXTREME (<1st pct)"
-    elif pct < 2.0:
-        strength = "⚡ VERY STRONG (1-2nd pct)"
-    elif pct < 3.0:
-        strength = "💪 STRONG (2-3rd pct)"
-    else:
-        strength = "✅ SIGNAL A (<5th pct)"
+    if pct < 1.0:   strength = "🔥 EXTREME (&lt;1st pct)"
+    elif pct < 2.0: strength = "⚡ VERY STRONG (1-2nd pct)"
+    elif pct < 3.0: strength = "💪 STRONG (2-3rd pct)"
+    else:           strength = "✅ SIGNAL A (&lt;5th pct)"
 
-    # Dollar P&L examples from backtest (per 1 contract, 100 shares)
-    w  = spread["width"]
-    cr = spread["credit"]
+    w   = spread["width"]; cr = spread["credit"]
+    max_loss_d = spread["max_loss"] * 100
+
+    # Dollar values at 1 contract
     avg_win_d  = ref["bps_avg_win"]  / 100 * w * 100
-    avg_loss_d = ref["bps_avg_loss"] / 100 * w * 100  # negative
+    avg_loss_d = ref["bps_avg_loss"] / 100 * w * 100
     median_d   = ref["bps_median"]   / 100 * w * 100
-    max_loss_d = spread["max_loss"]  * 100   # per contract
+    p5_d       = ref["bps_p5"]       / 100 * w * 100
+    p25_d      = ref["bps_p25"]      / 100 * w * 100
+    p75_d      = ref["bps_p75"]      / 100 * w * 100
+    p95_d      = ref["bps_p95"]      / 100 * w * 100
+    max_win_d  = ref["bps_max_win"]  / 100 * w * 100
+
+    # IV-regime win rate
+    wr_regime = ref["bps_wr_high"] if iv >= 25 else ref["bps_wr_mid"] if iv >= 15 else ref["bps_wr_low"]
+    ev_regime = ref["bps_ev_high"] if iv >= 25 else ref["bps_ev_mid"] if iv >= 15 else 0
 
     # Sizing
     dollar_budget = ref["hk"] * portfolio * ref["eq_avg_loss_pct"] / 100
-    contracts = max(1, int(dollar_budget / (spread["max_loss"] * 100)))
 
-    # --- MESSAGE 1: Signal header ---
+    # ── MSG 1: Signal alert ────────────────────────────────────────────────────
     m1 = (
         f"🔔 <b>OPTIONS SIGNAL — {ticker}</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"📊 <b>Signal:</b> RSI-MA below 5th percentile\n"
-        f"Percentile:  <b>{pct:.1f}th</b>  {strength}\n"
-        f"IV ({iv_sym}): <b>{iv:.1f}%</b>  {regime_label}\n"
+        f"📊 RSI-MA below 5th percentile\n"
+        f"Percentile: <b>{pct:.1f}th</b>  {strength}\n"
+        f"IV ({iv_sym}):  <b>{iv:.1f}%</b>  {regime_label}\n"
         f"\n"
-        f"🎯 <b>Primary:</b> {primary}\n"
-        f"\n{regime_advice}"
+        f"🎯 <b>Strategy:</b> {primary}\n"
+        f"{regime_advice}\n"
+        f"\n"
+        f"Backtest: {ref['n_signals']} signals over 9yr "
+        f"(~{ref['signals_per_year']:.1f}×/yr)\n"
+        f"Equity win rate baseline: {ref['eq_win_rate']:.0f}%  EV: +{ref['eq_ev']:.2f}%"
     )
 
-    # --- MESSAGE 2: Bull Put Spread setup ---
+    # ── MSG 2: Exact spread setup ──────────────────────────────────────────────
     m2 = (
-        f"🐂 <b>BULL PUT SPREAD — {ticker}</b>\n"
+        f"🐂 <b>BULL PUT SPREAD SETUP — {ticker}</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"Spot:        <code>${spot:.2f}</code>\n"
-        f"📅 Expiry:   <b>{expiry.strftime('%a %d %b %Y')}</b> ({dte} DTE)\n"
+        f"Spot price:  <code>${spot:.2f}</code>\n"
+        f"Expiry:      <b>{expiry.strftime('%a %d %b %Y')}</b>  ({dte} DTE)\n"
         f"\n"
-        f"SELL put:  <code>${spread['K_sell']}</code>  ({(spread['K_sell']/spot-1)*100:+.1f}% from spot)\n"
-        f"BUY  put:  <code>${spread['K_buy']}</code>  ({(spread['K_buy']/spot-1)*100:+.1f}% from spot)\n"
-        f"Width:     <code>${spread['width']}</code> spread\n"
+        f"LEG 1 → SELL put  <code>${spread['K_sell']}</code>  "
+        f"({(spread['K_sell']/spot - 1)*100:+.1f}% from spot)\n"
+        f"LEG 2 → BUY  put  <code>${spread['K_buy']}</code>  "
+        f"({(spread['K_buy']/spot - 1)*100:+.1f}% from spot)\n"
+        f"Width:             <code>${spread['width']}</code>\n"
         f"\n"
-        f"Credit target:  <b>~${cr:.2f}</b>  ({spread['credit_pct_width']:.1f}% of width)\n"
-        f"Min acceptable: ${spread['width']*0.20:.2f} (20% of width)\n"
-        f"{'✅ Credit OK' if spread['credit_pct_width'] >= 20 else '⚠️ Low credit — consider skipping'}\n"
+        f"Credit target:     <b>~${cr:.2f}</b>  ({spread['credit_pct_width']:.1f}% of width)\n"
+        f"Min acceptable:    ${spread['width']*0.20:.2f}  (20% of width)\n"
+        f"{'✅ Credit OK — proceed' if spread['credit_pct_width'] >= 20 else '⚠️ Credit thin — check live chain'}\n"
         f"\n"
-        f"Breakeven at expiry: <code>${spread['breakeven']:.2f}</code>  "
+        f"Breakeven at expiry:  <code>${spread['breakeven']:.2f}</code>  "
         f"({spread['breakeven_pct_from_spot']:+.1f}% from spot)\n"
-        f"Short put delta:    {spread['delta_short']:.3f}"
+        f"Short put delta:      {spread['delta_short']:.3f}  "
+        f"(prob ITM at expiry ≈ {abs(spread['delta_short'])*100:.0f}%)"
     )
 
-    # --- MESSAGE 3: Expected outcomes ---
-    wr_regime = ref["bps_wr_high"] if iv >= 25 else ref["bps_wr_mid"] if iv >= 15 else 50
+    # ── MSG 3: Expected outcomes ───────────────────────────────────────────────
     m3 = (
-        f"📈 <b>EXPECTED OUTCOMES</b>  (backtested {ref['n_signals']} signals, 9yr)\n"
+        f"📈 <b>EXPECTED OUTCOMES</b>  ({ref['n_signals']} backtested signals, 9yr)\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"Overall win rate:     <b>{ref['bps_win_rate']:.0f}%</b>\n"
-        f"Win rate at IV {iv:.0f}%:  <b>{wr_regime:.0f}%</b>\n"
-        f"EV per trade:         <b>+{ref['bps_ev']:.1f}%</b> of spread width\n"
+        f"Overall win rate:        <b>{ref['bps_win_rate']:.0f}%</b>\n"
+        f"Win rate at IV {iv:.0f}%:     <b>{wr_regime:.0f}%</b>  ← current regime\n"
+        f"EV at IV {iv:.0f}%:           <b>+{ev_regime:.1f}%</b> of width\n"
         f"\n"
-        f"Avg win:    +{ref['bps_avg_win']:.1f}% = <b>+${avg_win_d:,.0f}</b>/contract\n"
-        f"Avg loss:   {ref['bps_avg_loss']:.1f}% = <b>${avg_loss_d:,.0f}</b>/contract\n"
-        f"Median:     +{ref['bps_median']:.1f}% = <b>+${median_d:,.0f}</b>/contract\n"
+        f"<b>Average win:</b>   +{ref['bps_avg_win']:.1f}%  = <b>+${avg_win_d:,.0f}</b>/contract\n"
+        f"<b>Median win:</b>    +{ref['bps_median']:.1f}%  = <b>+${median_d:,.0f}</b>/contract\n"
+        f"<b>Best 1-in-20:</b>  +{ref['bps_p95']:.1f}%  = <b>+${p95_d:,.0f}</b>/contract\n"
+        f"<b>Max observed:</b>  +{ref['bps_max_win']:.1f}%  = <b>+${max_win_d:,.0f}</b>/contract\n"
         f"\n"
-        f"P5  (worst 1-in-20): {ref['bps_p5']:.1f}%\n"
-        f"P95 (best  1-in-20): +{ref['bps_p95']:.1f}%\n"
+        f"<b>Average loss:</b>  {ref['bps_avg_loss']:.1f}%  = <b>${avg_loss_d:,.0f}</b>/contract\n"
+        f"<b>Median loss:</b>   (see distribution below)\n"
+        f"<b>Worst 1-in-20:</b> {ref['bps_p5']:.1f}%  = <b>${p5_d:,.0f}</b>/contract"
     )
 
-    # --- MESSAGE 4: Risk scenarios ---
-    # Based on actual max loss from spread
+    # ── MSG 4: Full return distribution ───────────────────────────────────────
+    m4 = (
+        f"📊 <b>RETURN DISTRIBUTION</b>  (% of spread width, per contract)\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"          % of width   ${w} spread   on ${w*100} notional\n"
+        f"P95 win:  +{ref['bps_p95']:>5.1f}%      +${p95_d:>6,.0f}       best 1-in-20\n"
+        f"P75:      +{ref['bps_p75']:>5.1f}%      +${p75_d:>6,.0f}\n"
+        f"Median:   +{ref['bps_median']:>5.1f}%      +${median_d:>6,.0f}       typical trade\n"
+        f"P25:      {ref['bps_p25']:>+6.1f}%      ${p25_d:>+6,.0f}\n"
+        f"P5 loss:  {ref['bps_p5']:>+6.1f}%      ${p5_d:>+6,.0f}       worst 1-in-20\n"
+        f"\n"
+        f"Max possible win:   +{ref['bps_max_win']:.1f}%  = +${max_win_d:,.0f}\n"
+        f"  (keep full credit, both puts expire worthless)\n"
+        f"Max possible loss:  −{(1 - cr/w)*100:.1f}%  = −${max_loss_d:,.0f}\n"
+        f"  (spread fully in-the-money at expiry: width − credit)\n"
+        f"\n"
+        f"Equity comparison (holding stock):\n"
+        f"  Win rate: {ref['eq_win_rate']:.0f}%   Avg EV: +{ref['eq_ev']:.2f}%\n"
+        f"  Spread wins more often ({ref['bps_win_rate']:.0f}% vs {ref['eq_win_rate']:.0f}%) "
+        f"by collecting IV premium"
+    )
+
+    # ── MSG 5: Risk scenarios ─────────────────────────────────────────────────
+    T       = dte / 252
+    iv_exit = (iv / 100) * 0.75    # fraction, with 25% IV crush
     scens = [
-        ("Avg loss trade (stock -2.2%)", spot * 0.978, ""),
-        ("Hard down   (stock -5%)",      spot * 0.950, ""),
-        ("Flash crash (stock -10%)",     spot * 0.900, "⚠️"),
+        ("Avg loss trade  (stock −2.2%)", spot * 0.978),
+        ("Hard down       (stock −5%)",   spot * 0.950),
+        ("⚠️ Flash crash  (stock −10%)",  spot * 0.900),
     ]
     risk_lines = []
-    T = dte / 252
-    iv_exit = (iv / 100) * 0.75   # iv is %, convert to fraction then apply 25% crush
-    for label, S5, flag in scens:
+    for label, S5 in scens:
         p_sell_x = _bs_put(S5, spread["K_sell"], max(T - 5/252, 0.001), RFREE, iv_exit)
         p_buy_x  = _bs_put(S5, spread["K_buy"],  max(T - 5/252, 0.001), RFREE, iv_exit)
-        cost_close = p_sell_x - p_buy_x
-        pnl_d = (cr - cost_close) / w * 100
-        pnl_usd = (cr - cost_close) * 100
-        risk_lines.append(f"{flag}{label}: {pnl_d:+.1f}% (${pnl_usd:+,.0f})")
+        pnl_w    = (cr - (p_sell_x - p_buy_x)) / w * 100
+        pnl_usd  = (cr - (p_sell_x - p_buy_x)) * 100
+        risk_lines.append(f"  {label}: {pnl_w:+.1f}% (${pnl_usd:+,.0f})")
 
-    m4 = (
-        f"⚠️ <b>RISK SCENARIOS</b>  (1 contract, IV crush -25%)\n"
-        f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        + "\n".join(f"  {l}" for l in risk_lines) +
-        f"\n\n"
-        f"Max loss (theoretical):  <b>-${max_loss_d:,.0f}</b>  per contract\n"
-        f"  = spread ${w} – credit ${cr:.2f} = ${spread['max_loss']:.2f} × 100 shares\n"
-    )
-
-    # --- MESSAGE 5: Sizing + management ---
     m5 = (
-        f"📐 <b>SIZING</b>  (half-Kelly risk budget)\n"
+        f"⚠️ <b>RISK SCENARIOS</b>  (IV crush −25%, 5 days held)\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"Formula: {ref['hk']*100:.0f}% (hK) × portfolio × {ref['eq_avg_loss_pct']:.1f}% (avg loss)\n"
-        f"At $100k:   budget = <b>${ref['hk']*100_000*ref['eq_avg_loss_pct']/100:,.0f}</b> "
-        f"→ <b>{max(1,int(ref['hk']*100_000*ref['eq_avg_loss_pct']/100/(spread['max_loss']*100))):d} contract(s)</b>\n"
-        f"At $250k:   budget = <b>${ref['hk']*250_000*ref['eq_avg_loss_pct']/100:,.0f}</b> "
-        f"→ <b>{max(1,int(ref['hk']*250_000*ref['eq_avg_loss_pct']/100/(spread['max_loss']*100))):d} contract(s)</b>\n"
-        f"At $500k:   budget = <b>${ref['hk']*500_000*ref['eq_avg_loss_pct']/100:,.0f}</b> "
-        f"→ <b>{max(1,int(ref['hk']*500_000*ref['eq_avg_loss_pct']/100/(spread['max_loss']*100))):d} contract(s)</b>\n"
+        + "\n".join(risk_lines) +
+        f"\n\n"
+        f"Theoretical max loss:  <b>−${max_loss_d:,.0f}</b> per contract\n"
+        f"  = (${w} width − ${cr:.2f} credit) × 100 shares\n"
         f"\n"
-        f"⚙️ <b>MANAGEMENT</b>\n"
-        f"  Entry:       Tomorrow 9:45–10:00 AM ET\n"
-        f"  Take profit: Close at 50% of max profit\n"
-        f"               (buy back spread for ${cr*0.5:.2f} or less)\n"
-        f"  Time exit:   Day 5 regardless\n"
-        f"  Stop loss:   Close if spread costs {cr*2:.2f}+ to close (2× credit)\n"
-        f"  Earnings:    Check {ticker} earnings calendar — never hold through\n"
+        f"<b>Stop-loss rule:</b> Close if spread costs "
+        f"${cr*2:.2f}+ to buy back (2× credit paid)"
     )
 
-    # --- Bull Call Spread as secondary (if IV < 20%) ---
-    m6 = None
-    if strategy in ("long_call", "either"):
-        m6 = (
-            f"📊 <b>BULL CALL SPREAD (Alt — lower IV)</b>\n"
-            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"BUY  call: <code>${bcs['K_buy']}</code> (ATM)  35 DTE\n"
-            f"SELL call: <code>${bcs['K_sell']}</code> (+3%)  35 DTE\n"
-            f"Debit: ~${bcs['debit']:.2f}  ({bcs['debit_pct_width']:.1f}% of ${bcs['width']} width)\n"
-            f"Max gain: ${bcs['max_gain']:.2f}  Breakeven: +{bcs['breakeven_pct_from_spot']:.1f}%\n"
-            f"\n"
-            f"Backtest win rate: {ref['bcs_win_rate']:.0f}%  EV: +{ref['bcs_ev']:.1f}%\n"
-            f"(Note: SPY long call EV = {ref['lc_ev']:+.2f}% — {'❌ avoid' if ref['lc_ev'] < 0 else '✓ ok'})"
-        )
+    # ── MSG 6: Sizing + exact order entry ────────────────────────────────────
+    def _contracts(pf): return max(1, int(ref["hk"] * pf * ref["eq_avg_loss_pct"] / 100 / (spread["max_loss"] * 100)))
+    m6 = (
+        f"📐 <b>SIZING + HOW TO PLACE THE ORDER</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"<b>Risk budget</b> = {ref['hk']*100:.0f}% × portfolio × {ref['eq_avg_loss_pct']:.1f}% avg-loss\n"
+        f"  $100k → budget ${ref['hk']*100_000*ref['eq_avg_loss_pct']/100:,.0f} → "
+        f"<b>{_contracts(100_000)} contract(s)</b>\n"
+        f"  $250k → budget ${ref['hk']*250_000*ref['eq_avg_loss_pct']/100:,.0f} → "
+        f"<b>{_contracts(250_000)} contract(s)</b>\n"
+        f"  $500k → budget ${ref['hk']*500_000*ref['eq_avg_loss_pct']/100:,.0f} → "
+        f"<b>{_contracts(500_000)} contract(s)</b>\n"
+        f"\n"
+        f"<b>Exact order steps (tomorrow 9:45–10:00 AM ET):</b>\n"
+        f"1. Open {ticker} options chain in your broker\n"
+        f"2. Select expiry: <b>{expiry.strftime('%d %b %Y')}</b>\n"
+        f"3. Choose order type: <b>Sell Vertical</b> (credit spread)\n"
+        f"4. SELL ${spread['K_sell']} put  /  BUY ${spread['K_buy']} put\n"
+        f"5. Enter as LIMIT at the <b>midpoint</b> of bid/ask\n"
+        f"6. Confirm credit shown ≥ ${spread['width']*0.20:.2f} "
+        f"(need ≥20% of ${spread['width']} width)\n"
+        f"7. Max contracts: {_contracts(100_000)} (at $100k portfolio)\n"
+        f"\n"
+        f"<b>Trade management:</b>\n"
+        f"  ✅ Take profit: close when spread costs ${cr*0.5:.2f} to buy back\n"
+        f"     (50% of max profit captured)\n"
+        f"  ⏰ Time exit: Day 5 close — {(datetime.date.today() + datetime.timedelta(days=7)).strftime('%d %b')}\n"
+        f"  🛑 Stop loss: close if buy-back costs ${cr*2:.2f}+ (2× credit)\n"
+        f"  📅 Earnings: check {ticker} has no earnings in next 7 days\n"
+        f"\n"
+        f"<b>Why it works at this signal:</b>\n"
+        f"  1. {wr_regime:.0f}% historical win rate at IV={iv:.0f}% (elevated fear)\n"
+        f"  2. IV crush adds profit as market recovers (you're short vega)\n"
+        f"  3. Theta decays the put value every day you hold\n"
+        f"  4. Breakeven at {spread['breakeven_pct_from_spot']:+.1f}% — stock can drop "
+        f"further and you still profit"
+    )
 
-    parts = [m1, m2, m3, m4, m5]
-    if m6:
-        parts.append(m6)
+    parts = [m1, m2, m3, m4, m5, m6]
+
+    # Alt strategy note when IV is low
+    if strategy in ("long_call", "either"):
+        m7 = (
+            f"📞 <b>ALTERNATIVE: BULL CALL SPREAD</b>  (low IV env)\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"BUY  ${bcs['K_buy']} call / SELL ${bcs['K_sell']} call — 35 DTE\n"
+            f"Debit: ~${bcs['debit']:.2f}  ({bcs['debit_pct_width']:.1f}% of ${bcs['width']} width)\n"
+            f"Max gain: ${bcs['max_gain']:.2f}  |  Breakeven: +{bcs['breakeven_pct_from_spot']:.1f}%\n"
+            f"Backtest: {ref['bcs_win_rate']:.0f}% win  EV +{ref['bcs_ev']:.1f}%\n"
+            f"(SPY long ATM call EV = {ref['lc_ev']:+.2f}% — "
+            f"{'❌ avoid' if ref['lc_ev'] < 0 else '✓ ok'})"
+        )
+        parts.append(m7)
     return parts
 
 
 def _fmt_watch_result(ticker: str, pct: float, spot: float,
                       iv: float, iv_sym: str, ref: dict) -> str:
-    """Format a 'not at signal yet, watching' status line."""
     remaining = SIGNAL_THRESH - pct
     regime_label, _ = _iv_regime(iv)
-    # Bar fills toward right as pct drops toward 0 (closer to signal)
-    proximity = max(0.0, min(1.0, (20.0 - pct) / 20.0))
+    proximity  = max(0.0, min(1.0, (20.0 - pct) / 20.0))
     bar_filled = int(proximity * 10)
-    bar = "█" * bar_filled + "░" * (10 - bar_filled)
+    bar        = "█" * bar_filled + "░" * (10 - bar_filled)
     return (
         f"<b>{ticker}</b> — {ref['name']}\n"
         f"  Percentile:  <b>{pct:.1f}th</b>  [{bar}]\n"
-        f"  Need:        <5th pct  (need -{remaining:.1f}pp more)\n"
+        f"  Need:        &lt;5th pct  (need {remaining:.1f}pp more)\n"
         f"  IV ({iv_sym}): {iv:.1f}%  {regime_label}\n"
         f"  Spot:        ${spot:.2f}\n"
         f"  Status:      🟡 WATCHING — not yet at signal"
@@ -416,64 +433,44 @@ def _fmt_watch_result(ticker: str, pct: float, spot: float,
 # ── Public command handlers ────────────────────────────────────────────────────
 
 def handle_options_command(arg: str = "") -> list[str]:
-    """
-    /options [qqq|spy|both]
-    Downloads live data, checks RSI-MA percentile, prices the spread, returns parts.
-    """
-    arg = arg.strip().lower()
-    target = {"qqq": ["QQQ"], "spy": ["SPY"], "both": ["QQQ", "SPY"], "": ["QQQ", "SPY"]}
-    tickers = target.get(arg, ["QQQ", "SPY"])
+    """/options [qqq|spy|both]"""
+    arg     = arg.strip().lower()
+    tickers = {"qqq": ["QQQ"], "spy": ["SPY"]}.get(arg, ["QQQ", "SPY"])
 
-    # ── Download data ──────────────────────────────────────────────────────────
     syms = tickers + ["^VIX", "^VXN", "^VIX9D"]
     data = _download(syms, period="18mo")
     parts: list[str] = []
     signal_found = False
 
     for ticker in tickers:
-        ref = REF[ticker]
+        ref   = REF[ticker]
         close = data.get(ticker)
         if close is None or len(close) < RSI_LOOKBACK + 30:
-            parts.append(f"❌ {ticker}: insufficient data")
-            continue
-
+            parts.append(f"❌ {ticker}: insufficient data"); continue
         spot = float(close.iloc[-1])
         pct  = _rsi_ma_pct(close)
         if pct is None:
-            parts.append(f"❌ {ticker}: could not compute percentile")
-            continue
+            parts.append(f"❌ {ticker}: could not compute percentile"); continue
 
-        # Get IV
         iv_ser = data.get(ref["iv_sym"])
         iv     = _iv_level(iv_ser) or 20.0
-
-        # VIX9D for short-dated options
-        vix9d_ser = data.get("^VIX9D")
-        vix_ser   = data.get("^VIX")
-        vix9d     = _iv_level(vix9d_ser) or iv
-        vix30     = _iv_level(vix_ser)   or iv
-        # Scale VIX9D to this index
+        vix9d  = _iv_level(data.get("^VIX9D")) or iv
+        vix30  = _iv_level(data.get("^VIX"))   or iv
         iv_short = iv * (vix9d / vix30) if vix30 > 0 else iv
 
-        # Find target expiry
         expiry = _nearest_friday(target_days=10)
         dte    = (expiry - datetime.date.today()).days
 
-        # Price the spread using short-dated IV
-        iv_frac  = iv_short / 100.0
-        spread   = _price_bull_put_spread(spot, iv_frac, dte)
-        bcs      = _price_bull_call_spread(spot, iv / 100.0, 35)
+        iv_frac = iv_short / 100.0
+        spread  = _price_bull_put_spread(spot, iv_frac, dte)
+        bcs     = _price_bull_call_spread(spot, iv / 100.0)
 
         if pct < SIGNAL_THRESH:
-            # ── SIGNAL ACTIVE ─────────────────────────────────────────────────
             signal_found = True
-            msg_parts = _fmt_options_result(
+            parts.extend(_fmt_options_result(
                 ticker, pct, spot, iv_short, ref["iv_sym"],
                 spread, bcs, dte, expiry, ref
-            )
-            parts.extend(msg_parts)
-
-            # Log the signal
+            ))
             _log_signal({
                 "date": datetime.date.today().isoformat(),
                 "ticker": ticker, "pct": round(pct, 2),
@@ -485,33 +482,25 @@ def handle_options_command(arg: str = "") -> list[str]:
                 "max_loss": round(spread["max_loss"], 2),
                 "regime": _iv_regime(iv)[0], "status": "signal_active",
             })
-
         else:
-            # ── NO SIGNAL: watch status ────────────────────────────────────────
-            watch_line = _fmt_watch_result(ticker, pct, spot, iv_short, ref["iv_sym"], ref)
-            parts.append(watch_line)
-
-            # Also show what the spread would look like right now (hypothetical)
+            parts.append(_fmt_watch_result(ticker, pct, spot, iv_short, ref["iv_sym"], ref))
             parts.append(
                 f"💡 <b>Hypothetical setup if {ticker} were at signal NOW:</b>\n"
                 f"  Sell ${spread['K_sell']} put / Buy ${spread['K_buy']} put  ({dte} DTE)\n"
                 f"  Credit ~${spread['credit']:.2f}  |  Width ${spread['width']}  |  "
                 f"Max loss ${spread['max_loss']:.2f}/sh\n"
                 f"  Credit/Width: {spread['credit_pct_width']:.1f}%  "
-                f"{'✅ OK' if spread['credit_pct_width'] >= 20 else '⚠️ thin'}"
+                f"{'✅' if spread['credit_pct_width'] >= 20 else '⚠️ thin — IV not elevated yet (normal at no-signal)'}"
             )
 
     if not signal_found and parts:
         parts.insert(0, "📭 <b>No active options signal right now.</b>\nCurrent status:")
-
-    return parts or ["❌ Could not process /options — check logs."]
+    return parts or ["❌ Could not process /options."]
 
 
 def handle_iv_command() -> list[str]:
-    """
-    /iv — Current VIX / VXN / VIX9D dashboard with context.
-    """
-    data = _download(["QQQ", "SPY", "^VIX", "^VXN", "^VIX9D"], period="6mo")
+    """/iv — VIX / VXN / VIX9D dashboard."""
+    data  = _download(["QQQ", "SPY", "^VIX", "^VXN", "^VIX9D"], period="18mo")
     vix   = _iv_level(data.get("^VIX"))
     vxn   = _iv_level(data.get("^VXN"))
     vix9d = _iv_level(data.get("^VIX9D"))
@@ -521,155 +510,232 @@ def handle_iv_command() -> list[str]:
     spy_pct   = _rsi_ma_pct(spy_close) if spy_close is not None else None
     qqq_pct   = _rsi_ma_pct(qqq_close) if qqq_close is not None else None
 
-    # IV context for 30-day history
     vix_ser = data.get("^VIX")
     if vix_ser is not None and len(vix_ser) >= 30:
-        vix_30d_avg = vix_ser.iloc[-30:].mean()
-        vix_30d_min = vix_ser.iloc[-30:].min()
-        vix_30d_max = vix_ser.iloc[-30:].max()
-        vix_context = f"{vix:.1f}  (30d: avg {vix_30d_avg:.1f} / min {vix_30d_min:.1f} / max {vix_30d_max:.1f})"
+        v30 = vix_ser.iloc[-30:]
+        vix_ctx = (f"{vix:.1f}%  (30d: avg {v30.mean():.1f} / "
+                   f"lo {v30.min():.1f} / hi {v30.max():.1f})")
     else:
-        vix_context = f"{vix:.1f}" if vix else "N/A"
+        vix_ctx = f"{vix:.1f}%" if vix else "N/A"
 
     vxn_ser = data.get("^VXN")
     if vxn_ser is not None and len(vxn_ser) >= 30:
-        vxn_30d_avg = vxn_ser.iloc[-30:].mean()
-        vxn_context = f"{vxn:.1f}  (30d avg: {vxn_30d_avg:.1f})"
+        vn30 = vxn_ser.iloc[-30:]
+        vxn_ctx = (f"{vxn:.1f}%  (30d: avg {vn30.mean():.1f} / "
+                   f"lo {vn30.min():.1f} / hi {vn30.max():.1f})")
     else:
-        vxn_context = f"{vxn:.1f}" if vxn else "N/A"
+        vxn_ctx = f"{vxn:.1f}%" if vxn else "N/A"
 
-    vix_regime_l,   vix_adv   = _iv_regime(vix   or 20)
-    vxn_regime_l,   vxn_adv   = _iv_regime(vxn   or 20)
-    vix9d_regime_l, _         = _iv_regime(vix9d or 20)
+    vix_rl, vix_adv   = _iv_regime(vix   or 20)
+    vxn_rl, vxn_adv   = _iv_regime(vxn   or 20)
+    v9d_rl, _         = _iv_regime(vix9d or 20)
 
     term_note = ""
     if vix9d and vix:
         diff = vix9d - vix
-        if diff > 2:
-            term_note = f"⚡ VIX9D > VIX by {diff:.1f}pp — front-month fear elevated, more put premium to sell"
-        elif diff < -2:
-            term_note = f"VIX9D < VIX by {abs(diff):.1f}pp — short-dated cheaper (contango)"
-        else:
-            term_note = f"VIX9D ≈ VIX — normal term structure"
+        if   diff > 2:  term_note = f"⚡ VIX9D &gt; VIX by {diff:.1f}pp — front-month fear elevated, extra premium to sell on 10 DTE spreads"
+        elif diff < -2: term_note = f"VIX9D &lt; VIX by {abs(diff):.1f}pp — short-dated cheap (normal contango)"
+        else:           term_note = f"VIX9D ≈ VIX ({vix9d:.1f}%) — normal term structure"
 
-    spy_line = f"SPY RSI-MA: <b>{spy_pct:.1f}th pct</b> {'🔴 SIGNAL ACTIVE' if spy_pct and spy_pct < 5 else '🟡 watching' if spy_pct and spy_pct < 10 else '⚪ normal'}" if spy_pct else "SPY RSI-MA: —"
-    qqq_line = f"QQQ RSI-MA: <b>{qqq_pct:.1f}th pct</b> {'🔴 SIGNAL ACTIVE' if qqq_pct and qqq_pct < 5 else '🟡 watching' if qqq_pct and qqq_pct < 10 else '⚪ normal'}" if qqq_pct else "QQQ RSI-MA: —"
+    def _pct_line(t, p):
+        if p is None: return f"{t} RSI-MA: —"
+        icon = "🔴 SIGNAL ACTIVE — run /options" if p < 5 else "🟠 CLOSE — watch carefully" if p < 8 else "🟡 watching" if p < 15 else "⚪ normal"
+        return f"{t} RSI-MA: <b>{p:.1f}th pct</b>  {icon}"
 
+    # Historical context: median VIX/VXN at signal entry
     msg = (
-        f"📊 <b>IV DASHBOARD</b> — {datetime.datetime.now().strftime('%Y-%m-%d %H:%M')} UTC\n"
+        f"📊 <b>IV DASHBOARD</b>  —  {datetime.datetime.now().strftime('%d %b %Y  %H:%M')} UTC\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
         f"\n"
-        f"<b>S&P 500 (SPY options)</b>\n"
-        f"  VIX  (30d): <b>{vix_context}</b>\n"
-        f"  VIX9D (9d): <b>{vix9d:.1f}%</b>  {vix9d_regime_l}\n"
-        f"  → {vix_regime_l}\n"
+        f"<b>S&amp;P 500  (SPY options — uses VIX)</b>\n"
+        f"  VIX  30d:  <b>{vix_ctx}</b>\n"
+        f"  VIX9D 9d:  <b>{vix9d:.1f}%</b>  {v9d_rl}\n"
+        f"  Regime:    {vix_rl}\n"
+        f"  Advice:    {vix_adv}\n"
         f"\n"
-        f"<b>NASDAQ 100 (QQQ options)</b>\n"
-        f"  VXN  (30d): <b>{vxn_context}</b>\n"
-        f"  → {vxn_regime_l}\n"
+        f"<b>NASDAQ 100  (QQQ options — uses VXN)</b>\n"
+        f"  VXN  30d:  <b>{vxn_ctx}</b>\n"
+        f"  Regime:    {vxn_rl}\n"
+        f"  Advice:    {vxn_adv}\n"
         f"\n"
-        f"<b>Term Structure</b>\n"
+        f"<b>Term structure</b>\n"
         f"  {term_note}\n"
+        f"  VIX9D is used for 10 DTE puts (matched expiry)\n"
         f"\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"<b>Options Strategy Guide</b>\n"
-        f"  VIX/VXN > 25%: 🐂 Bull Put Spread ★★★\n"
-        f"  VIX/VXN 20-25%: 🐂 Bull Put Spread ★★\n"
-        f"  VIX/VXN 15-20%: Both spreads work\n"
-        f"  VIX/VXN < 15%: 📞 Long Call (low crush risk)\n"
+        f"<b>Strategy by IV regime</b>\n"
+        f"  &gt;25%:   🐂 Bull Put Spread ★★★  (sell expensive IV)\n"
+        f"  20-25%:  🐂 Bull Put Spread ★★\n"
+        f"  15-20%:  Either spread works\n"
+        f"  &lt;15%:  📞 Long ATM Call preferred\n"
+        f"\n"
+        f"<b>Historical context</b>\n"
+        f"  Median VXN at QQQ signal entry: 24.2%  → {_iv_regime(24.2)[0]}\n"
+        f"  Median VIX at SPY signal entry: 21.7%  → {_iv_regime(21.7)[0]}\n"
+        f"  Median IV crush over 5-day hold: 3.2–3.4pp\n"
         f"\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"<b>RSI-MA Signal Watch</b>\n"
-        f"  {spy_line}\n"
-        f"  {qqq_line}\n"
-        f"  (Signal fires at <5th pct | /options for full setup)"
+        f"<b>RSI-MA signal watch</b>\n"
+        f"  {_pct_line('QQQ', qqq_pct)}\n"
+        f"  {_pct_line('SPY', spy_pct)}\n"
+        f"  Signal threshold: &lt;5th pct  |  /options for full setup"
     )
     return [msg]
 
 
 def handle_optwatch_command() -> list[str]:
-    """
-    /optwatch — Current RSI-MA pct + distance to signal + hypothetical setup.
-    """
-    data = _download(["QQQ", "SPY", "^VIX", "^VXN", "^VIX9D"], period="18mo")
-    vix_ser   = data.get("^VIX")
-    vxn_ser   = data.get("^VXN")
-    vix9d_ser = data.get("^VIX9D")
-    vix30 = _iv_level(vix_ser) or 20.0
-    vix9d = _iv_level(vix9d_ser) or vix30
+    """/optwatch — percentile status + hypothetical setup."""
+    data   = _download(["QQQ", "SPY", "^VIX", "^VXN", "^VIX9D"], period="18mo")
+    vix30  = _iv_level(data.get("^VIX")) or 20.0
+    vix9d  = _iv_level(data.get("^VIX9D")) or vix30
 
-    parts = [f"👁 <b>OPTIONS WATCH — {datetime.date.today()}</b>\n━━━━━━━━━━━━━━━━━━━━━━━━"]
-
+    parts = [f"👁 <b>OPTIONS WATCH</b>  —  {datetime.date.today()}\n━━━━━━━━━━━━━━━━━━━━━━━━"]
     expiry = _nearest_friday(10)
     dte    = (expiry - datetime.date.today()).days
 
     for ticker in ["QQQ", "SPY"]:
-        ref   = REF[ticker]
-        close = data.get(ticker)
+        ref    = REF[ticker]
+        close  = data.get(ticker)
         if close is None: continue
-        spot  = float(close.iloc[-1])
-        pct   = _rsi_ma_pct(close)
+        spot   = float(close.iloc[-1])
+        pct    = _rsi_ma_pct(close)
         if pct is None: continue
 
-        iv_ser = vxn_ser if ticker == "QQQ" else vix_ser
-        iv30   = _iv_level(iv_ser) or 20.0
+        iv_ser   = data.get("^VXN") if ticker == "QQQ" else data.get("^VIX")
+        iv30     = _iv_level(iv_ser) or 20.0
         iv_short = iv30 * (vix9d / vix30) if vix30 > 0 else iv30
-        iv_sym = ref["iv_sym"]
-
-        spread = _price_bull_put_spread(spot, iv_short / 100.0, dte)
-        bcs    = _price_bull_call_spread(spot, iv30 / 100.0, 35)
         regime_label, _ = _iv_regime(iv_short)
+        spread   = _price_bull_put_spread(spot, iv_short / 100.0, dte)
 
         if pct < SIGNAL_THRESH:
-            status_icon = "🔴"
-            status_text = "SIGNAL ACTIVE — run /options for full details"
+            status_icon = "🔴"; status_text = "SIGNAL ACTIVE — /options for full setup"
         elif pct < 8:
-            status_icon = "🟠"
-            status_text = f"CLOSE — {pct - SIGNAL_THRESH:.1f}pp above threshold"
+            status_icon = "🟠"; status_text = f"CLOSE — {pct - SIGNAL_THRESH:.1f}pp above threshold"
         elif pct < 15:
-            status_icon = "🟡"
-            status_text = f"WATCHING — {pct - SIGNAL_THRESH:.1f}pp above threshold"
+            status_icon = "🟡"; status_text = f"WATCHING — {pct - SIGNAL_THRESH:.1f}pp from signal"
         else:
-            status_icon = "⚪"
-            status_text = "Normal — no signal expected soon"
+            status_icon = "⚪"; status_text = "Normal"
 
-        # Progress bar toward signal
         filled = min(10, int((SIGNAL_THRESH / max(pct, 0.1)) * 10))
-        bar = "🟥" * filled + "⬜" * (10 - filled)
+        bar    = "🟥" * filled + "⬜" * (10 - filled)
 
-        part = (
+        parts.append(
             f"\n{status_icon} <b>{ticker}</b>  ({ref['name']})\n"
             f"  RSI-MA: <b>{pct:.1f}th pct</b>  {bar}\n"
             f"  Signal: &lt;5th pct  |  Gap: {max(0,pct-SIGNAL_THRESH):.1f}pp\n"
-            f"  Status: {status_text}\n"
+            f"  {status_text}\n"
             f"\n"
-            f"  IV ({iv_sym}): <b>{iv_short:.1f}%</b>  {regime_label}\n"
+            f"  IV ({ref['iv_sym']}): <b>{iv_short:.1f}%</b>  {regime_label}\n"
             f"  Spot: ${spot:.2f}  |  Expiry: {expiry.strftime('%d %b')} ({dte}d)\n"
             f"\n"
-            f"  📋 If signal now: Sell ${spread['K_sell']} / Buy ${spread['K_buy']} put\n"
+            f"  📋 Setup if signal now:\n"
+            f"     Sell ${spread['K_sell']} put / Buy ${spread['K_buy']} put\n"
             f"     Credit ~${spread['credit']:.2f}  |  Width ${spread['width']}\n"
             f"     Max loss: ${spread['max_loss']:.2f}/sh  "
-            f"({'✅ ' if spread['credit_pct_width'] >= 20 else '⚠️ '}credit {spread['credit_pct_width']:.1f}% of width)"
+            f"({'✅ ' if spread['credit_pct_width'] >= 20 else '⚠️ thin — '}credit {spread['credit_pct_width']:.1f}% of width)"
         )
-        parts.append(part)
 
-    # Tail note
-    ref_note = (
+    parts.append(
         f"\n━━━━━━━━━━━━━━━━━━━━━━━━\n"
-        f"📚 <b>Reference (backtested)</b>\n"
-        f"  QQQ bull put: {REF['QQQ']['bps_win_rate']:.0f}% win  EV +{REF['QQQ']['bps_ev']:.1f}%  (N={REF['QQQ']['n_signals']})\n"
-        f"  SPY bull put: {REF['SPY']['bps_win_rate']:.0f}% win  EV +{REF['SPY']['bps_ev']:.1f}%  (N={REF['SPY']['n_signals']})\n"
-        f"  VIX>25%: {REF['QQQ']['bps_wr_high']:.0f}%/{REF['SPY']['bps_wr_high']:.0f}% win (QQQ/SPY)\n"
-        f"  /options — full setup when signal active"
+        f"📚 <b>Backtested reference</b>  (RSI-MA only, 9yr)\n"
+        f"  QQQ: {REF['QQQ']['bps_win_rate']:.0f}% win  EV +{REF['QQQ']['bps_ev']:.1f}%  "
+        f"(N={REF['QQQ']['n_signals']}, ~{REF['QQQ']['signals_per_year']:.1f}×/yr)\n"
+        f"  SPY: {REF['SPY']['bps_win_rate']:.0f}% win  EV +{REF['SPY']['bps_ev']:.1f}%  "
+        f"(N={REF['SPY']['n_signals']}, ~{REF['SPY']['signals_per_year']:.1f}×/yr)\n"
+        f"  High IV (&gt;25%): {REF['QQQ']['bps_wr_high']:.0f}%/{REF['SPY']['bps_wr_high']:.0f}% win (QQQ/SPY)"
     )
-    parts.append(ref_note)
+    return parts
+
+
+def handle_optwatch_brief() -> str:
+    """
+    Single-line options watch summary for inclusion in /update.
+    Downloads only what's needed; returns one HTML string.
+    """
+    try:
+        data  = _download(["QQQ", "SPY", "^VXN", "^VIX"], period="18mo")
+        lines = []
+        for ticker in ["QQQ", "SPY"]:
+            close  = data.get(ticker)
+            if close is None: continue
+            pct = _rsi_ma_pct(close)
+            if pct is None: continue
+            iv_ser = data.get("^VXN") if ticker == "QQQ" else data.get("^VIX")
+            iv = _iv_level(iv_ser) or 20.0
+            if pct < SIGNAL_THRESH:
+                icon = "🔴"
+            elif pct < 8:
+                icon = "🟠"
+            elif pct < 15:
+                icon = "🟡"
+            else:
+                icon = "⚪"
+            lines.append(f"{icon} {ticker}: {pct:.1f}th pct  IV={iv:.1f}%")
+        if not lines:
+            return "⚪ Options watch: data unavailable"
+        summary = "  |  ".join(lines)
+        active = False
+        for _t in ["QQQ", "SPY"]:
+            _p = _rsi_ma_pct(data.get(_t))
+            if _p is not None and _p < SIGNAL_THRESH:
+                active = True; break
+        header = "🔴 <b>OPTIONS SIGNAL ACTIVE</b>" if active else "👁 Options watch"
+        return f"{header}: {summary}"
+    except Exception as exc:
+        return f"👁 Options watch: error ({exc})"
+
+
+def handle_optbacktest_command() -> list[str]:
+    """/optbacktest — full historical statistics table."""
+    parts = []
+
+    header = (
+        f"📋 <b>OPTIONS BACKTEST REFERENCE</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"Signal: RSI-MA &lt;5th pct (no COV filter)\n"
+        f"Strategy: Bull Put Spread −2%/−5%, 10 DTE\n"
+        f"IV source: ^VXN (QQQ)  ^VIX (SPY)\n"
+        f"Period: 9 years  |  Cooldown: 10 bars"
+    )
+    parts.append(header)
+
+    for ticker, ref in REF.items():
+        w_example = 14   # $14 spread on QQQ
+        msg = (
+            f"\n<b>{ticker} — {ref['name']}</b>  (N={ref['n_signals']}, ~{ref['signals_per_year']:.1f}×/yr)\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+            f"<b>Bull Put Spread  −2%/−5%  10 DTE</b>\n"
+            f"\n"
+            f"Win rate (overall):    <b>{ref['bps_win_rate']:.0f}%</b>\n"
+            f"Win rate IV 15-25%:   <b>{ref['bps_wr_mid']:.0f}%</b>\n"
+            f"Win rate IV &gt;25%:     <b>{ref['bps_wr_high']:.0f}%</b>\n"
+            f"EV per trade:          <b>+{ref['bps_ev']:.1f}%</b> of spread width\n"
+            f"\n"
+            f"<b>Return distribution</b>  (on ${w_example} wide spread)\n"
+            f"  Max win:    +{ref['bps_max_win']:.1f}%  = +${ref['bps_max_win']/100*w_example*100:,.0f}/contract\n"
+            f"  P95:        +{ref['bps_p95']:.1f}%  = +${ref['bps_p95']/100*w_example*100:,.0f}/contract\n"
+            f"  P75:        +{ref['bps_p75']:.1f}%  = +${ref['bps_p75']/100*w_example*100:,.0f}/contract\n"
+            f"  Median:     +{ref['bps_median']:.1f}%  = +${ref['bps_median']/100*w_example*100:,.0f}/contract\n"
+            f"  Avg win:    +{ref['bps_avg_win']:.1f}%  = +${ref['bps_avg_win']/100*w_example*100:,.0f}/contract\n"
+            f"  P25:        {ref['bps_p25']:+.1f}%\n"
+            f"  Avg loss:   {ref['bps_avg_loss']:.1f}%  = ${ref['bps_avg_loss']/100*w_example*100:,.0f}/contract\n"
+            f"  P5:         {ref['bps_p5']:.1f}%   = ${ref['bps_p5']/100*w_example*100:,.0f}/contract\n"
+            f"\n"
+            f"<b>vs equity baseline</b>\n"
+            f"  Equity win rate: {ref['eq_win_rate']:.0f}%  EV: +{ref['eq_ev']:.2f}%\n"
+            f"  Spread win rate: {ref['bps_win_rate']:.0f}%  (+{ref['bps_win_rate']-ref['eq_win_rate']:.0f}pp higher)\n"
+            f"\n"
+            f"<b>Other strategies on same signal</b>\n"
+            f"  Bull Call Spread: {ref['bcs_win_rate']:.0f}% win  EV +{ref['bcs_ev']:.1f}%\n"
+            f"  Long ATM Call:    {ref['lc_win_rate']:.0f}% win  EV {ref['lc_ev']:+.2f}%"
+            + (f"  ❌ negative EV — avoid" if ref['lc_ev'] < 0 else "")
+        )
+        parts.append(msg)
     return parts
 
 
 def handle_optlog_command(n: int = 10) -> list[str]:
-    """
-    /optlog [n] — show last n logged option signals.
-    """
+    """/optlog [n] — show last n logged option signals."""
     if not LOG_PATH.exists():
         return ["📭 No option signals logged yet."]
     try:
@@ -680,16 +746,15 @@ def handle_optlog_command(n: int = 10) -> list[str]:
         return ["📭 No option signals logged yet."]
 
     recent = log[-n:][::-1]
-    lines = [f"📋 <b>Last {min(n, len(recent))} Options Signals</b>\n━━━━━━━━━━━━━━━━━━━━━━━━"]
+    lines  = [f"📋 <b>Last {len(recent)} Option Signals</b>\n━━━━━━━━━━━━━━━━━━━━━━━━"]
     for e in recent:
         lines.append(
             f"\n<b>{e.get('date','?')}</b>  {e.get('ticker','?')}\n"
             f"  Pct: {e.get('pct','?'):.1f}th  |  IV: {e.get('iv','?'):.1f}%\n"
-            f"  Spot: ${e.get('spot','?'):.2f}  |  Setup: Sell ${e.get('K_sell','?')} / Buy ${e.get('K_buy','?')}\n"
-            f"  Credit: ${e.get('credit','?'):.2f}  Width: ${e.get('width','?')}  "
-            f"Max loss: ${e.get('max_loss','?'):.2f}\n"
-            f"  Expiry: {e.get('expiry','?')}  DTE: {e.get('dte','?')}\n"
-            f"  Regime: {e.get('regime','?')}"
+            f"  Spot: ${e.get('spot','?'):.2f}  |  Sell ${e.get('K_sell','?')} / Buy ${e.get('K_buy','?')}\n"
+            f"  Credit: ${e.get('credit','?'):.2f}  |  Width: ${e.get('width','?')}  |  "
+            f"Max loss: ${e.get('max_loss','?'):.2f}/sh\n"
+            f"  Expiry: {e.get('expiry','?')} ({e.get('dte','?')} DTE)  |  {e.get('regime','?')}"
         )
     lines.append(f"\n<i>Full log: docs/OPTIONS_SIGNAL_LOG.md</i>")
     return ["\n".join(lines)]
