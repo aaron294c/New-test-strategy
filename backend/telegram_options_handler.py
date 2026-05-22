@@ -266,7 +266,12 @@ def _fmt_options_result(ticker: str, pct: float, spot: float,
         f"Equity win rate baseline: {ref['eq_win_rate']:.0f}%  EV: +{ref['eq_ev']:.2f}%"
     )
 
-    # ── MSG 2: Exact spread setup ──────────────────────────────────────────────
+    # ── MSG 2: Exact spread setup + live P&L guide ────────────────────────────
+    take_profit_val  = cr * 0.50          # spread value at 50% profit
+    stop_loss_val    = cr * 2.00          # spread value at 2× credit loss
+    take_profit_pnl  = (cr - take_profit_val) * 100   # dollar profit at TP
+    stop_loss_pnl    = (cr - stop_loss_val) * 100      # dollar loss at SL (negative)
+
     m2 = (
         f"🐂 <b>BULL PUT SPREAD SETUP — {ticker}</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -277,16 +282,25 @@ def _fmt_options_result(ticker: str, pct: float, spot: float,
         f"({(spread['K_sell']/spot - 1)*100:+.1f}% from spot)\n"
         f"LEG 2 → BUY  put  <code>${spread['K_buy']}</code>  "
         f"({(spread['K_buy']/spot - 1)*100:+.1f}% from spot)\n"
-        f"Width:             <code>${spread['width']}</code>\n"
+        f"Width:             <code>${spread['width']}</code>  "
+        f"(collateral locked: ${spread['max_loss']*100:.0f})\n"
         f"\n"
-        f"Credit target:     <b>~${cr:.2f}</b>  ({spread['credit_pct_width']:.1f}% of width)\n"
-        f"Min acceptable:    ${spread['width']*0.20:.2f}  (20% of width)\n"
-        f"{'✅ Credit OK — proceed' if spread['credit_pct_width'] >= 20 else '⚠️ Credit thin — check live chain'}\n"
+        f"<b>Credit received:   ${cr:.2f}/share = ${cr*100:.0f} total</b>\n"
+        f"This lands in your account when you open the trade.\n"
+        f"{'✅ Credit OK' if spread['credit_pct_width'] >= 20 else '⚠️ Credit thin — check live chain'}"
+        f"  ({spread['credit_pct_width']:.1f}% of width, need 20%+)\n"
         f"\n"
-        f"Breakeven at expiry:  <code>${spread['breakeven']:.2f}</code>  "
-        f"({spread['breakeven_pct_from_spot']:+.1f}% from spot)\n"
-        f"Short put delta:      {spread['delta_short']:.3f}  "
-        f"(prob ITM at expiry ≈ {abs(spread['delta_short'])*100:.0f}%)"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📋 <b>DAILY CHECK — look at spread ask price in broker</b>\n"
+        f"\n"
+        f"Spread below <b>${take_profit_val:.2f}</b>?  → CLOSE  → you keep <b>+${take_profit_pnl:.0f}</b>\n"
+        f"Spread above <b>${stop_loss_val:.2f}</b>?  → CLOSE  → you lose <b>-${abs(stop_loss_pnl):.0f}</b>\n"
+        f"In between ${take_profit_val:.2f}–${stop_loss_val:.2f}?  → Do nothing, trade working\n"
+        f"Friday Day 5?  → CLOSE at 3:45 PM ET no matter what\n"
+        f"\n"
+        f"Stock above ${spread['K_sell']} at expiry?  → Let expire, keep full ${cr*100:.0f}\n"
+        f"Breakeven:  <code>${spread['breakeven']:.2f}</code>  "
+        f"({spread['breakeven_pct_from_spot']:+.1f}% from today's spot)"
     )
 
     # ── MSG 3: Expected outcomes ───────────────────────────────────────────────
