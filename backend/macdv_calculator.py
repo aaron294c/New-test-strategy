@@ -345,8 +345,8 @@ SWING_FRAMEWORK_TICKERS = [
     'AMD', 'MU', 'INTC', 'ASML', 'SMH', 'SOXX', 'SMCI', 'TSM',
     # Software / cloud
     'ORCL', 'NFLX',
-    # Consumer / retail
-    'WMT', 'COST', 'MCD',
+    # Consumer / retail / staples
+    'WMT', 'COST', 'MCD', 'PG',
     # Healthcare / pharma
     'UNH', 'LLY', 'JNJ',
     # Financials
