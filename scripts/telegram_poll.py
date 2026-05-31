@@ -80,7 +80,9 @@ _HELP_TEXT = (
     "Available commands:\n"
     "  /update       — all three snapshots\n"
     "  /macro        — macro dashboard\n"
-    "  /mr           — mean reversion table\n"
+    "  /mr           — mean reversion: live · non-overlapping · overlapping (buttons)\n"
+    "  /value        — fundamentals overview · /value &lt;TICKER&gt; for full history\n"
+    "  /sortino      — risk-adjusted (EV/downside) rankings\n"
     "  /momentum     — momentum table\n"
     "  /divergence   — 1st &amp; 2nd order divergence signals\n"
     "  /cov          — CoV red-bar scan\n"
@@ -125,13 +127,16 @@ def _get(method: str, params: dict | None = None) -> dict:
         return json.loads(r.read())
 
 
-def _send(chat_id: str, text: str, parse_mode: str = "HTML") -> None:
-    payload = json.dumps({
+def _send(chat_id: str, text: str, parse_mode: str = "HTML", reply_markup: dict | None = None) -> None:
+    body: dict = {
         "chat_id":     chat_id,
         "text":        text,
         "parse_mode":  parse_mode,
         "disable_web_page_preview": True,
-    }).encode()
+    }
+    if reply_markup is not None:
+        body["reply_markup"] = reply_markup
+    payload = json.dumps(body).encode()
     req = urllib.request.Request(
         _api_url("sendMessage"),
         data=payload,
@@ -143,6 +148,22 @@ def _send(chat_id: str, text: str, parse_mode: str = "HTML") -> None:
             json.loads(r.read())
     except Exception as exc:
         print(f"[poll] send error: {exc}")
+
+
+def _answer_callback(callback_id: str, text: str = "") -> None:
+    """Acknowledge a button tap so Telegram stops the loading spinner."""
+    payload = json.dumps({"callback_query_id": callback_id, "text": text}).encode()
+    req = urllib.request.Request(
+        _api_url("answerCallbackQuery"),
+        data=payload,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as r:
+            json.loads(r.read())
+    except Exception as exc:
+        print(f"[poll] answer_callback error: {exc}")
 
 
 # ── Command handling ──────────────────────────────────────────────────────────
@@ -243,6 +264,59 @@ def _handle(chat_id: str, raw: str) -> None:
             _send(chat_id, f"❌ /optbacktest error: {exc}")
         return
 
+    # ── Mean reversion chooser (live / non-overlapping / overlapping) ─────────
+    if cmd == "/mr":
+        remainder = raw.strip()[len("/mr"):].split("@")[0].strip().lower()
+        arg = remainder.split()[0] if remainder.split() else ""
+        try:
+            from telegram_mr_handler import (
+                MENU_TEXT, mr_menu_markup, handle_mr_nonoverlap, handle_mr_overlap,
+            )
+            if arg in ("nonoverlap", "nonoverlapping", "non-overlap", "no"):
+                for part in handle_mr_nonoverlap():
+                    _send(chat_id, part)
+            elif arg in ("overlap", "overlapping", "dca"):
+                for part in handle_mr_overlap():
+                    _send(chat_id, part)
+            elif arg in ("live", "oversold"):
+                _send(chat_id, "⏳ Fetching <b>live oversold table</b>…")
+                from telegram_delivery import _deliver
+                _deliver(chat_id, "mr")
+            else:
+                _send(chat_id, MENU_TEXT, reply_markup=mr_menu_markup())
+        except Exception as exc:
+            _send(chat_id, f"❌ /mr error: {exc}")
+            import traceback; print(traceback.format_exc())
+        return
+
+    # ── Fundamentals / valuation ──────────────────────────────────────────────
+    if cmd == "/value":
+        remainder = raw.strip()[len("/value"):].split("@")[0].strip()
+        arg = remainder.split()[0] if remainder.split() else ""
+        if arg:
+            _send(chat_id, f"⏳ Fetching <b>{arg.upper()}</b> fundamentals…")
+        try:
+            from telegram_value_handler import handle_value_command
+            for part in handle_value_command(arg):
+                _send(chat_id, part)
+        except Exception as exc:
+            _send(chat_id, f"❌ /value error: {exc}")
+            import traceback; print(traceback.format_exc())
+        return
+
+    # ── Sortino risk-adjusted rankings ────────────────────────────────────────
+    if cmd == "/sortino":
+        try:
+            from telegram_sortino_handler import handle_sortino_cov, sortino_menu_markup
+            parts = handle_sortino_cov()
+            for part in parts[:-1]:
+                _send(chat_id, part)
+            _send(chat_id, parts[-1], reply_markup=sortino_menu_markup("cov"))
+        except Exception as exc:
+            _send(chat_id, f"❌ /sortino error: {exc}")
+            import traceback; print(traceback.format_exc())
+        return
+
     text = cmd  # keep rest of handler using 'text' variable
     if text not in _COMMANDS:
         return  # ignore unknown messages / non-commands
@@ -258,6 +332,41 @@ def _handle(chat_id: str, raw: str) -> None:
     except Exception as exc:
         _send(chat_id, f"❌ Error: {exc}")
         print(f"[poll] delivery error: {exc}")
+
+
+def _handle_callback(chat_id: str, data: str, callback_id: str) -> None:
+    """Dispatch an inline-button tap (callback_query)."""
+    _answer_callback(callback_id)
+    print(f"[poll] callback: {data!r}")
+    try:
+        if data == "mr:live":
+            _send(chat_id, "⏳ Fetching <b>live oversold table</b>…")
+            from telegram_delivery import _deliver
+            _deliver(chat_id, "mr")
+            return
+        if data == "mr:nonoverlap":
+            from telegram_mr_handler import handle_mr_nonoverlap
+            for part in handle_mr_nonoverlap():
+                _send(chat_id, part)
+            return
+        if data == "mr:overlap":
+            from telegram_mr_handler import handle_mr_overlap
+            for part in handle_mr_overlap():
+                _send(chat_id, part)
+            return
+        if data in ("sortino:cov", "sortino:nocov"):
+            from telegram_sortino_handler import (
+                handle_sortino_cov, handle_sortino_nocov, sortino_menu_markup,
+            )
+            active = "cov" if data == "sortino:cov" else "nocov"
+            parts = handle_sortino_cov() if active == "cov" else handle_sortino_nocov()
+            for part in parts[:-1]:
+                _send(chat_id, part)
+            _send(chat_id, parts[-1], reply_markup=sortino_menu_markup(active))
+            return
+    except Exception as exc:
+        _send(chat_id, f"❌ Button error: {exc}")
+        import traceback; print(traceback.format_exc())
 
 
 # ── Main polling loop ─────────────────────────────────────────────────────────
@@ -285,7 +394,7 @@ def main() -> None:
 
     while True:
         try:
-            params: dict = {"timeout": 30, "allowed_updates": ["message"]}
+            params: dict = {"timeout": 30, "allowed_updates": ["message", "callback_query"]}
             if offset is not None:
                 params["offset"] = offset
 
@@ -294,6 +403,15 @@ def main() -> None:
 
             for update in updates:
                 offset = update["update_id"] + 1
+
+                # ── Inline-button taps ────────────────────────────────────────
+                cb = update.get("callback_query")
+                if cb:
+                    cb_chat = ((cb.get("message") or {}).get("chat") or {})
+                    if str(cb_chat.get("id", "")) != _CHAT_ID:
+                        continue
+                    _handle_callback(_CHAT_ID, cb.get("data", ""), cb.get("id", ""))
+                    continue
 
                 message = update.get("message") or {}
                 chat    = message.get("chat") or {}

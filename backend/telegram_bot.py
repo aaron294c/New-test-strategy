@@ -149,7 +149,9 @@ def set_bot_commands() -> bool:
     commands = [
         {"command": "update",        "description": "Full snapshot: macro + mean reversion + momentum + CoV"},
         {"command": "macro",         "description": "Macro dashboard (indices, bonds, FX, commodities)"},
-        {"command": "mr",            "description": "Mean reversion table (oversold stocks ≤35th %ile)"},
+        {"command": "mr",            "description": "Mean reversion — live · non-overlapping · overlapping (buttons)"},
+        {"command": "value",         "description": "Fundamentals: ROE/ROIC/EPS/P/E/book/debt — overview or /value <TICKER> for 2/5/7/10yr history"},
+        {"command": "sortino",       "description": "Risk-adjusted rankings — EV ÷ downside deviation (DCA-cluster, D5)"},
         {"command": "momentum",      "description": "Momentum table (MACD-V leaders and laggards)"},
         {"command": "divergence",    "description": "1st & 2nd order divergence/dislocation signals"},
         {"command": "cov",           "description": "CoV red-bar scan (Fisher-z ≤ −1.3) with RSI-MA context"},
