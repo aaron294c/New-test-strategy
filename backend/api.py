@@ -94,11 +94,14 @@ def _telegram_poll_loop() -> None:
     except Exception as exc:
         print(f"[poll] deleteWebhook warning: {exc}")
 
-    def _send(text: str) -> None:
-        payload = json.dumps({
+    def _send(text: str, reply_markup: dict | None = None) -> None:
+        body_payload: dict = {
             "chat_id": chat_id, "text": text,
             "parse_mode": "HTML", "disable_web_page_preview": True,
-        }).encode()
+        }
+        if reply_markup is not None:
+            body_payload["reply_markup"] = reply_markup
+        payload = json.dumps(body_payload).encode()
         req = urllib.request.Request(
             f"{base}/sendMessage", data=payload,
             headers={"Content-Type": "application/json"}, method="POST",
@@ -116,10 +119,55 @@ def _telegram_poll_loop() -> None:
         except Exception as exc:
             print(f"[poll] send error: {exc}")
 
+    def _answer_callback(callback_id: str, text: str = "") -> None:
+        """Acknowledge an inline-button tap so Telegram stops the spinner."""
+        payload = json.dumps({"callback_query_id": callback_id, "text": text}).encode()
+        req = urllib.request.Request(
+            f"{base}/answerCallbackQuery", data=payload,
+            headers={"Content-Type": "application/json"}, method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                json.loads(r.read())
+        except Exception as exc:
+            print(f"[poll] answer_callback error: {exc}")
+
+    def _handle_callback(data: str, callback_id: str) -> None:
+        """Dispatch an inline-button tap (callback_query)."""
+        _answer_callback(callback_id)
+        print(f"[poll] callback: {data!r}")
+        try:
+            if data == "mr:live":
+                _send("⏳ Fetching <b>live oversold table</b>…")
+                threading.Thread(
+                    target=_run_delivery_simple, args=(chat_id, "mr"), daemon=True,
+                ).start()
+            elif data == "mr:nonoverlap":
+                from telegram_mr_handler import handle_mr_nonoverlap
+                for part in handle_mr_nonoverlap():
+                    _send(part)
+            elif data == "mr:overlap":
+                from telegram_mr_handler import handle_mr_overlap
+                for part in handle_mr_overlap():
+                    _send(part)
+            elif data in ("sortino:cov", "sortino:nocov"):
+                from telegram_sortino_handler import (
+                    handle_sortino_cov, handle_sortino_nocov, sortino_menu_markup,
+                )
+                active = "cov" if data == "sortino:cov" else "nocov"
+                parts = handle_sortino_cov() if active == "cov" else handle_sortino_nocov()
+                for part in parts[:-1]:
+                    _send(part)
+                _send(parts[-1], reply_markup=sortino_menu_markup(active))
+        except Exception as exc:
+            import traceback
+            print(f"[poll] callback error: {traceback.format_exc()}")
+            _send(f"❌ Button error: {exc}")
+
     COMMANDS = {
         "/update":          "all",
         "/macro":           "macro",
-        "/mr":              "mr",
+        # NOTE: /mr is handled by a dedicated branch (live / non-overlap / overlap chooser)
         "/momentum":        "momentum",
         "/divergence":      "divergence",
         "/cov":             "cov",
@@ -147,12 +195,22 @@ def _telegram_poll_loop() -> None:
 
     while True:
         try:
-            params: dict = {"timeout": 30, "allowed_updates": ["message"]}
+            params: dict = {"timeout": 30, "allowed_updates": ["message", "callback_query"]}
             if offset is not None:
                 params["offset"] = offset
 
             for update in _get("getUpdates", params).get("result", []):
                 offset = update["update_id"] + 1
+
+                # ── Inline-button taps ────────────────────────────────────────
+                cb = update.get("callback_query")
+                if cb:
+                    cb_chat = ((cb.get("message") or {}).get("chat") or {})
+                    if str(cb_chat.get("id", "")) != chat_id:
+                        continue
+                    _handle_callback(cb.get("data", ""), cb.get("id", ""))
+                    continue
+
                 msg  = update.get("message") or {}
                 chat = msg.get("chat") or {}
                 text = (msg.get("text") or "").strip()
@@ -244,6 +302,56 @@ def _telegram_poll_loop() -> None:
                             _send(part)
                     except Exception as exc:
                         _send(f"❌ /optbacktest error: {exc}")
+                elif cmd == "/mr":
+                    arg = text.lower()[len("/mr"):].strip().split("@")[0].strip()
+                    arg = arg.split()[0] if arg.split() else ""
+                    try:
+                        if arg in ("nonoverlap", "nonoverlapping", "non-overlap", "no"):
+                            from telegram_mr_handler import handle_mr_nonoverlap
+                            for part in handle_mr_nonoverlap():
+                                _send(part)
+                        elif arg in ("overlap", "overlapping", "dca"):
+                            from telegram_mr_handler import handle_mr_overlap
+                            for part in handle_mr_overlap():
+                                _send(part)
+                        elif arg in ("live", "oversold"):
+                            _send("⏳ Fetching <b>live oversold table</b>…")
+                            threading.Thread(
+                                target=_run_delivery_simple, args=(chat_id, "mr"), daemon=True,
+                            ).start()
+                        else:
+                            from telegram_mr_handler import MENU_TEXT, mr_menu_markup
+                            _send(MENU_TEXT, reply_markup=mr_menu_markup())
+                    except Exception as exc:
+                        import traceback
+                        print(f"[poll] /mr error: {traceback.format_exc()}")
+                        _send(f"❌ /mr error: {exc}")
+                elif cmd == "/value":
+                    arg = text[len("/value"):].strip().split("@")[0].strip()
+                    arg = arg.split()[0] if arg.split() else ""
+                    if arg:
+                        _send(f"⏳ Fetching <b>{arg.upper()}</b> fundamentals…")
+                    def _run_value(a=arg):
+                        try:
+                            from telegram_value_handler import handle_value_command
+                            for part in handle_value_command(a):
+                                _send(part)
+                        except Exception as exc:
+                            import traceback
+                            print(f"[poll] /value error: {traceback.format_exc()}")
+                            _send(f"❌ /value error: {exc}")
+                    threading.Thread(target=_run_value, daemon=True, name="value").start()
+                elif cmd == "/sortino":
+                    try:
+                        from telegram_sortino_handler import handle_sortino_cov, sortino_menu_markup
+                        parts = handle_sortino_cov()
+                        for part in parts[:-1]:
+                            _send(part)
+                        _send(parts[-1], reply_markup=sortino_menu_markup("cov"))
+                    except Exception as exc:
+                        import traceback
+                        print(f"[poll] /sortino error: {traceback.format_exc()}")
+                        _send(f"❌ /sortino error: {exc}")
                 elif cmd in ("/rsima4h", "/cov4h"):
                     try:
                         from telegram_delivery import _deliver
