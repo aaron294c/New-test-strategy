@@ -16,9 +16,10 @@ See fundamentals_value.py for the source rationale and the ~5yr history limit.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
-from fundamentals_value import fetch_fundamentals, stock_universe, is_stock
+from fundamentals_value import fetch_fundamentals, fetch_all, stock_universe, is_stock
 
 _SNAPSHOT = Path(__file__).resolve().parent / "static_snapshots" / "fundamentals" / "value.json"
 
@@ -26,6 +27,8 @@ _SNAPSHOT = Path(__file__).resolve().parent / "static_snapshots" / "fundamentals
 _METRICS = [
     ("roe",         "ROE",        "pct"),
     ("roic",        "ROIC",       "pct"),
+    ("lfcf_margin", "LevFCF%",    "pct"),
+    ("ufcf_margin", "UnlvFCF%",   "pct"),
     ("ufcf_ps",     "uFCF/sh",    "cur"),
     ("fcf_ps",      "FCF/sh",     "cur"),
     ("pe",          "P/E",        "ratio"),
@@ -53,6 +56,64 @@ def _fmt(val, kind: str) -> str:
     return f"{v:.2f}"
 
 
+def _live_prices(tickers: list[str]) -> dict:
+    """
+    Fast batch fetch of current prices so P/E and other price-derived ratios
+    reflect the live market on every /value call — even when the heavy
+    statement data is served from the cached snapshot. Returns {ticker: price}.
+    """
+    out: dict[str, float] = {}
+    if not tickers:
+        return out
+    try:
+        import yfinance as yf
+        data = yf.download(
+            tickers, period="2d", interval="1d",
+            auto_adjust=False, progress=False, group_by="ticker", threads=True,
+        )
+    except Exception:
+        return out
+    for t in tickers:
+        try:
+            if len(tickers) == 1:
+                close = data["Close"]
+            else:
+                close = data[t]["Close"]
+            px = float(close.dropna().iloc[-1])
+            if px == px and px > 0:
+                out[t] = px
+        except Exception:
+            continue
+    return out
+
+
+def _overlay_live_prices(snap: dict) -> dict:
+    """
+    Recompute current P/E from a fresh price for each cached stock, in place.
+    P/E = live price / trailing EPS. Leaves history/averages untouched.
+    """
+    stocks = snap.get("stocks", {})
+    prices = _live_prices(list(stocks.keys()))
+    if not prices:
+        return snap
+    for tkr, rec in stocks.items():
+        px = prices.get(tkr)
+        if px is None:
+            continue
+        rec["price"] = px
+        rec["price_live"] = True
+        cur = rec.get("current") or {}
+        eps = cur.get("eps")
+        if eps not in (None, 0):
+            try:
+                cur["pe"] = px / float(eps)
+            except (TypeError, ValueError, ZeroDivisionError):
+                pass
+        rec["current"] = cur
+    snap["price_overlay_at"] = datetime.now(timezone.utc).isoformat()
+    return snap
+
+
 def _load_snapshot() -> dict | None:
     if not _SNAPSHOT.exists():
         return None
@@ -60,6 +121,27 @@ def _load_snapshot() -> dict | None:
         return json.loads(_SNAPSHOT.read_text())
     except Exception:
         return None
+
+
+def _save_snapshot(snap: dict) -> bool:
+    """Persist a freshly-fetched snapshot so subsequent /value reads are instant."""
+    try:
+        _SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
+        _SNAPSHOT.write_text(json.dumps(snap, indent=2, default=str))
+        return True
+    except Exception:
+        return False
+
+
+def refresh_overview() -> list[str]:
+    """Re-fetch fundamentals for the whole stock universe live, persist, render."""
+    snap = fetch_all()
+    _save_snapshot(snap)
+    ok = sum(1 for s in snap.get("stocks", {}).values() if not s.get("error"))
+    total = len(snap.get("stocks", {}))
+    msgs = _overview(snap)
+    msgs.append(f"✅ <b>/value</b> data refreshed live — {ok}/{total} stocks updated.")
+    return msgs
 
 
 def _resolve(arg: str, snap: dict | None) -> str | None:
@@ -179,33 +261,53 @@ def _card(rec: dict) -> str:
         f"Price {px}  ·  history {span} ({len(years)}y)\n"
     )
     note = (
-        "\n<i>ROE/ROIC are %; P/E, Debt/Eq, Debt/Ast are ratios; EPS, *FCF/sh, "
-        "Book/sh per share. Avg = mean over available window. 7y/10y show — when "
-        "Yahoo doesn't return that far back.</i>"
+        "\n<i>ROE/ROIC/LevFCF%/UnlvFCF% are %; LevFCF%=FCF÷revenue, "
+        "UnlvFCF%=(FCF+after-tax interest)÷revenue. P/E, Debt/Eq, Debt/Ast are "
+        "ratios; EPS, *FCF/sh, Book/sh per share. P/E uses live price. Avg = mean "
+        "over available window. 7y/10y show — when Yahoo doesn't return that far back.</i>"
     )
     return f"{hdr}<pre>{head}\n{'-' * len(head)}\n{body}</pre>{chg}{note}"
 
 
 # ── entrypoint ────────────────────────────────────────────────────────────────
 def handle_value_command(arg: str = "") -> list[str]:
-    snap = _load_snapshot()
     arg = (arg or "").strip()
+    arg_l = arg.lower()
 
-    if not arg:
+    # /value refresh  → re-fetch the whole universe live and persist the snapshot
+    if arg_l in ("refresh", "update", "rebuild", "fetch"):
+        return refresh_overview()
+
+    snap = _load_snapshot()
+
+    # /value (no arg) → cached overview (fast). /value live → fetch all live.
+    if not arg or arg_l == "live":
+        if arg_l == "live":
+            return refresh_overview()
         if not snap:
-            return ["⚠️ <b>/value</b> snapshot not built yet. Run "
-                    "<code>python scripts/compute_value_snapshot.py</code>, or try "
-                    "<b>/value AAPL</b> for a single live fetch."]
-        return _overview(snap)
+            # no snapshot yet — build it live this once
+            return refresh_overview()
+        # Overlay LIVE prices so P/E reflects the current market on every call;
+        # fundamentals (EPS, ROE, ROIC, book, debt) come from the cached statements.
+        snap = _overlay_live_prices(snap)
+        gen = snap.get("generated_at", "")[:10]
+        live = snap.get("price_overlay_at") is not None
+        msgs = _overview(snap)
+        tag = ("P/E uses <b>live prices</b>; fundamentals as of "
+               f"{gen}." if live else f"Cached {gen}.")
+        msgs[0] += (f"\n<i>{tag} <b>/value refresh</b> re-fetches all statements · "
+                    "<b>/value &lt;TICKER&gt;</b> is fully live.</i>")
+        return msgs
 
+    # /value <TICKER> → ALWAYS fetch live (single ticker is fast)
     tkr = _resolve(arg, snap)
     if not tkr:
         return [f"❓ <b>{arg}</b> isn't an individual stock in the universe. "
                 "Try /value for the list."]
 
-    if snap and tkr in snap.get("stocks", {}):
-        return [_card(snap["stocks"][tkr])]
-
-    # live fallback for a single ticker
     rec = fetch_fundamentals(tkr)
+    if rec.get("error") and snap and tkr in snap.get("stocks", {}):
+        # live fetch failed — fall back to cached card so the user still gets data
+        card = _card(snap["stocks"][tkr])
+        return [card + "\n<i>⚠️ live fetch failed; showing cached values.</i>"]
     return [_card(rec)]

@@ -142,6 +142,8 @@ def _period_metrics(col, income, balance, cashflow, price=None) -> dict:
     debt       = _at(_row(balance, "Total Debt"), col)
     invested   = _at(_row(balance, "Invested Capital"), col)
 
+    revenue    = _at(_row(income, "Total Revenue", "Operating Revenue"), col)
+
     ocf        = _at(_row(cashflow, "Operating Cash Flow", "Cash Flow From Continuing Operating Activities"), col)
     capex      = _at(_row(cashflow, "Capital Expenditure"), col)
     fcf        = _at(_row(cashflow, "Free Cash Flow"), col)
@@ -174,12 +176,15 @@ def _period_metrics(col, income, balance, cashflow, price=None) -> dict:
         "book_value":  _safe_div(equity, shares),
         "fcf_ps":      _safe_div(fcf, shares),
         "ufcf_ps":     _safe_div(ufcf, shares),
+        "lfcf_margin": _safe_div(fcf, revenue),     # levered FCF / revenue
+        "ufcf_margin": _safe_div(ufcf, revenue),    # unlevered FCF / revenue
         "debt_equity": _safe_div(debt, equity),
         "debt_assets": _safe_div(debt, assets),
     }
 
 
-_METRIC_KEYS = ["roe", "roic", "ufcf_ps", "fcf_ps", "pe", "eps", "book_value", "debt_equity", "debt_assets"]
+_METRIC_KEYS = ["roe", "roic", "ufcf_ps", "fcf_ps", "lfcf_margin", "ufcf_margin",
+                "pe", "eps", "book_value", "debt_equity", "debt_assets"]
 
 
 def _year_end_price(hist, year_ts) -> Optional[float]:

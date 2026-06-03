@@ -329,8 +329,12 @@ def _telegram_poll_loop() -> None:
                 elif cmd == "/value":
                     arg = text[len("/value"):].strip().split("@")[0].strip()
                     arg = arg.split()[0] if arg.split() else ""
-                    if arg:
-                        _send(f"⏳ Fetching <b>{arg.upper()}</b> fundamentals…")
+                    arg_l = arg.lower()
+                    if arg_l in ("refresh", "update", "rebuild", "fetch", "live"):
+                        _send("⏳ Re-fetching <b>all fundamentals live</b> (~34 stocks, "
+                              "may take a minute)…")
+                    elif arg:
+                        _send(f"⏳ Fetching <b>{arg.upper()}</b> fundamentals (live)…")
                     def _run_value(a=arg):
                         try:
                             from telegram_value_handler import handle_value_command
