@@ -226,6 +226,8 @@ def fetch_fundamentals(ticker: str) -> dict:
 
         rec["name"] = info.get("shortName") or info.get("longName") or ticker
         rec["currency"] = info.get("financialCurrency") or info.get("currency") or "USD"
+        rec["price_currency"] = info.get("currency") or "USD"  # marketCap/price denom
+        rec["market_cap"] = _num(info.get("marketCap"))
         price = _num(info.get("currentPrice")) or _num(info.get("regularMarketPrice"))
 
         income = _retry_df(lambda: t.financials)
@@ -316,6 +318,12 @@ def fetch_fundamentals(ticker: str) -> dict:
             "averages": averages,
             "as_of": as_of,
         })
+        # Normalise market cap to USD so ranking is apples-to-apples across
+        # KRW (005930.KS, 000660.KS) / TWD (TSM) / USD listings.
+        mc = rec.get("market_cap")
+        if mc is not None:
+            rec["market_cap_usd"] = mc * _usd_rate(rec.get("price_currency") or "USD")
+
         if not years and current.get("pe") is None and current.get("roe") is None:
             rec["error"] = "no fundamental data returned"
         return rec
@@ -324,12 +332,33 @@ def fetch_fundamentals(ticker: str) -> dict:
         return rec
 
 
+_FX_CACHE: dict[str, float] = {"USD": 1.0}
+
+
+def _usd_rate(currency: str) -> float:
+    """How many USD per 1 unit of `currency` (e.g. KRW→~0.00073). 1.0 on failure."""
+    ccy = (currency or "USD").upper()
+    if ccy in _FX_CACHE:
+        return _FX_CACHE[ccy]
+    rate = 1.0
+    try:
+        h = yf.Ticker(f"{ccy}USD=X").history(period="5d")
+        if h is not None and not getattr(h, "empty", True):
+            r = _num(h["Close"].dropna().iloc[-1])
+            if r and r > 0:
+                rate = r
+    except Exception:
+        rate = 1.0
+    _FX_CACHE[ccy] = rate
+    return rate
+
+
 def fetch_all(tickers: Optional[list[str]] = None) -> dict:
     """Fetch fundamentals for the stock universe; returns a snapshot dict."""
     tickers = tickers or stock_universe()
     stocks = {}
     for t in tickers:
-        stocks[t] = fetch_fundamentals(t)
+        stocks[t] = fetch_fundamentals(t)   # market_cap_usd normalised inside
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source": "yfinance",

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-03T21:04:47.089177+00:00",
+  "generated_at": "2026-06-03T21:38:14.318038+00:00",
   "source": "yfinance",
   "universe": [
     "AAPL",
@@ -43,6 +43,8 @@
       "name": "Apple Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 4556898959360.0,
       "price": 310.26,
       "current": {
         "roe": 1.4147099,
@@ -228,13 +230,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 4556898959360.0
     },
     "MSFT": {
       "ticker": "MSFT",
       "name": "Microsoft Corporation",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 3174467371008.0,
       "price": 427.34,
       "current": {
         "roe": 0.34013999,
@@ -406,13 +411,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 3174467371008.0
     },
     "NVDA": {
       "ticker": "NVDA",
       "name": "NVIDIA Corporation",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 5201459675136.0,
       "price": 214.75,
       "current": {
         "roe": 1.14288,
@@ -598,13 +606,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 5201459675136.0
     },
     "GOOGL": {
       "ticker": "GOOGL",
       "name": "Alphabet Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 4349323116544.0,
       "price": 358.99,
       "current": {
         "roe": 0.38884997,
@@ -789,13 +800,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 4349323116544.0
     },
     "AMZN": {
       "ticker": "AMZN",
       "name": "Amazon.com, Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 2689492582400.0,
       "price": 250.02,
       "current": {
         "roe": 0.24285,
@@ -967,13 +981,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 2689492582400.0
     },
     "META": {
       "ticker": "META",
       "name": "Meta Platforms, Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 1581386956800.0,
       "price": 622.98,
       "current": {
         "roe": 0.32930002,
@@ -1172,13 +1189,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 1581386956800.0
     },
     "TSLA": {
       "ticker": "TSLA",
       "name": "Tesla, Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 1591300194304.0,
       "price": 423.7,
       "current": {
         "roe": 0.04901,
@@ -1377,13 +1397,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 1591300194304.0
     },
     "AVGO": {
       "ticker": "AVGO",
       "name": "Broadcom Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 2268995256320.0,
       "price": 479.23,
       "current": {
         "roe": 0.33370999,
@@ -1582,13 +1605,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 2268995256320.0
     },
     "AMD": {
       "ticker": "AMD",
       "name": "Advanced Micro Devices, Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 884633436160.0,
       "price": 542.52,
       "current": {
         "roe": 0.08063,
@@ -1787,13 +1813,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 884633436160.0
     },
     "MU": {
       "ticker": "MU",
       "name": "Micron Technology, Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 1217467777024.0,
       "price": 1079.57,
       "current": {
         "roe": 0.39823002,
@@ -1979,13 +2008,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 1217467777024.0
     },
     "INTC": {
       "ticker": "INTC",
       "name": "Intel Corporation",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 566480470016.0,
       "price": 112.71,
       "current": {
         "roe": -0.02911,
@@ -2157,13 +2189,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 566480470016.0
     },
     "ASML": {
       "ticker": "ASML",
       "name": "ASML Holding N.V. - New York Re",
       "error": null,
       "currency": "EUR",
+      "price_currency": "USD",
+      "market_cap": 665369640960.0,
       "price": 1726.36,
       "current": {
         "roe": 0.52236,
@@ -2362,13 +2397,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 665369640960.0
     },
     "SMCI": {
       "ticker": "SMCI",
       "name": "Super Micro Computer, Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 28519264256.0,
       "price": 47.42,
       "current": {
         "roe": 0.17877,
@@ -2553,13 +2591,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 28519264256.0
     },
     "TSM": {
       "ticker": "TSM",
       "name": "Taiwan Semiconductor Manufactur",
       "error": null,
       "currency": "TWD",
+      "price_currency": "USD",
+      "market_cap": 2264881430528.0,
       "price": 436.69,
       "current": {
         "roe": 0.3621,
@@ -2758,13 +2799,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 2264881430528.0
     },
     "ORCL": {
       "ticker": "ORCL",
       "name": "Oracle Corporation",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 662439723008.0,
       "price": 230.33,
       "current": {
         "roe": 0.57572,
@@ -2949,13 +2993,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 662439723008.0
     },
     "NFLX": {
       "ticker": "NFLX",
       "name": "Netflix, Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 343264296960.0,
       "price": 81.52,
       "current": {
         "roe": 0.48494998,
@@ -3141,13 +3188,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 343264296960.0
     },
     "WMT": {
       "ticker": "WMT",
       "name": "Walmart Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 930219819008.0,
       "price": 116.89,
       "current": {
         "roe": 0.24132,
@@ -3346,13 +3396,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 930219819008.0
     },
     "COST": {
       "ticker": "COST",
       "name": "Costco Wholesale Corporation",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 426718330880.0,
       "price": 961.83,
       "current": {
         "roe": 0.29152,
@@ -3551,13 +3604,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 426718330880.0
     },
     "MCD": {
       "ticker": "MCD",
       "name": "McDonald's Corporation",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 194174156800.0,
       "price": 273.29,
       "current": {
         "roe": -4.783798882681564,
@@ -3729,13 +3785,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 194174156800.0
     },
     "PG": {
       "ticker": "PG",
       "name": "Procter & Gamble Company (The)",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 326446317568.0,
       "price": 140.19,
       "current": {
         "roe": 0.31112,
@@ -3920,13 +3979,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 326446317568.0
     },
     "UNH": {
       "ticker": "UNH",
       "name": "UnitedHealth Group Incorporated",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 342370418688.0,
       "price": 377.0,
       "current": {
         "roe": 0.121759996,
@@ -4125,13 +4187,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 342370418688.0
     },
     "LLY": {
       "ticker": "LLY",
       "name": "Eli Lilly and Company",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 961992785920.0,
       "price": 1078.78,
       "current": {
         "roe": 1.07459,
@@ -4330,13 +4395,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 961992785920.0
     },
     "JNJ": {
       "ticker": "JNJ",
       "name": "Johnson & Johnson",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 537387106304.0,
       "price": 223.24,
       "current": {
         "roe": 0.26416,
@@ -4535,13 +4603,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 537387106304.0
     },
     "JPM": {
       "ticker": "JPM",
       "name": "JP Morgan Chase & Co.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 806131007488.0,
       "price": 300.85,
       "current": {
         "roe": 0.16465001,
@@ -4726,13 +4797,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 806131007488.0
     },
     "BAC": {
       "ticker": "BAC",
       "name": "Bank of America Corporation",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 371861356544.0,
       "price": 52.4,
       "current": {
         "roe": 0.10644,
@@ -4931,13 +5005,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 371861356544.0
     },
     "BRK-B": {
       "ticker": "BRK-B",
       "name": "Berkshire Hathaway Inc. New",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 1025303576576.0,
       "price": 475.37,
       "current": {
         "roe": 0.10499,
@@ -5136,13 +5213,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 1025303576576.0
     },
     "V": {
       "ticker": "V",
       "name": "Visa Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 594104745984.0,
       "price": 312.4,
       "current": {
         "roe": 0.60349,
@@ -5314,13 +5394,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 594104745984.0
     },
     "CAT": {
       "ticker": "CAT",
       "name": "Caterpillar, Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 426591059968.0,
       "price": 926.18,
       "current": {
         "roe": 0.51331,
@@ -5519,13 +5602,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 426591059968.0
     },
     "XOM": {
       "ticker": "XOM",
       "name": "Exxon Mobil Corporation",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 632228806656.0,
       "price": 152.53,
       "current": {
         "roe": 0.09873,
@@ -5724,13 +5810,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 632228806656.0
     },
     "CVX": {
       "ticker": "CVX",
       "name": "Chevron Corporation",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 377826017280.0,
       "price": 189.71,
       "current": {
         "roe": 0.06638,
@@ -5902,13 +5991,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 377826017280.0
     },
     "OXY": {
       "ticker": "OXY",
       "name": "Occidental Petroleum Corporatio",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 59320012800.0,
       "price": 59.64,
       "current": {
         "roe": 0.04053,
@@ -6107,13 +6199,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 59320012800.0
     },
     "CSCO": {
       "ticker": "CSCO",
       "name": "Cisco Systems, Inc.",
       "error": null,
       "currency": "USD",
+      "price_currency": "USD",
+      "market_cap": 498591465472.0,
       "price": 126.5,
       "current": {
         "roe": 0.25229,
@@ -6285,13 +6380,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 498591465472.0
     },
     "005930.KS": {
       "ticker": "005930.KS",
       "name": "SamsungElec",
       "error": null,
       "currency": "KRW",
+      "price_currency": "KRW",
+      "market_cap": 2367246118682624.0,
       "price": 360500.0,
       "current": {
         "roe": 0.18855,
@@ -6476,13 +6574,16 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 1547158964773.875
     },
     "000660.KS": {
       "ticker": "000660.KS",
       "name": "SK hynix",
       "error": null,
       "currency": "KRW",
+      "price_currency": "KRW",
+      "market_cap": 1675257630949376.0,
       "price": 2360000.0,
       "current": {
         "roe": 0.61172,
@@ -6667,7 +6768,8 @@
         "5yr": null,
         "7yr": null,
         "10yr": null
-      }
+      },
+      "market_cap_usd": 1094896657163.625
     }
   }
 }

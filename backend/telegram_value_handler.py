@@ -100,6 +100,16 @@ def _overlay_live_prices(snap: dict) -> dict:
         px = prices.get(tkr)
         if px is None:
             continue
+        old_px = rec.get("price")
+        # scale market cap by the price move so the ranking stays current
+        if old_px:
+            try:
+                ratio = px / float(old_px)
+                for key in ("market_cap", "market_cap_usd"):
+                    if rec.get(key):
+                        rec[key] = float(rec[key]) * ratio
+            except (TypeError, ValueError, ZeroDivisionError):
+                pass
         rec["price"] = px
         rec["price_live"] = True
         cur = rec.get("current") or {}
@@ -161,17 +171,42 @@ def _resolve(arg: str, snap: dict | None) -> str | None:
 
 
 # ── overview ──────────────────────────────────────────────────────────────────
+def _fmt_mcap(mc) -> str:
+    """Market cap → compact $-units (T / B / M)."""
+    try:
+        v = float(mc)
+    except (TypeError, ValueError):
+        return "—"
+    if v <= 0:
+        return "—"
+    if v >= 1e12:
+        return f"{v / 1e12:.2f}T"
+    if v >= 1e9:
+        return f"{v / 1e9:.1f}B"
+    if v >= 1e6:
+        return f"{v / 1e6:.0f}M"
+    return f"{v:.0f}"
+
+
 def _overview(snap: dict) -> list[str]:
     stocks = snap.get("stocks", {})
     gen = snap.get("generated_at", "")[:10]
-    cols = ["Ticker", "P/E", "ROE", "ROIC", "EPS", "D/E"]
+    cols = ["Ticker", "MktCap", "P/E", "ROE", "ROIC", "EPS", "D/E"]
+
+    # Rank by USD-normalised market cap, descending; missing caps fall to the end.
+    def _mc(t):
+        s = stocks[t]
+        return s.get("market_cap_usd") or s.get("market_cap") or -1
+
+    order = sorted(stocks, key=_mc, reverse=True)
 
     rows = []
-    for tkr in sorted(stocks):
+    for tkr in order:
         rec = stocks[tkr]
         cur = rec.get("current", {}) or {}
         rows.append([
             tkr,
+            _fmt_mcap(rec.get("market_cap_usd") or rec.get("market_cap")),
             _fmt(cur.get("pe"), "ratio"),
             _fmt(cur.get("roe"), "pct"),
             _fmt(cur.get("roic"), "pct"),
@@ -189,10 +224,10 @@ def _overview(snap: dict) -> list[str]:
     head = fmt(cols)
     body = "\n".join(fmt(r) for r in rows)
     msg = (
-        f"<b>💰 Value — current ratios</b>  <i>(as of {gen})</i>\n"
+        f"<b>💰 Value — ranked by market cap (USD)</b>  <i>(as of {gen})</i>\n"
         f"<pre>{head}\n{'-' * len(head)}\n{body}</pre>\n"
-        "<i>Full history per stock: <b>/value &lt;TICKER&gt;</b> "
-        "(e.g. /value AAPL) — current vs 2/5/7/10yr + average.</i>"
+        "<i>MktCap in USD (FX-normalised). Full history per stock: "
+        "<b>/value &lt;TICKER&gt;</b> (e.g. /value AAPL).</i>"
     )
     return [msg]
 
