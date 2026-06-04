@@ -209,6 +209,22 @@ def _avg(vals) -> Optional[float]:
     return sum(nums) / len(nums)
 
 
+def _epoch_to_iso(ts) -> Optional[str]:
+    """Yahoo epoch-seconds (or datetime/Timestamp) → ISO date string, or None."""
+    if ts is None:
+        return None
+    try:
+        # numeric epoch seconds
+        if isinstance(ts, (int, float)) and not isinstance(ts, bool):
+            return datetime.fromtimestamp(float(ts), tz=timezone.utc).date().isoformat()
+        # pandas Timestamp / datetime
+        if hasattr(ts, "isoformat"):
+            return str(ts)[:10]
+    except (ValueError, OverflowError, OSError):
+        return None
+    return None
+
+
 def fetch_fundamentals(ticker: str) -> dict:
     """
     Fetch + compute the full valuation record for one stock.
@@ -229,6 +245,19 @@ def fetch_fundamentals(ticker: str) -> dict:
         rec["price_currency"] = info.get("currency") or "USD"  # marketCap/price denom
         rec["market_cap"] = _num(info.get("marketCap"))
         price = _num(info.get("currentPrice")) or _num(info.get("regularMarketPrice"))
+
+        # Earnings-cycle tracking so /value can detect when a fresh report lands.
+        # fetched_at      = when THIS record was pulled (staleness reference point);
+        # most_recent_quarter = period end of the last statement we have;
+        # next_earnings   = Yahoo's earnings date — note this flips to the *last*
+        #                   report once a company reports, so staleness is judged as
+        #                   "an earnings date falls between fetched_at and today".
+        rec["fetched_at"] = datetime.now(timezone.utc).date().isoformat()
+        rec["most_recent_quarter"] = _epoch_to_iso(info.get("mostRecentQuarter"))
+        rec["next_earnings"] = _epoch_to_iso(
+            info.get("earningsTimestamp")
+            or info.get("earningsTimestampStart")
+        )
 
         income = _retry_df(lambda: t.financials)
         balance = _retry_df(lambda: t.balance_sheet)

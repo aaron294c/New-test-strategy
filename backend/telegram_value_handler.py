@@ -154,6 +154,67 @@ def refresh_overview() -> list[str]:
     return msgs
 
 
+# Quarter ≈ 91 days; allow grace before flagging a missing report as stale.
+_STALE_DAYS = 100
+
+
+def _stale_tickers(snap: dict) -> list[str]:
+    """
+    Stocks whose earnings data is likely out of date — i.e. a report landed
+    AFTER we last fetched this record:
+      • an earnings date falls strictly between fetched_at and today
+        (Yahoo's earnings date flips to the last report once a company reports,
+        so a date newer than our fetch means a report we don't yet have), OR
+      • most_recent_quarter is older than ~100 days (fallback / very stale), OR
+      • the record errored, or lacks a fetched_at stamp entirely.
+    """
+    today = datetime.now(timezone.utc).date()
+    stale: list[str] = []
+    for tkr, rec in (snap.get("stocks") or {}).items():
+        if rec.get("error"):
+            stale.append(tkr)
+            continue
+        fetched = _parse_date(rec.get("fetched_at"))
+        if fetched is None:
+            stale.append(tkr)                      # pre-earnings-tracking record
+            continue
+        nxt = _parse_date(rec.get("next_earnings"))
+        mrq = _parse_date(rec.get("most_recent_quarter"))
+        # a report dated after our last fetch (and on/before today) is new data
+        if nxt is not None and fetched < nxt <= today:
+            stale.append(tkr)
+        elif mrq is not None and (today - mrq).days > _STALE_DAYS:
+            stale.append(tkr)
+    return stale
+
+
+def _parse_date(s):
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(str(s)[:10]).date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _auto_refresh_stale(snap: dict) -> tuple[dict, list[str]]:
+    """
+    Re-fetch only the stocks with stale earnings, merge into snap, persist.
+    Returns (snap, refreshed_tickers). Cheap when nothing is stale (no fetches).
+    """
+    stale = _stale_tickers(snap)
+    if not stale:
+        return snap, []
+    stocks = snap.setdefault("stocks", {})
+    for tkr in stale:
+        fresh = fetch_fundamentals(tkr)
+        if not fresh.get("error") or tkr not in stocks:
+            stocks[tkr] = fresh
+    snap["last_auto_refresh"] = datetime.now(timezone.utc).isoformat()
+    _save_snapshot(snap)
+    return snap, stale
+
+
 def _resolve(arg: str, snap: dict | None) -> str | None:
     """Map a user argument to a universe ticker."""
     a = (arg or "").strip().upper()
@@ -322,6 +383,9 @@ def handle_value_command(arg: str = "") -> list[str]:
         if not snap:
             # no snapshot yet — build it live this once
             return refresh_overview()
+        # Auto-pull NEW earnings: re-fetch only stocks whose report date has passed
+        # (or whose last quarter is >100d old). No-op/instant when nothing's new.
+        snap, refreshed = _auto_refresh_stale(snap)
         # Overlay LIVE prices so P/E reflects the current market on every call;
         # fundamentals (EPS, ROE, ROIC, book, debt) come from the cached statements.
         snap = _overlay_live_prices(snap)
@@ -330,7 +394,10 @@ def handle_value_command(arg: str = "") -> list[str]:
         msgs = _overview(snap)
         tag = ("P/E uses <b>live prices</b>; fundamentals as of "
                f"{gen}." if live else f"Cached {gen}.")
-        msgs[0] += (f"\n<i>{tag} <b>/value refresh</b> re-fetches all statements · "
+        earn = (f" 📊 Auto-updated {len(refreshed)} stock(s) with new earnings: "
+                f"{', '.join(refreshed[:8])}{'…' if len(refreshed) > 8 else ''}."
+                if refreshed else "")
+        msgs[0] += (f"\n<i>{tag}{earn} <b>/value refresh</b> re-fetches all · "
                     "<b>/value &lt;TICKER&gt;</b> is fully live.</i>")
         return msgs
 
