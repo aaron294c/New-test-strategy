@@ -378,6 +378,76 @@ def compute_live_swing_percentiles(swing_data: list[dict]) -> dict[str, dict]:
     return results
 
 
+def compute_live_ffd_values(tickers: list[str]) -> dict[str, dict]:
+    """
+    Compute live FFD-normalized (0-100) readings for a list of tickers.
+
+    Mirrors compute_live_swing_percentiles: resolves yfinance symbols, batch-
+    downloads 3 years of history (FFD's rolling Z_LEN=100 normalization needs
+    a stable window plus warmup — 3y comfortably covers it), then runs the
+    canonical FFD pipeline from ffd_indicator and takes the latest bar's
+    normalized 0-100 value as the live reading.
+
+    Returns {ticker: {"ffd": float|None, "price": float|None, "error": str|None}}
+    """
+    from ffd_indicator import build_fd_weights, compute_ffd_norm
+
+    ticker_to_yf: dict[str, str] = {t: resolve_yahoo_symbol(t) for t in tickers}
+    if not ticker_to_yf:
+        return {}
+
+    yf_symbols = list(set(ticker_to_yf.values()))
+
+    batch_closes: dict[str, pd.Series] = {}
+    try:
+        if len(yf_symbols) == 1:
+            raw = yf.download(yf_symbols[0], period="3y", auto_adjust=True, progress=False)
+            if not raw.empty and "Close" in raw.columns:
+                s = raw["Close"].dropna()
+                if s.index.duplicated().any():
+                    s = s[~s.index.duplicated(keep="last")]
+                if len(s) >= 30:
+                    batch_closes[yf_symbols[0]] = s
+        else:
+            raw = yf.download(
+                yf_symbols, period="3y", auto_adjust=True,
+                group_by="ticker", progress=False, threads=True,
+            )
+            for sym in yf_symbols:
+                try:
+                    s = raw[sym]["Close"].dropna()
+                    if s.index.duplicated().any():
+                        s = s[~s.index.duplicated(keep="last")]
+                    if len(s) >= 30:
+                        batch_closes[sym] = s
+                except Exception:
+                    pass
+    except Exception as exc:
+        print(f"[ffd_live] batch download error: {exc}")
+
+    fd_weights = build_fd_weights()
+    fd_warmup = len(fd_weights)
+
+    results: dict[str, dict] = {}
+    for ticker, yf_sym in ticker_to_yf.items():
+        close = batch_closes.get(yf_sym)
+        if close is None:
+            close = _fetch_close(yf_sym)
+        if close is None:
+            results[ticker] = {"ffd": None, "price": None, "error": "fetch failed"}
+            continue
+        try:
+            norm = compute_ffd_norm(close, fd_weights, fd_warmup)
+            valid = norm.dropna()
+            ffd_val = float(valid.iloc[-1]) if not valid.empty else None
+            price = float(close.iloc[-1])
+            results[ticker] = {"ffd": ffd_val, "price": price, "error": None}
+        except Exception as exc:
+            results[ticker] = {"ffd": None, "price": None, "error": str(exc)}
+
+    return results
+
+
 def _derive_macdv_trend_label(macdv_series: pd.Series) -> str:
     """Derive ACC/STR/FLAT/DECEL/CRASH from a MACD-V value series."""
     if len(macdv_series) < 6:

@@ -345,6 +345,18 @@ def _telegram_poll_loop() -> None:
                             print(f"[poll] /value error: {traceback.format_exc()}")
                             _send(f"❌ /value error: {exc}")
                     threading.Thread(target=_run_value, daemon=True, name="value").start()
+                elif cmd == "/ffd":
+                    _send("⏳ Fetching <b>live FFD readings</b> for 50 tickers (~30-60s)…")
+                    def _run_ffd():
+                        try:
+                            from telegram_ffd_handler import handle_ffd_command
+                            for part in handle_ffd_command(""):
+                                _send(part)
+                        except Exception as exc:
+                            import traceback
+                            print(f"[poll] /ffd error: {traceback.format_exc()}")
+                            _send(f"❌ /ffd error: {exc}")
+                    threading.Thread(target=_run_ffd, daemon=True, name="ffd").start()
                 elif cmd == "/sortino":
                     try:
                         from telegram_sortino_handler import handle_sortino_cov, sortino_menu_markup

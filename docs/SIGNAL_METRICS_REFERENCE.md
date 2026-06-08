@@ -769,8 +769,6 @@ taken when the extreme oversold level is reached — those events are simply rar
 - **Names appearing on both** the non-overlap top list *and* the DCA top list are the
   highest-conviction setups regardless of execution style.
 
----
-
 ## DCA-Cluster — Risk-Aware Rankings (D5)
 
 Same DCA-blended D5 setup as the section above, but ranked by **risk-aware**
@@ -1018,6 +1016,82 @@ higher-EV single-name (TSLA, ASML, AVGO) for a barbell of risk-adjusted edge and
 
 > Full per-ticker rows including all index names are in the *Full universe — sorted by EV*
 > tables earlier in this section.
+
+### FFD < 40 as a Confluence Gate — Effect on Sortino & Avg-Loss
+
+Layering **FFD < 40** (gate on the cluster's first trigger bar) onto the
+Signal-A DCA-cluster baseline above changes the *risk-adjusted* picture more
+than it changes raw EV. Tested across the "FFD<40 helps" cohort (18 names):
+
+| Metric | Result |
+|---|---|
+| **Sortino** (EV ÷ downside-dev) | Improves in **16/18 names (89%)** — mean ΔSortino = **+0.82** |
+| **Avg loss** (does it shrink / become less negative?) | Improves in only **11/18 (61%)** — mean ΔAvgLoss = **+0.27pp** (small) |
+| **Downside-deviation** (σ_dn — spread of losses) | Shrinks in **9/18 (50%)** — a coin flip |
+
+#### Baseline (Signal A cluster) vs +FFD<40 — selected names
+
+| Ticker | Baseline EV / AvgLoss / σ_dn / Sortino | + FFD<40 EV / AvgLoss / σ_dn / Sortino | ΔSortino |
+|---|---|---|---:|
+| **TSLA** | +4.21% / −5.79% / 4.56 / +0.92 | +6.19% / −5.00% / 3.49 / +1.77 | **+0.85** |
+| **AAPL** | +2.48% / −1.72% / 1.31 / +1.89 | +3.92% / −0.80% / 0.80 / +4.88 | **+2.99** |
+| **JNJ** | +1.15% / −1.53% / 1.08 / +1.07 | +1.47% / −2.16% / 0.30 / +4.84 | **+3.78** |
+| **LLY** | +1.98% / −2.28% / 2.25 / +0.88 | +2.92% / −0.68% / 0.72 / +4.03 | **+3.15** |
+| **^VIX** | −2.63% / −8.09% / 5.49 / −0.48 | −0.07% / −6.13% / 3.73 / −0.02 | +0.46 |
+| GOOGL | +1.36% / −2.83% / 3.58 / +0.38 | +1.31% / −3.15% / 4.11 / +0.32 | −0.06 |
+| XLI | +0.45% / −3.87% / 4.83 / +0.09 | +0.20% / −4.28% / 5.16 / +0.04 | −0.05 |
+
+**Read-out.** FFD<40 is a genuine *risk-adjusted-edge* filter — Sortino rises
+in roughly 9 of 10 names, sometimes 2–4× over (AAPL 1.89→4.88, JNJ 1.07→4.84,
+LLY 0.88→4.03). **TSLA is one of the cleanest "everything-improves" cases**:
+clusters drop 40→25, but EV jumps +4.21%→+6.19%, avg loss tightens
+−5.79%→−5.00%, downside-deviation shrinks 4.56→3.49, and Sortino nearly
+doubles (0.92→1.77) — every column moves the same direction.
+
+That said, the Sortino gain does **not** mainly come from shrinking the
+typical loss — avg-loss only improves ~60% of the time and by a small margin
+(+0.27pp on losses that typically run −1% to −8%). It's driven mainly by
+(a) **EV rising** (the numerator) and (b) **the spread of losses tightening**
+(σ_dn shrinking) even when their *average* doesn't. JNJ is the cleanest
+illustration of (b): avg loss got *worse* (−1.53%→−2.16%) yet σ_dn collapsed
+1.08→0.30 — losses became so uniform that Sortino still quadrupled.
+GOOGL and XLI — already flagged as the two weakest names once tested across
+3 independent trade-counting regimes — are also the *only two* where Sortino
+**worsens** here, reinforcing that they're noise rather than genuine FFD<40
+beneficiaries.
+
+> Downside-dev / Sortino formula = the codebase's own canonical implementation
+> (`scripts/ffd_universe_overlapping_backtest.py:138-141`): downside-dev =
+> stdev(losing-cluster returns only, ddof=1); Sortino = EV ÷ \|downside-dev\|.
+
+### Live `/ffd` Telegram Command
+
+The research above is now operationalized as a **live feature**: sending
+`/ffd` in Telegram fetches *current* FFD-normalized readings (0–100 scale)
+across all 50 `SWING_FRAMEWORK_TICKERS`, ranked **lowest → highest** so the
+most "oversold-regime" names — closest to / below the 30–40 confluence zone —
+surface first.
+
+- **Data**: live yfinance fetch (`compute_live_ffd_values` in
+  `backend/macro_rsi_calculator.py`, 3y daily history per ticker,
+  batch-downloaded, normalized via the canonical `backend/ffd_indicator.py`
+  pipeline) — no caching, since FFD describes the *current* regime.
+- **Ranking**: ascending by FFD value; rows below the confluence threshold
+  (`FFD_CONFLUENCE_MAX = 40`) carry a ⬇ flag.
+- **⭐ cohort flag**: a star marks the **16 names** where this session's
+  cross-methodology testing (3 independent trade-counting regimes —
+  non-overlap, overlapping/ASAP, DCA-cluster) showed FFD<40 reliably raises
+  EV / Sortino on top of Signal A — i.e. the same 16-name refined cohort from
+  the "FFD < 40 as a Confluence Gate" section above (GOOGL and XLI excluded
+  as noise): `TSLA, AAPL, WMT, ORCL, NQ=F, UNH, LLY, BRK-B, PG, V, MSFT, ES=F,
+  OXY, JNJ, AVGO, ^VIX`. The star appears **only** on those 16 — for every
+  other ticker a low live FFD reading has not been validated as edge-additive.
+- **Placement**: registered in the bot's command menu directly after `/mr`
+  (`backend/telegram_bot.py:set_bot_commands`) and dispatched via a dedicated
+  `elif cmd == "/ffd":` branch in `backend/api.py`'s `_telegram_poll_loop`
+  (the live-fetch is run in a background thread with an immediate "⏳
+  Fetching…" ack, matching the `/value` pattern, so the poll loop never
+  blocks on the ~30-60s 50-ticker fetch).
 
 ---
 

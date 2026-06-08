@@ -540,6 +540,7 @@ def get_help_message() -> str:
         "<b>/update</b>       —  Full snapshot: macro + mean reversion + momentum + CoV\n"
         "<b>/macro</b>        —  Macro dashboard (indices, bonds, FX, commodities)\n"
         "<b>/mr</b>           —  Mean reversion: live · non-overlapping · overlapping (buttons)\n"
+        "<b>/ffd</b>          —  Live FFD readings (0–100), ranked · ⭐ = proven FFD&lt;40 edge names\n"
         "<b>/value</b>        —  Fundamentals (ROE/ROIC/EPS/P/E/book/debt) · /value &lt;TICKER&gt; for history\n"
         "<b>/sortino</b>      —  Risk-adjusted rankings (EV ÷ downside deviation)\n"
         "<b>/momentum</b>     —  Momentum table (MACD-V leaders and laggards)\n"
